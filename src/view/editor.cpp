@@ -9,7 +9,6 @@
 
 #include <gr-base/script/default.hpp>
 
-#include <gr-base/managers/bvhtreemanager.hpp>
 #include <gr-base/managers/worldmanager.hpp>
 #include <gr-base/managers/eventManager.hpp>
 
@@ -58,7 +57,6 @@
 #include <gr-base/core/thread/threadpool.hpp>
 
 #include <gr-base/managers/assetsManager.hpp>
-#include <gr-base/managers/octreemanager.hpp>
 #include <gr-base/managers/sceneManager.hpp>
 
 #include <gr-base/core/console.hpp>
