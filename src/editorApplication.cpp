@@ -2,11 +2,10 @@
 
 #include "manager/viewManager.hpp"
 
+#include "view/imguiRenderer.hpp"
 #include "view/projectMenu.hpp"
 #include "view/checkupdate.hpp"
 #include "view/editor.hpp"
-
-#include "view/ImGuiRender.h"
 
 #include <gr-base/core/file/file.hpp>
 
@@ -25,7 +24,7 @@ void EditorApplication::initialize()
 {
     runtime.initialize();
 
-    ImGuiRender::Initialize();
+    ImguiRenderer::Initialize();
 
     ViewManager::Initialize();
 
@@ -38,7 +37,7 @@ void EditorApplication::shutdown()
 {
     ViewManager::Shutdown();
 
-    ImGuiRender::Shutdown();
+    ImguiRenderer::Shutdown();
 
     runtime.shutdown();
 
@@ -67,11 +66,11 @@ void EditorApplication::renderer()
     gr::gRender::SetBackgroundColor(Color::blue);
     gr::gRender::SetRenderState(gr::GR_BACKGROUND, gr::GR_COLOR_BUFFER);
     
-    ImGuiRender::Begin();
+    ImguiRenderer::Begin();
 
     ViewManager::RendererUI();
 
-    ImGuiRender::End();
+    ImguiRenderer::End();
 }
 
 void EditorApplication::checkProject()

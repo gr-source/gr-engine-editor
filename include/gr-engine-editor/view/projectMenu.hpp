@@ -9,7 +9,7 @@
 
 #include "default.hpp"
 
-#include "ImGuiRender.h"
+#include <imgui.h>
 
 #include "core/project.hpp"
 

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "view/ImGuiRender.h"
+#include "view/imguiRenderer.hpp"
 
 #include <gr-math/gmath.hpp>
 #include <string>
 
-class ImGuiWidget
+class ImguiWidget
 {
 public:
     static const bool TextureInputUI(const ImColor& color);

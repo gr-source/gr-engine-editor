@@ -1,4 +1,4 @@
-#include "view/ImGuiRender.h"
+#include "view/imguiRenderer.hpp"
 
 #include "gr-base/core/logger.hpp"
 
@@ -6,11 +6,11 @@
 
 #include <GLFW/glfw3.h>
 
-ImGuiIO *ImGuiRender::m_io = nullptr;
+ImGuiIO *ImguiRenderer::m_io = nullptr;
 
-void ImGuiRender::Initialize()
+void ImguiRenderer::Initialize()
 {
-    logger::info("[ImGuiRender] Initialize.");
+    logger::info("[ImguiRenderer] Initialize.");
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -28,16 +28,16 @@ void ImGuiRender::Initialize()
     SetConfigPath((gfile::get_config_directory() + "/imgui.ini").c_str());
 }
 
-void ImGuiRender::Shutdown()
+void ImguiRenderer::Shutdown()
 {
-    logger::info("[ImGuiRender] Shutdown");
+    logger::info("[ImguiRenderer] Shutdown");
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 }
 
-void ImGuiRender::PushStyle(ImGuiStyle& dst) {
+void ImguiRenderer::PushStyle(ImGuiStyle& dst) {
     ImVec4* colors = dst.Colors;
 
     colors[ImGuiCol_Text]                   = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
@@ -103,32 +103,32 @@ void ImGuiRender::PushStyle(ImGuiStyle& dst) {
     dst.SeparatorTextAlign = {0.5f, 0.5f};
 }
 
-void ImGuiRender::SetFont(const char* path)
+void ImguiRenderer::SetFont(const char* path)
 {
     m_io->Fonts->AddFontFromFileTTF(path, 16.5f);
 
-    logger::debug("[ImGuiRender] Set font file '%s'", path);
+    logger::debug("[ImguiRenderer] Set font file '%s'", path);
 }
 
-void ImGuiRender::SetConfigPath(const char *path)
+void ImguiRenderer::SetConfigPath(const char *path)
 {
     m_io->IniFilename = strdup(path);
 
-    logger::debug("[ImGuiRender] Set config file '%s'", path);
+    logger::debug("[ImguiRenderer] Set config file '%s'", path);
 }
 
-void ImGuiRender::Begin() {
+void ImguiRenderer::Begin() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 }
 
-void ImGuiRender::End() {
+void ImguiRenderer::End() {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-ImGuiIO *ImGuiRender::GetIO() {
+ImGuiIO *ImguiRenderer::GetIO() {
     return m_io;
 }
 

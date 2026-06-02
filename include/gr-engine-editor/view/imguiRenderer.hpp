@@ -5,7 +5,8 @@
 #include <imgui_internal.h>
 #include <imgui.h>
 
-class ImGuiRender {
+class ImguiRenderer
+{
 public:
     static void Initialize();
     

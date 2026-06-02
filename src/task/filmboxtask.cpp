@@ -1,9 +1,9 @@
 #include "task/filmboxtask.hpp"
 
-#include "gr-base/core/scene.hpp"
-#include "gr-base/ecs/default.hpp"
-#include "gr-base/externals/hash.hpp"
-#include "gr-base/task/modelsavetask.hpp"
+#include <gr-base/core/scene.hpp>
+
+#include <gr-base/externals/hash.hpp>
+
 #include "filmbox/filmbox.hpp"
 
 #include "manager/viewManager.hpp"
@@ -18,12 +18,9 @@
 
 #include <gr-base/core/console.hpp>
 
-#include <gr-base/script/skinnedMeshRender.hpp>
 #include <gr-base/script/meshRender.hpp>
 #include <gr-base/script/meshFilter.hpp>
 #include <gr-base/script/transform.hpp>
-
-// #include <gr-base/script/animator.hpp>
 
 #include <gr-base/managers/assetsManager.hpp>
 

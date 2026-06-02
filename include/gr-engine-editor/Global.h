@@ -1,7 +1,7 @@
 
 /*
     Criado: seg 13 nov 2023 11∶47∶36
-    Atualizado: 18/05/26 14:18
+    Atualizado: 01/06/26 22:31
     By: NoirVoid
 */
 
@@ -25,42 +25,12 @@
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 
-#include "core/exception/Exception.h"
-
 #include <gr-math/gmath.hpp>
 
 /* pasta: src */
-class PostProcessing;
 class Editor;
-class Config;
 
-/* pasta: src/engine */
-class Mesh;
-class Light;
-class Shader;
-class Skybox;
-class Terrain;
-class Texture;
-class Material;
-class Animation;
-// class GameObject;
-class ScreenBuffer;
 class ScreenRender;
-class BufferManager;
-class ObjectManager;
-
-/* pasta: src/engine/component */
-class EditorController;
-class BoxCollider;
-class MeshRender;
-class LineRender;
-class Transform;
-class Rigidbody;
-class Collider;
-class Animator;
-class Camera;
-
-class ImGuiRender;
 
 /* pasta: src/engine/ecs */
 

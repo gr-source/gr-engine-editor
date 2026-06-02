@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <exception>
-#include <gr-base/script/baserender.hpp>
+
 #include <gr-base/script/default.hpp>
 
 #include <gr-base/managers/bvhtreemanager.hpp>
@@ -28,7 +28,6 @@
 #include "Global.h"
 #include "core/time.hpp"
 
-#include "scopeTimer.hpp"
 #include "script/cameraEditor.hpp"
 #include "system/cameraEditorSystem.hpp"
 
@@ -46,11 +45,11 @@
 #include "manager/viewManager.hpp"
 #include "settings.h"
 
-#include "ui/view.hpp"
 #include "view/engineStatusView.hpp"
 #include "view/spawnObject.hpp"
 #include "view/worldManagerView.hpp"
-#include "imgui.h"
+#include "view/imguiWidget.hpp"
+
 
 #include <gr-base/core/window.hpp>
 
@@ -70,15 +69,9 @@
 
 #include "core/screen.hpp"
 
-#include <gr-base/script/skinnedMeshRender.hpp>
-#include <gr-base/script/LODComponent.hpp>
-#include <gr-base/script/meshCollider.hpp>
-#include <gr-base/script/boxCollider.hpp>
 #include <gr-base/script/meshFilter.hpp>
 #include <gr-base/script/meshRender.hpp>
 #include <gr-base/script/transform.hpp>
-#include <gr-base/script/rigidbody.hpp>
-// #include <gr-base/script/animator.hpp>
 #include <gr-base/script/camera.hpp>
 #include <gr-base/script/light.hpp>
 
@@ -86,7 +79,6 @@
 
 #include "guizmo/ImGuizmo.h"
 
-#include "view/ImGuiRender.h"
 #include "core/project.hpp"
 
 #include "scriptManager/scriptManager.hpp"
@@ -95,11 +87,6 @@
 #include <gr-math/gmath.hpp>
 #include <gr-math/matrix4x4.hpp>
 #include <gr-render/gTexture.h>
-#include <filesystem>
-#include <iomanip>
-#include <iostream>
-#include <stdexcept>
-#include <string>
 
 #include <gr-base/core/rendertarget.hpp>
 
@@ -108,8 +95,6 @@
 #include <gr-base/system/transformsystem.hpp>
 #include <gr-base/system/renderSystem.hpp>
 #include <gr-base/system/camerasystem.hpp>
-
-#define ITEMS_PER_PAGE 20
 
 #define GET_N_ARRAY(c) sizeof(c) / sizeof(c[0])
 
@@ -1314,8 +1299,7 @@ void Editor::PopupFileManager()
         return;
     }
 
-    /*
-    if (View::ButtonWithComment("Remove", "delete"))
+    if (ImguiWidget::ButtonWithComment("Remove", "delete"))
     {
         for (auto &file : g_tree_file_selected)
         {
@@ -1327,7 +1311,6 @@ void Editor::PopupFileManager()
         // FIXME: Muito lento
         updateFileTree(&root_tree_file);
     }
-    */
 
     ImGui::EndPopup();
 }
@@ -1454,7 +1437,7 @@ void Editor::render_files_on_dir(gtreefile *dir)
             continue;
         }
 
-        if (ImGuiWidget::ImageAndTextButton(reinterpret_cast<ImTextureID>((*entry.icon)->getTextureID()), entry.name.c_str(), selected_file(&entry)))
+        if (ImguiWidget::ImageAndTextButton(reinterpret_cast<ImTextureID>((*entry.icon)->getTextureID()), entry.name.c_str(), selected_file(&entry)))
         {
         }
 
@@ -2239,83 +2222,6 @@ void Editor::OnPropertyMeshRender(Entity e, MeshRender *meshRender)
     ImGui::Unindent();
 }
 
-void Editor::OnPropertySkinnedMeshRender(SkinnedMeshRender *skinnedMeshRender)
-{
-    /*
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-    {
-        ImGui::OpenPopup("##game_object_component_menu");
-    }
-
-    auto avail = ImGui::GetContentRegionAvail();
-    
-    if (ImGui::Button("Create", {avail.x, 0.0f}))
-        popupFlags |= EditorPopupFlags_CreateMaterial;
-
-    ImGui::Indent();
-    for (auto materialID : skinnedMeshRender->getMaterialIDs())
-    {
-        if (render_material(materialID))
-        {
-            // skinnedMeshRender->removeMaterial(materialID);
-        }
-    }
-    ImGui::Unindent();
-
-    if (m_materialToRename)
-    {
-        ImGui::OpenPopup("##popup_rename_material");
-    }
-    */
-}
-
-void Editor::OnPropertyLODComponent(LODComponent* lodComponent)
-{
-    /*
-    auto avail = ImGui::GetContentRegionAvail();
-
-    for (auto& lod : lodComponent->meshesLOD)
-    {
-        ImGui::PushID(&lod);
-
-        ImGui::Text("Distance");
-
-        ImGui::SliderFloat("##lodComponent_levels_distance", &lod.minDistance, 0.0f, 1000.0f);
-
-        for (auto& meshID : lod.meshes)
-        {
-            auto meshName = AssetsManager::GetMeshName(meshID);
-
-            ImGui::Text("Mesh: %s", meshName.c_str());
-        }
-
-        if (ImGui::BeginDragDropTarget())
-        {
-            auto payload = ImGui::AcceptDragDropPayload(m_extensionDragDrop[DragDropFlags::MESH]);
-            if (payload != NULL && payload->DataSize > 0)
-            {
-                std::vector<gtreefile *> files(payload->DataSize / sizeof(gtreefile *), nullptr);
-                memcpy(files.data(), payload->Data, payload->DataSize);
-
-                for (auto file : files)
-                {
-                    TaskManager::Add<MeshLoadTask>(file->path, [ld = std::forward<LODMesh*>(&lod)](MeshID id)
-                    {
-                        ld->meshes.push_back(id);
-                    });
-                }
-            }
-            ImGui::EndDragDropTarget();
-        }
-
-        ImGui::PopID();
-    }
-
-    if (ImGui::Button("Add", ImVec2{avail.x, 0.0f}))
-        lodComponent->meshesLOD.push_back({});
-    */
-}
-
 /*
 bool Editor::render_material(MaterialID id)
 {
@@ -2336,7 +2242,6 @@ bool Editor::render_material(MaterialID id)
     if (!ImGui::TreeNode(name.c_str()))
         return false;
 
-    /*
     bool bCanEnableInstancing = material->supportsInstancing();
     if (ImGui::Checkbox("Instancing", &bCanEnableInstancing))
     {
@@ -2553,92 +2458,6 @@ void Editor::OnPropertyLight(Light *light)
         ImGui::EndPopup();
     }
     */
-}
-
-
-void Editor::OnPropertyMeshCollider(MeshCollider* meshCollider)
-{
-}
-
-void Editor::OnPropertyBoxCollider(BoxCollider *boxCollider)
-{
-    /*
-    const char* text[] {"X", "Y", "Z"};
-
-    auto size = boxCollider->getBoxSize();
-    ImGui::Text("Size");
-    if (ImGui::DragFloatEx("##boxcollider_size", text, reinterpret_cast<float *>(&size), 1.0f, 0.0f, 0.0f, "%.3f"))
-        boxCollider->setBoxSize(size);
-    */
-}
-
-void Editor::OnPropertyRigidbody(Rigidbody *rigidbody)
-{
-    /*
-    auto mass = rigidbody->getMass();
-
-    ImGui::Text("Mass");
-    if (ImGui::DragFloat("##rigidbody_mass", &mass))
-    {
-        rigidbody->setMass(mass);
-    }
-
-    const char* text[] {"X", "Y", "Z"};
-
-    auto freese = rigidbody->getFreezerRotation();
-    ImGui::Text("Freeze Rotation");
-    if (ImGui::DragFloatEx("##rigidbody_freeze", text, reinterpret_cast<float *>(&freese), 1.0f, 0.0f, 0.0f, "%.3f")) {
-        rigidbody->setFreezerRotation(freese);
-    }
-
-    ImGui::SeparatorText("Continuous Collision Detection");
-
-    auto fMotionThreshold = rigidbody->getMotionThreshold();
-    ImGui::Text("Distance");
-    if (ImGui::DragFloat("##rigidbody_ccd_distance", &fMotionThreshold, 0.4f, 0.0f, 5.0f)) {
-        rigidbody->setMotionThreshold(fMotionThreshold);
-    }
-
-    auto fSweptSphereRadius = rigidbody->getSweptSphereRadius();
-    ImGui::Text("Sphere Radius");
-    if (ImGui::DragFloat("##rigidbody_ccd_sphereradius", &fSweptSphereRadius, 0.4f, 0.0f, 5.0f)) {
-        rigidbody->setSweptSphereRadius(fSweptSphereRadius);
-    }
-    */
-}
-
-void Editor::OnPropertyAnimator(Animator *animator) {
-    /*
-    auto animation = animator->getAnimation();
-    auto animName = animation != nullptr ? animation->getName() : "No Animation";
-
-    ImGui::Text("Animation: %s", animName.c_str());
-
-    dropAnimation(animator);
-
-    ImGui::DragFloat("Factor", &animator->blendFactor, 0.01f, 0.0f, 1.0f);
-    */
-}
-
-void Editor::dropAnimation(Animator *animator)
-{
-    if (!ImGui::BeginDragDropTarget())
-    {
-        return;
-    }
-
-    auto payload = ImGui::AcceptDragDropPayload(m_extensionDragDrop[DragDropFlags::ANIMATION]);
-    if (!payload || payload->DataSize <= 0) {
-        return ImGui::EndDragDropTarget();
-    }
-    
-    std::string path((char*)payload->Data, payload->DataSize);
-
-    std::cerr << "LoadAnimation: " << path << std::endl;
-    
-    // AssetsManager::LoadAnimation(path, &Animator::play, animator, true);
-    
-    ImGui::EndDragDropTarget();
 }
 
 void Editor::LoadReources()

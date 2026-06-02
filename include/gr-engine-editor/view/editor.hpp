@@ -23,9 +23,9 @@
 #include <string>
 #include <vector>
 
-#include "ui/default.hpp"
-
 #include "view/viewlayout.hpp"
+
+#include "core/default.hpp"
 
 #include <gr-base/ecs/default.hpp>
 
@@ -302,12 +302,6 @@ private:
 
     void OnPropertyMeshRender(Entity e, MeshRender *meshRender);
 
-    void OnPropertySkinnedMeshRender(SkinnedMeshRender *skinnedMeshRender);
-
-    void OnPropertyLODComponent(LODComponent* lodComponent);
-
-    void OnPropertyMeshCollider(MeshCollider *meshCollider);
-
     // bool render_material(MaterialID id);
 
     void render_shader_property(const std::string &name, Material *material);
@@ -319,14 +313,6 @@ private:
     void InsertTexture(Material *material);
 
     void OnPropertyLight(Light *light);
-
-    void OnPropertyBoxCollider(BoxCollider *boxCollider);
-
-    void OnPropertyRigidbody(Rigidbody *rigidbody);
-
-    void OnPropertyAnimator(Animator* animator);
-
-    void dropAnimation(Animator *animator);
 
     // Loader    
     void PostLoadGameObject(Entity entity);

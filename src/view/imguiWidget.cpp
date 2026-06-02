@@ -1,7 +1,6 @@
-#include "ui/view.hpp"
-#include "imgui.h"
+#include "view/imguiWidget.hpp"
 
-const bool ImGuiWidget::TextureInputUI(const ImColor& color) {
+const bool ImguiWidget::TextureInputUI(const ImColor& color) {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImVec2 size = ImGui::GetItemRectSize();
 
@@ -15,7 +14,7 @@ const bool ImGuiWidget::TextureInputUI(const ImColor& color) {
     return ImGui::InvisibleButton(std::string("#TextureInputUI" + std::to_string(color.Value.x)).c_str(), ImVec2(rectMax.x - rectMin.x, size.y));
 }
 
-const bool ImGuiWidget::PopupChangeColor(const std::string& name, Color& color) {
+const bool ImguiWidget::PopupChangeColor(const std::string& name, Color& color) {
     if (ImGui::BeginPopup(std::string("#PopupChangeColor" + name).c_str())) {
         auto isOpen = ImGui::ColorPicker4(name.c_str(), color.data);
         ImGui::EndPopup();
@@ -24,7 +23,7 @@ const bool ImGuiWidget::PopupChangeColor(const std::string& name, Color& color) 
     return false;
 }
 
-bool ImGuiWidget::DragScalarEx(const char** items, int numItems, float* data, float v_speed, float p_min, float p_max) {
+bool ImguiWidget::DragScalarEx(const char** items, int numItems, float* data, float v_speed, float p_min, float p_max) {
     bool value_changed = false;
 
     ImGui::BeginGroup();
@@ -48,7 +47,7 @@ bool ImGuiWidget::DragScalarEx(const char** items, int numItems, float* data, fl
     return value_changed;
 }
 
-bool ImGuiWidget::ImageTreeNode(ImTextureID textureID, const char *name) {
+bool ImguiWidget::ImageTreeNode(ImTextureID textureID, const char *name) {
     const ImGuiStyle& style = ImGui::GetStyle();
     ImGuiStorage* storage = ImGui::GetStateStorage();
 
@@ -82,11 +81,11 @@ bool ImGuiWidget::ImageTreeNode(ImTextureID textureID, const char *name) {
     return opened;
 }
 
-bool ImGuiWidget::CloseButton() {
+bool ImguiWidget::CloseButton() {
     return false;
 }
 
-bool ImGuiWidget::ImageAndTextButton(ImTextureID textureID, const char *label, bool selected, ImVec2 size)
+bool ImguiWidget::ImageAndTextButton(ImTextureID textureID, const char *label, bool selected, ImVec2 size)
 {
     size.x = size.x <= 0.0f ? 40.0f : size.x;
     size.y = size.y <= 0.0f ? 40.0f : size.y;
@@ -113,7 +112,7 @@ bool ImGuiWidget::ImageAndTextButton(ImTextureID textureID, const char *label, b
     return press;
 }
 
-bool ImGuiWidget::ButtonWithComment(const char *name, const char *comment)
+bool ImguiWidget::ButtonWithComment(const char *name, const char *comment)
 {
     auto avail = ImGui::GetContentRegionAvail();
 
