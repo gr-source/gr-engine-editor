@@ -8,6 +8,7 @@
 #include <gr-base/core/console.hpp>
 
 #include "gr-base/core/geometry/default.hpp"
+#include "gr-base/core/rendertarget.hpp"
 #include "gr-base/core/scene.hpp"
 #include "gr-base/core/thread/asynctask.hpp"
 
@@ -147,6 +148,8 @@ private:
     std::vector<gtreefile *> g_tree_file_selected;
 
     std::unordered_set<gtreefile *> g_tree_file_selected_map;
+
+    std::shared_ptr<RenderTarget> m_backbuffer;
 
     // ComponentHandle m_cameraID;
 

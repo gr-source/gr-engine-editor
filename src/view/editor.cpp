@@ -33,13 +33,11 @@
 #include <gr-base/application.hpp>
 
 #include "gr-base/core/mainthreaddispatcher.hpp"
-#include "gr-base/core/debugdraw.hpp"
+// #include "gr-base/core/debugdraw.hpp"
 #include "gr-base/core/assetDB.hpp"
 #include "gr-base/core/clock.hpp"
 
 #include "gr-base/core/thread/taskmanager.hpp"
-
-// #include "gr-base/physics/physicsScene.hpp"
 
 #include "manager/viewManager.hpp"
 #include "settings.h"
@@ -156,11 +154,15 @@ Editor::Editor()
 
     fpsFrameCount = 0;
     fpsTimer = 0;
+
     fps = 0;
 
     m_guizmoOperation = ImGuizmo::TRANSLATE;
 
     m_guizmoManipulate = ImGuizmo::WORLD;
+
+    m_backbuffer = std::make_shared<RenderTarget>(1024, 1024);
+    Renderer::SetRenderTarget(m_backbuffer.get());
 
     EditorApplication* engine = static_cast<EditorApplication*>(Application::application);
 
@@ -286,9 +288,11 @@ void Editor::onUpdate()
 
 void Editor::onRender3D()
 {
-    Renderer::Process();
+    Renderer::BeginFrame();
 
-    DebugDraw::Clear();
+    Renderer::Render();
+
+    Renderer::EndFrame();
 }
 
 void Editor::onRenderUI()
@@ -1757,7 +1761,7 @@ void Editor::create_popup_create_scene()
             GameObject go = m_scene->Wrap(camera);
             go.AddComponent<CameraData>();
             go.AddComponent<Camera>();
-            go.GetComponent<Camera>()->rendertarget = Renderer::backbuffer;
+            go.GetComponent<Camera>()->rendertarget = m_backbuffer.get();
         }
 
         m_scene->SetCamera(camera);
