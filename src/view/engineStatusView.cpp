@@ -51,13 +51,13 @@ void EngineStatusView::onRenderUI()
                 // =========================
                 // STORAGE STATS
                 // =========================
-                uint32_t entityCount = arche.entityCount;
+                size_t entityCount = arche.m_count;
                 // uint32_t chunkCount = arche.GetChunkCount();
-                uint32_t capacity = arche.m_capacity;
+                size_t capacity = arche.m_capacity;
 
-                ImGui::Text("Entities: %u", entityCount);
+                ImGui::Text("Entities: %lu", entityCount);
                 // ImGui::Text("Chunks: %u", chunkCount);
-                ImGui::Text("Capacity: %u", capacity);
+                ImGui::Text("Capacity: %lu", capacity);
 
                 // densidade
                 float density = capacity > 0
