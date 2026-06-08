@@ -36,11 +36,11 @@ void EngineStatusView::onRenderUI()
                 // =========================
                 // COMPONENT TYPES
                 // =========================
-                ImGui::Text("Component Types: %zu", arche.GetTypes().size());
+                ImGui::Text("Component Types: %zu", arche.mask);
 
                 if (ImGui::TreeNode("Types"))
                 {
-                    for (auto typeID : arche.GetTypes())
+                    for (auto& typeID : Type::GetTypesOfMask(arche.mask))
                     {
                         auto type = Type::GetTypeInfoByID(typeID);
                         ImGui::BulletText("%s (ID: %u)", type->name, typeID);
@@ -51,40 +51,39 @@ void EngineStatusView::onRenderUI()
                 // =========================
                 // STORAGE STATS
                 // =========================
-                size_t entityCount = arche.m_count;
-                // uint32_t chunkCount = arche.GetChunkCount();
-                size_t capacity = arche.m_capacity;
+                size_t entityCount = arche.stats.entityCount;
+                uint32_t chunkCount = arche.chunk_capacity;
+                // size_t capacity = arche.m_capacity;
 
                 ImGui::Text("Entities: %lu", entityCount);
-                // ImGui::Text("Chunks: %u", chunkCount);
-                ImGui::Text("Capacity: %lu", capacity);
+                ImGui::Text("Chunks: %u", chunkCount);
+                // ImGui::Text("Capacity: %lu", capacity);
 
                 // densidade
-                float density = capacity > 0
-                    ? (float)entityCount / (float)capacity
-                    : 0.0f;
+                // float density = capacity > 0
+                //     ? (float)entityCount / (float)capacity
+                //     : 0.0f;
 
-                ImGui::Text("Density: %.2f%%", density * 100.0f);
+                // ImGui::Text("Density: %.2f%%", density * 100.0f);
 
                 // =========================
                 // VISUAL CHUNKS
                 // =========================
-                /*
                 if (ImGui::TreeNode("Chunks"))
                 {
                     for (uint32_t c = 0; c < chunkCount; c++)
                     {
-                        const ChunkStats& stats = arche.GetChunkStats(c);
+                        const Chunk& chunk = arche.chunks[c];
 
                         ImGui::Text(
-                            "Chunk %u -> %u / %u",
+                            "Chunk %u -> %lu / %lu",
                             c,
-                            stats.count,
-                            stats.capacity
+                            chunk.count,
+                            chunk.capacity
                         );
 
-                        float fill = stats.capacity > 0
-                            ? (float)stats.count / stats.capacity
+                        float fill = chunk.capacity > 0
+                            ? (float)chunk.count / chunk.capacity
                             : 0.0f;
 
                         ImGui::ProgressBar(fill, ImVec2(0, 0));
@@ -92,7 +91,6 @@ void EngineStatusView::onRenderUI()
 
                     ImGui::TreePop();
                 }
-                */
 
                 ImGui::TreePop();
             }
