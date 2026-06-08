@@ -52,26 +52,26 @@ void EngineStatusView::onRenderUI()
                 // STORAGE STATS
                 // =========================
                 size_t entityCount = arche.stats.entityCount;
-                uint32_t chunkCount = arche.chunk_capacity;
-                // size_t capacity = arche.m_capacity;
+
+                size_t chunk_capacity = arche.chunk_capacity;
+                size_t chunks_count = arche.component_capacity > 0 ? (entityCount + arche.component_capacity - 1) / arche.component_capacity : 0;
 
                 ImGui::Text("Entities: %lu", entityCount);
-                ImGui::Text("Chunks: %u", chunkCount);
-                // ImGui::Text("Capacity: %lu", capacity);
+                ImGui::Text("Chunks: %lu / %lu", chunks_count, chunk_capacity);
 
                 // densidade
-                // float density = capacity > 0
-                //     ? (float)entityCount / (float)capacity
-                //     : 0.0f;
+                float density = chunk_capacity > 0
+                    ? (float)chunks_count / (float)chunk_capacity
+                    : 0.0f;
 
-                // ImGui::Text("Density: %.2f%%", density * 100.0f);
+                ImGui::Text("Density: %.2f%%", density * 100.0f);
 
                 // =========================
                 // VISUAL CHUNKS
                 // =========================
                 if (ImGui::TreeNode("Chunks"))
                 {
-                    for (uint32_t c = 0; c < chunkCount; c++)
+                    for (uint32_t c = 0; c < chunks_count; c++)
                     {
                         Chunk& chunk = arche.chunks[c];
 
