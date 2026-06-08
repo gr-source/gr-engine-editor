@@ -315,7 +315,7 @@ private:
 
     void InsertTexture(Material *material);
 
-    void OnPropertyLight(Light *light);
+    void OnPropertyLight(Entity entity, Light *light);
 
     // Loader    
     void PostLoadGameObject(Entity entity);

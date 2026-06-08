@@ -183,7 +183,7 @@ Editor::Editor()
             }
         },
         // INSERT_SCRIPT(Camera),
-        // INSERT_SCRIPT(Light),
+        INSERT_SCRIPT(Light),
         INSERT_SCRIPT(MeshRender),
         // INSERT_SCRIPT(SkinnedMeshRender),
         INSERT_SCRIPT(MeshFilter),
@@ -1773,22 +1773,19 @@ void Editor::create_popup_create_scene()
 
 void Editor::create_popup_add_component()
 {
-    /*
     auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_AddComponent));
     if (!isOpen)
-    {
         return;
-    }
 
     auto go = m_scene->get_object_selected().back();
 
     std::vector<std::string> m_componentName;
 
-    TypeInfo* infos = ComponentRegistry::GetAllTypeInfo();
+    auto infos = Type::GetTypeInfoPool();
 
-    for (TypeInfoID id=0;id<ComponentRegistry::GetCount();id++)
+    for (size_t id=0;id<Type::GetTypeCount();id++)
     {
-        TypeInfo& info = infos[id];
+        auto& info = infos[id];
 
         m_componentName.push_back(info.name);
     }
@@ -1813,9 +1810,9 @@ void Editor::create_popup_add_component()
         bool isFirst = (it == m_componentName.begin());
         if (ImGui::Selectable(it->c_str(), isFirst) || bSelect && go != HANDLE_INVALID)
         {
-            auto gameObject = GameObject::Get(go);
+            auto gameObject = m_scene->Wrap(go);
 
-            auto component = gameObject->addComponent(it->c_str());
+            auto component = gameObject.AddComponent(it->c_str());
 
             std::memset(componentName, '\0', sizeof(componentName));
 
@@ -1826,7 +1823,6 @@ void Editor::create_popup_add_component()
     }
     
     ImGui::EndPopup();
-    */
 }
 
 void Editor::create_popup_rename_object()
@@ -2398,68 +2394,44 @@ void Editor::dropShaderInMaterial(Material *material) {
     ImGui::EndDragDropTarget();
 }
 
-void Editor::OnPropertyLight(Light *light)
+void Editor::OnPropertyLight(Entity entity, Light *light)
 {
-    /*
-    int elem = light->getType();
+    int elem = static_cast<int>(light->type);
     
     const char* elems_names[3] = {"Directional", "Point", "Spot"};
     
     const char* elem_name = (elem >= 0 && elem < 3) ? elems_names[elem] : "Unknown";
 
     ImGui::Text("Type");
-    if (ImGui::SliderInt("##light_type", &elem, 0, 3 - 1, elem_name)) {
-        light->setType(elem);
-    }
+    if (ImGui::SliderInt("##light_type", &elem, 0, 3 - 1, elem_name))
+        light->type = static_cast<Light::LightType>(elem);
     
-    auto value = light->getAttenuationConstant();
     ImGui::Text("Constante");
-    if (ImGui::DragFloat("##light_constant", &value, 0.005f, 0.01f, 1.0f)) {
-        light->setAttenuationConstant(value);
-    }
-
-    value = light->getAttenuationLinear();
+    ImGui::DragFloat("##light_constant", &light->attenuationConstant, 0.005f, 0.01f, 1.0f);
 
     ImGui::Text("Linear:");
-    if (ImGui::DragFloat("##light_linear", &value, 0.005f, 0.01f, 1.0f)) {
-        light->setAttenuationLinear(value);
-    }
-
-    value = light->getAttenuationQuadractc();
+    ImGui::DragFloat("##light_linear", &light->attenuationLinear, 0.005f, 0.01f, 1.0f);
 
     ImGui::Text("Quadract:");
-    if (ImGui::DragFloat("##light_quadract", &value, 0.005f, 0.01f, 1.0f)) {
-        light->setAttenuationQuadractc(value);
-    }
-
-    value = light->getInnecone();
+    ImGui::DragFloat("##light_quadract", &light->attenuationQuadratic, 0.005f, 0.01f, 1.0f);
 
     ImGui::Text("InConner:");
-    if (ImGui::DragFloat("##light_inconer", &value, 0.005f, 0.01f, 1.0f)) {
-        light->setInnecone(value);
-    }
-
-    value = light->getOutercone();
+    ImGui::DragFloat("##light_inconer", &light->angleInnerCone, 0.005f, 0.01f, 1.0f);
 
     ImGui::Text("IuterConner:");
-    if (ImGui::DragFloat("##light_outerconner", &value, 0.005f, 0.01f, 1.0f)) {
-        light->setOutercone(value);
-    }
+    ImGui::DragFloat("##light_outerconner", &light->angleOuterCone, 0.005f, 0.01f, 1.0f);
 
     ImGui::Text("Color");
     
-    auto color = light->getColor();
-    if (ImGui::ColorButton("##light_color", *reinterpret_cast<ImVec4 *>(&color))) {
+    if (ImGui::ColorButton("##light_color", *reinterpret_cast<ImVec4 *>(&light->color)))
         ImGui::OpenPopup("##light_color_popup");
-    }
     
-    if (ImGui::BeginPopup("##light_color_popup")) {
-        if (ImGui::ColorPicker4("#light_color_pick", reinterpret_cast<float *>(&color))) {
-            light->setColor(color);
-        }
+    if (ImGui::BeginPopup("##light_color_popup"))
+    {
+        ImGui::ColorPicker4("#light_color_pick", reinterpret_cast<float *>(&light->color));
+
         ImGui::EndPopup();
     }
-    */
 }
 
 void Editor::LoadReources()
