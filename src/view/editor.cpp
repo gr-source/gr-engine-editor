@@ -28,7 +28,10 @@
 #include "core/time.hpp"
 
 #include "script/cameraEditor.hpp"
+#include "script/cubeMovement.hpp"
+
 #include "system/cameraEditorSystem.hpp"
+#include "system/cubeMovementSystem.hpp"
 
 #include <gr-base/application.hpp>
 
@@ -76,8 +79,6 @@
 #include "guizmo/ImGuizmo.h"
 
 #include "core/project.hpp"
-
-#include "scriptManager/scriptManager.hpp"
 
 #include <gr-ini/config.h>
 #include <gr-math/gmath.hpp>
@@ -201,6 +202,7 @@ Editor::Editor()
 
     RegistryDefaultComponent();
     Type::Registry<CameraEditor>("CameraEditor");
+    Type::Registry<CubeMovement>("CubeMovement");
 
     AssetDB::Load(m_project->path + "/asset.txt");
 
@@ -260,6 +262,7 @@ Editor::~Editor()
 
 void Editor::loadScript(const std::string& dir)
 {
+    /*
     ScriptManager::Unload();
     
     if (ScriptManager::CheckScriptHasInMemory("libscript.so"))
@@ -268,6 +271,7 @@ void Editor::loadScript(const std::string& dir)
     ScriptManager::Load(dir + "/libscript.so");
 
     std::string temp = gfile::get_cache_directory() + "/snapshot.scn";
+    */
 
     throw std::runtime_error("Falta ajustar");
 
@@ -1751,9 +1755,12 @@ void Editor::create_popup_create_scene()
     {
         m_scene = SceneManager::Create(name);
         m_scene->RegistrySystem<CameraEditorSystem>(StageType::INPUT);
+        m_scene->RegistrySystem<CubeMovementSystem>(StageType::INPUT);
+
         m_scene->RegistrySystem<TransformSystem>(StageType::SIMULATION);
         m_scene->RegistrySystem<WorldSystem>(StageType::SIMULATION);
         m_scene->RegistrySystem<CameraSystem>(StageType::SIMULATION);
+
         m_scene->RegistrySystem<RenderSystem>(StageType::RENDER);
 
         Entity camera = m_scene->create("MainCamera");
