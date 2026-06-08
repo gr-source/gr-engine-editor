@@ -29,7 +29,7 @@ void EngineStatusView::onRenderUI()
 
         for (ArchetypeID i = 0; i < world->GetArchetypeCount(); i++)
         {
-            ArchetypeStorage& arche = array[i];
+            const ArchetypeStorage& arche = array[i];
 
             if (ImGui::TreeNode((void*)(intptr_t)i, "Archetype %u", i))
             {
@@ -73,7 +73,7 @@ void EngineStatusView::onRenderUI()
                 {
                     for (uint32_t c = 0; c < chunkCount; c++)
                     {
-                        const Chunk& chunk = arche.chunks[c];
+                        Chunk& chunk = arche.chunks[c];
 
                         ImGui::Text(
                             "Chunk %u -> %lu / %lu",
