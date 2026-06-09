@@ -10,7 +10,6 @@
 #include "gr-base/core/scene.hpp"
 #include "gr-base/script/name.hpp"
 #include "imgui.h"
-#include "script/cubeMovement.hpp"
 
 SpawnObject::SpawnObject() : numInstances(100), position({0.0f, 0.0f})
 {}
@@ -61,7 +60,6 @@ void SpawnObject::SetPrefab(Entity prefabID)
             std:: string str = "Test[" + std::to_string(targetX) + "][" + std::to_string(targetZ) + "]";
 
             auto gameObject = scene->Wrap(scene->create(prefabID));
-            gameObject.AddComponent<CubeMovement>();
 
             auto name = gameObject.GetOrAddComponent<Name>();
             name->value = strdup(str.c_str());

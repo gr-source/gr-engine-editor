@@ -28,10 +28,8 @@
 #include "core/time.hpp"
 
 #include "script/cameraEditor.hpp"
-#include "script/cubeMovement.hpp"
 
 #include "system/cameraEditorSystem.hpp"
-#include "system/cubeMovementSystem.hpp"
 
 #include <gr-base/application.hpp>
 
@@ -201,8 +199,7 @@ Editor::Editor()
     initialize();
 
     RegistryDefaultComponent();
-    Type::Registry<CameraEditor>("CameraEditor");
-    Type::Registry<CubeMovement>("CubeMovement");
+    TypeRegistry::Registry<CameraEditor>("CameraEditor");
 
     AssetDB::Load(m_project->path + "/asset.txt");
 
@@ -1635,7 +1632,7 @@ void Editor::create_render_property()
         ImGui::SetTooltip("Definir como Estático");
 
     for (auto typeID : m_scene->GetWorld()->GetAllComponentType(go.entity))
-        ShowTypeInfoUI(&go, Type::GetTypeInfoByID(typeID));
+        ShowTypeInfoUI(&go, TypeRegistry::GetTypeInfoByID(typeID));
 
     auto avail = ImGui::GetContentRegionAvail();
 
@@ -1755,7 +1752,7 @@ void Editor::create_popup_create_scene()
     {
         m_scene = SceneManager::Create(name);
         m_scene->RegistrySystem<CameraEditorSystem>(StageType::INPUT);
-        m_scene->RegistrySystem<CubeMovementSystem>(StageType::INPUT);
+        // m_scene->RegistrySystem<CubeMovementSystem>(StageType::INPUT);
 
         m_scene->RegistrySystem<TransformSystem>(StageType::SIMULATION);
         m_scene->RegistrySystem<WorldSystem>(StageType::SIMULATION);
@@ -1788,9 +1785,9 @@ void Editor::create_popup_add_component()
 
     std::vector<std::string> m_componentName;
 
-    auto infos = Type::GetTypeInfoPool();
+    auto infos = TypeRegistry::GetTypeInfoPool();
 
-    for (size_t id=0;id<Type::GetTypeCount();id++)
+    for (size_t id=0;id<TypeRegistry::GetTypeCount();id++)
     {
         auto& info = infos[id];
 
