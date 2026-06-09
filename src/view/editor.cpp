@@ -198,8 +198,7 @@ Editor::Editor()
 
     initialize();
 
-    RegistryDefaultComponent();
-    TypeRegistry::Registry<CameraEditor>("CameraEditor");
+    ComponentRegistry::Register<CameraEditor>("CameraEditor", false);
 
     AssetDB::Load(m_project->path + "/asset.txt");
 
@@ -1632,7 +1631,7 @@ void Editor::create_render_property()
         ImGui::SetTooltip("Definir como Estático");
 
     for (auto typeID : m_scene->GetWorld()->GetAllComponentType(go.entity))
-        ShowTypeInfoUI(&go, TypeRegistry::GetTypeInfoByID(typeID));
+        ShowComponentInfoUI(&go, ComponentRegistry::GetComponentInfoByID(typeID));
 
     auto avail = ImGui::GetContentRegionAvail();
 
@@ -1785,9 +1784,9 @@ void Editor::create_popup_add_component()
 
     std::vector<std::string> m_componentName;
 
-    auto infos = TypeRegistry::GetTypeInfoPool();
+    auto infos = ComponentRegistry::GetComponents();
 
-    for (size_t id=0;id<TypeRegistry::GetTypeCount();id++)
+    for (size_t id=0;id<ComponentRegistry::GetComponentCount();id++)
     {
         auto& info = infos[id];
 
@@ -2008,7 +2007,7 @@ void Editor::dropScriptInAddComponent()
     */
 }
 
-void Editor::ShowTypeInfoUI(GameObject* go, const TypeInfo* info)
+void Editor::ShowComponentInfoUI(GameObject* go, const ComponentInfo* info)
 {
     char name[512] = {0};
     sprintf(name, "%s 0x%lX", info->name, info->hash);

@@ -40,9 +40,9 @@ void EngineStatusView::onRenderUI()
 
                 if (ImGui::TreeNode("Types"))
                 {
-                    for (auto& typeID : TypeRegistry::GetTypesOfMask(arche.mask))
+                    for (auto& typeID : ComponentRegistry::GetTypesOfMask(arche.mask))
                     {
-                        auto type = TypeRegistry::GetTypeInfoByID(typeID);
+                        auto type = ComponentRegistry::GetComponentInfoByID(typeID);
                         ImGui::BulletText("%s (ID: %u)", type->name, typeID);
                     }
                     ImGui::TreePop();

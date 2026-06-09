@@ -291,7 +291,7 @@ private:
 
     void dropScriptInAddComponent();
 
-    void ShowTypeInfoUI(GameObject* go, const TypeInfo* info);
+    void ShowComponentInfoUI(GameObject* go, const ComponentInfo* info);
 
     void ShowUserComponentUI(void *component);
 

@@ -5,7 +5,7 @@
 #include "gr-base/script/transform.hpp"
 #include <gr-base/core/default.hpp>
 
-class CameraEditorSystem : public System
+class CameraEditorSystem : public ISystem
 {
 public:
     CameraEditorSystem();
