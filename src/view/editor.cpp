@@ -203,8 +203,8 @@ Editor::Editor()
 
     initialize();
 
-    SystemRegistry::Register<CameraEditorSystem>("CameraEditorSystem");
-    ComponentRegistry::Register<CameraEditor>("CameraEditor", false);
+    SystemRegistry::Register<CameraEditorSystem>();
+    ComponentRegistry::Register<CameraEditor>(false);
 
     AssetDB::Load(m_project->path + "/asset.txt");
 
