@@ -15,6 +15,11 @@ public:
 class ViewLayout
 {
 public:
+    bool visible;
+
+    inline ViewLayout() : visible(false)
+    {}
+
     virtual ~ViewLayout() {}
 
     virtual const char* getName() const { return "Unknow"; }

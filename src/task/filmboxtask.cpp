@@ -116,8 +116,7 @@ void FilmboxLoadTask::onPostExecute(Result<int> result)
         return Console::LogError("[FilmboxLoadTask] fail in to load '%s' error code: %s", m_file.c_str(), result.error.c_str());
 
     FilmboxImport* view = ViewManager::GetView<FilmboxImport>();
-    if (view == nullptr)
-        view = ViewManager::AddSubView<FilmboxImport>();
+    view->visible = true;
 
     auto scene = Scene::GetCurrent();
 

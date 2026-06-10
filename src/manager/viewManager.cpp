@@ -127,6 +127,9 @@ void ViewManager::rendererUI()
 
     for (auto& view : s_viewRegistryPopup)
     {
+        if (!view->visible)
+            continue;
+
         if (ImGui::Begin(view->getName()))
             view->onRenderUI();
         ImGui::End();

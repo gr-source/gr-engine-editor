@@ -47,6 +47,8 @@
 #include "settings.h"
 
 #include "view/engineStatusView.hpp"
+#include "view/popup/filmboximport.hpp"
+#include "view/sceneInspectorView.hpp"
 #include "view/spawnObject.hpp"
 #include "view/worldManagerView.hpp"
 #include "view/imguiWidget.hpp"
@@ -257,6 +259,12 @@ Editor::~Editor()
 {
     AssetDB::Save(m_project->path + "/asset.txt");
 
+    for (auto& scene : SceneManager::GetScenes())
+    {
+        for (auto systemID : scene->GetSystemIDs())
+            scene->DelSystemByID(systemID);
+    }
+
     ModuleLoader::Unload("script");
 
     shutdown();
@@ -343,6 +351,11 @@ void Editor::initialize()
     config.assetFolder = "assets/";
 
     AssetDB::Initialize(config);
+
+    ViewManager::Register<SceneInspectorView>();
+    ViewManager::Register<EngineStatusView>();
+    ViewManager::Register<FilmboxImport>();
+    ViewManager::Register<SpawnObject>();
 }
 
 void Editor::shutdown()
@@ -401,36 +414,21 @@ void Editor::create_dock()
         if (ImGui::BeginMenu("View"))
         {
             {
-                bool bActive = ViewManager::GetView<SpawnObject>() != nullptr;
-                if (ImGui::MenuItem("Spawn Object", nullptr, &bActive))
-                {
-                    if (bActive)
-                        ViewManager::AddSubView<SpawnObject>();
-                    else
-                        ViewManager::RemoveView<SpawnObject>();
-                }
+                bool visible = ViewManager::IsVisible<SceneInspectorView>();
+                if (ImGui::MenuItem("Scene Inspector", nullptr, &visible))
+                    ViewManager::SetVisible<SceneInspectorView>(visible);
             }
 
             {
-                bool bActive = ViewManager::GetView<WorldManagerView>() != nullptr;
-                if (ImGui::MenuItem("World Manager", nullptr, &bActive))
-                {
-                    if (bActive)
-                        ViewManager::AddSubView<WorldManagerView>();
-                    else
-                        ViewManager::RemoveView<WorldManagerView>();
-                }
+                bool visible = ViewManager::IsVisible<SpawnObject>();
+                if (ImGui::MenuItem("Spawn Object", nullptr, &visible))
+                    ViewManager::SetVisible<SpawnObject>(visible);
             }
 
             {
-                bool bActive = ViewManager::GetView<EngineStatusView>() != nullptr;
-                if (ImGui::MenuItem("Status", nullptr, &bActive))
-                {
-                    if (bActive)
-                        ViewManager::AddSubView<EngineStatusView>();
-                    else
-                        ViewManager::RemoveView<EngineStatusView>();
-                }
+                bool visible = ViewManager::IsVisible<EngineStatusView>();
+                if (ImGui::MenuItem("Status", nullptr, &visible))
+                    ViewManager::SetVisible<EngineStatusView>(visible);
             }
 
             ImGui::EndMenu();
@@ -1751,26 +1749,24 @@ void Editor::create_popup_create_scene()
         ImGui::SetKeyboardFocusHere();
 
     char name[256] = {0};
-    if (ImGui::InputText("##popup_create_scene_inputtext", name, GET_N_ARRAY(name), ImGuiInputTextFlags_EnterReturnsTrue))
+    if (ImGui::InputText("##popup_create_scene_inputtext", name, sizeof(name), ImGuiInputTextFlags_EnterReturnsTrue))
     {
         m_scene = SceneManager::Create(name);
 
-        std::cout << " ====================== " << std::endl;
-        m_scene->RegistrySystem<CameraEditorSystem>();
+        m_scene->AddSystem<CameraEditorSystem>();
         // m_scene->RegistrySystem<CubeMovementSystem>(StageType::INPUT);
 
-        m_scene->RegistrySystem<TransformSystem>();
-        m_scene->RegistrySystem<WorldSystem>();
-        m_scene->RegistrySystem<CameraSystem>();
+        m_scene->AddSystem<TransformSystem>();
+        m_scene->AddSystem<WorldSystem>();
+        m_scene->AddSystem<CameraSystem>();
 
-        m_scene->RegistrySystem<RenderSystem>();
+        m_scene->AddSystem<RenderSystem>();
 
         Entity camera = m_scene->create("MainCamera");
         {
             GameObject go = m_scene->Wrap(camera);
             go.AddComponent<CameraData>();
-            go.AddComponent<Camera>();
-            go.GetComponent<Camera>()->rendertarget = m_backbuffer.get();
+            go.GetOrAddComponent<Camera>()->rendertarget = m_backbuffer.get();
         }
 
         m_scene->SetCamera(camera);
@@ -1815,7 +1811,8 @@ void Editor::create_popup_add_component()
 
     auto regionAvail = ImGui::GetContentRegionAvail();
 
-    for (auto it = m_componentName.begin(); it != m_componentName.end(); ++it) {
+    for (auto it = m_componentName.begin(); it != m_componentName.end(); ++it)
+    {
         bool isFirst = (it == m_componentName.begin());
         if (ImGui::Selectable(it->c_str(), isFirst) || bSelect && go != HANDLE_INVALID)
         {

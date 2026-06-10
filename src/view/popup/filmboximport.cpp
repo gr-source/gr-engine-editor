@@ -102,7 +102,7 @@ void FilmboxImport::onRenderUI()
             }
         }
 
-        ViewManager::RemoveView<FilmboxImport>();
+        visible = false;
     }
 }
 

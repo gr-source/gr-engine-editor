@@ -14,6 +14,9 @@ public:
 
     static void Shutdown();
 
+    template <typename T>
+    static T* Register();
+
     static void Update();
 
     static void Renderer3D();
@@ -25,14 +28,17 @@ public:
     template <typename T, typename... Args>
     static void AddView(Args&&... args);
 
-    template <typename T, typename... Args>
-    static T* AddSubView(Args&&... args);
-
     template <typename T>
     static T* GetView();
 
     template <typename T>
     static void RemoveView();
+
+    template <typename T>
+    static bool IsVisible();
+
+    template <typename T>
+    static void SetVisible(bool value);
 
 private:
     static ViewManager* s_ViewManager;
@@ -67,21 +73,19 @@ private:
     void render_tabbar();
 };
 
+
+template <typename T>
+inline T* ViewManager::Register()
+{
+    return static_cast<T*>(s_ViewManager->addSubView(typeid(T).hash_code(), std::make_shared<T>()));
+}
+
 template <typename T, typename... Args>
 inline void ViewManager::AddView(Args&&... args)
 {
     if (s_ViewManager->GetView<T>() != nullptr)
         return;
     s_ViewManager->addView(typeid(T).hash_code(), std::make_shared<T>(std::forward<Args>(args)...));
-}
-
-template <typename T, typename... Args>
-inline T* ViewManager::AddSubView(Args&&... args)
-{
-    T* view = static_cast<T*>(s_ViewManager->GetView<T>());
-    if (view == nullptr)
-        view = static_cast<T*>(s_ViewManager->addSubView(typeid(T).hash_code(), std::make_shared<T>(std::forward<Args>(args)...)));
-    return view;
 }
 
 template <typename T>
@@ -94,6 +98,22 @@ template <typename T>
 inline void ViewManager::RemoveView()
 {
     s_ViewManager->remove(typeid(T).hash_code());
+}
+
+template <typename T>
+inline bool ViewManager::IsVisible()
+{
+    auto view = s_ViewManager->getView(typeid(T).hash_code());
+
+    return view != nullptr ? view->visible : false;
+}
+
+template <typename T>
+void ViewManager::SetVisible(bool value)
+{
+    auto view = s_ViewManager->getView(typeid(T).hash_code());
+    if (view != nullptr)
+        view->visible = value;
 }
 
 
