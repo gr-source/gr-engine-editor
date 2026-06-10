@@ -1,9 +1,10 @@
 #pragma once
 
-#include "gr-base/core/system.hpp"
+#include <gr-base/core/system.hpp>
 
-#include "gr-base/script/transform.hpp"
-#include <gr-base/core/default.hpp>
+#include <gr-base/script/transform.hpp>
+
+#include <gr-base/ecs/default.hpp>
 
 class CameraEditorSystem : public ISystem
 {
@@ -22,5 +23,8 @@ public:
     void ProcessMouse(const Vector2 &delta, Transform *transform);
 };
 
+template <>
+inline constexpr TypeCategory engine::type_traits::category<CameraEditorSystem> =
+    TypeCategory::System;
 
 

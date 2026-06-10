@@ -1,4 +1,6 @@
 #include "view/engineStatusView.hpp"
+#include "gr-base/ecs/componentRegistry.hpp"
+#include "gr-base/ecs/systemRegistry.hpp"
 
 #include <gr-base/core/status.hpp>
 #include <gr-base/core/scene.hpp>
@@ -17,6 +19,50 @@ void EngineStatusView::onRenderUI()
     Scene* scene = Scene::GetCurrent();
 
     ImGui::SeparatorText("World");
+    if (ImGui::CollapsingHeader("Components"))
+    {
+        const auto count = ComponentRegistry::GetComponentCount();
+        const auto* components = ComponentRegistry::GetComponents();
+
+        ImGui::Text("Registered: %zu", count);
+        ImGui::Separator();
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            const auto& info = components[i];
+
+            ImGui::Text(
+                "[%zu] %s | TypeID=%u | Hash=0x%llX",
+                i,
+                info.name,
+                static_cast<unsigned>(info.index),
+                static_cast<unsigned long long>(info.hash)
+            );
+        }
+    }
+
+    if (ImGui::CollapsingHeader("Systems"))
+    {
+        const auto count = SystemRegistry::GetCount();
+        const auto* systems = SystemRegistry::GetSystems();
+
+        ImGui::Text("Registered: %zu", count);
+        ImGui::Separator();
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            const auto& info = systems[i];
+
+            ImGui::Text(
+                "[%zu] %s | TypeID=%u | Hash=0x%llX",
+                i,
+                info.name,
+                static_cast<unsigned>(info.index),
+                static_cast<unsigned long long>(info.hash)
+            );
+        }
+    }
+
     if (scene != nullptr)
     {
         ImGui::Text("Entities: %ld", scene->GetEntityCount());
@@ -42,7 +88,7 @@ void EngineStatusView::onRenderUI()
                 {
                     for (auto& typeID : ComponentRegistry::GetTypesOfMask(arche.mask))
                     {
-                        auto type = ComponentRegistry::GetComponentInfoByID(typeID);
+                        auto type = ComponentRegistry::GetComponentByID(typeID);
                         ImGui::BulletText("%s (ID: %u)", type->name, typeID);
                     }
                     ImGui::TreePop();

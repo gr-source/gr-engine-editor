@@ -57,7 +57,7 @@ int FilmboxLoadTask::doInBackground()
 
         MaterialAsset asset;
         asset.name = fbxMaterial.name;
-        asset.hash = hash::fnv1_str(MaterialKey.c_str());
+        asset.hash = engine::hash::fnv1_str(MaterialKey.c_str());
 
         asset.SetShader(m_shader);
 
@@ -80,7 +80,7 @@ int FilmboxLoadTask::doInBackground()
 
             MeshAsset asset;
             asset.name = fbxMesh.GetName();
-            asset.hash = hash::fnv1_str(MeshKey.c_str());
+            asset.hash = engine::hash::fnv1_str(MeshKey.c_str());
 
             m_meshCacheList.emplace(fbxMesh.GetName(), asset);
         }
@@ -149,12 +149,12 @@ ModelAsset FilmboxLoadTask::PackingObject(const FbxNode* node)
 
         std::string MeshKey = "mesh/" + meshName;
 
-        asset.mesh = hash::fnv1_str(MeshKey.c_str());
+        asset.mesh = engine::hash::fnv1_str(MeshKey.c_str());
 
         auto& fbxMaterial = m_scene->materials[fbxMesh.GetMaterialID()];
         std::string MaterialKey = "material/" + fbxMaterial.name;
 
-        asset.materials.push_back(hash::fnv1_str(MaterialKey.c_str()));
+        asset.materials.push_back(engine::hash::fnv1_str(MaterialKey.c_str()));
     }
 
     Transform transform;

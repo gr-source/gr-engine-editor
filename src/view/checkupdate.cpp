@@ -131,7 +131,7 @@ uint64_t CheckUpdate::GetHashFromFile(const std::string& file)
     if (buffer == NULL || length == 0)
         return (uint64_t)-1;
 
-    Hash64 hash = hash::fnv1_buff(buffer, length);
+    Hash64 hash = engine::hash::fnv1_buff(buffer, length);
 
     free(buffer);
 

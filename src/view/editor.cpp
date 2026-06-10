@@ -7,6 +7,8 @@
 #include <cstring>
 #include <exception>
 
+#include <gr-base/module/moduleloader.hpp>
+
 #include <gr-base/script/default.hpp>
 
 #include <gr-base/managers/worldmanager.hpp>
@@ -22,6 +24,7 @@
 #include <gr-base/script/relationship.hpp>
 #include <gr-base/script/name.hpp>
 
+#include "gr-base/ecs/systemRegistry.hpp"
 #include "gr-base/system/worldsystem.hpp"
 #include "gr-base/task/modelsavetask.hpp"
 #include "Global.h"
@@ -198,6 +201,7 @@ Editor::Editor()
 
     initialize();
 
+    SystemRegistry::Register<CameraEditorSystem>("CameraEditorSystem");
     ComponentRegistry::Register<CameraEditor>("CameraEditor", false);
 
     AssetDB::Load(m_project->path + "/asset.txt");
@@ -220,8 +224,8 @@ Editor::Editor()
     try
     {
         auto libdir = m_project->path + "/.build/lib/libscript.so";
-        // if (gfile::exists(libdir))
-            // ScriptManager::Load(libdir);
+        if (gfile::exists(libdir))
+            ModuleLoader::Load("script", libdir);
     } catch (const std::exception &e)
     {
         Console::LogError("Fatal error in script: %s", e.what());
@@ -253,23 +257,23 @@ Editor::~Editor()
 {
     AssetDB::Save(m_project->path + "/asset.txt");
 
+    ModuleLoader::Unload("script");
+
     shutdown();
 }
 
 void Editor::loadScript(const std::string& dir)
 {
-    /*
-    ScriptManager::Unload();
+    ModuleLoader::Unload("script");
     
-    if (ScriptManager::CheckScriptHasInMemory("libscript.so"))
+    if (ModuleLoader::CheckModuleHasInMemory("libscript.so"))
         return Console::LogError("[ Script ] Fatal error data not unloaded.");
 
-    ScriptManager::Load(dir + "/libscript.so");
+    ModuleLoader::Load("script", dir + "/libscript.so");
 
-    std::string temp = gfile::get_cache_directory() + "/snapshot.scn";
-    */
+    // std::string temp = gfile::get_cache_directory() + "/snapshot.scn";
 
-    throw std::runtime_error("Falta ajustar");
+    // throw std::runtime_error("Falta ajustar");
 
     // AssetsManager::SceneSaveAsync(temp, m_scene, &Editor::OnPostSaveSnapshot, this, temp);
 }
@@ -1631,7 +1635,7 @@ void Editor::create_render_property()
         ImGui::SetTooltip("Definir como Estático");
 
     for (auto typeID : m_scene->GetWorld()->GetAllComponentType(go.entity))
-        ShowComponentInfoUI(&go, ComponentRegistry::GetComponentInfoByID(typeID));
+        ShowComponentInfoUI(&go, ComponentRegistry::GetComponentByID(typeID));
 
     auto avail = ImGui::GetContentRegionAvail();
 
@@ -1750,14 +1754,16 @@ void Editor::create_popup_create_scene()
     if (ImGui::InputText("##popup_create_scene_inputtext", name, GET_N_ARRAY(name), ImGuiInputTextFlags_EnterReturnsTrue))
     {
         m_scene = SceneManager::Create(name);
-        m_scene->RegistrySystem<CameraEditorSystem>(StageType::INPUT);
+
+        std::cout << " ====================== " << std::endl;
+        m_scene->RegistrySystem<CameraEditorSystem>();
         // m_scene->RegistrySystem<CubeMovementSystem>(StageType::INPUT);
 
-        m_scene->RegistrySystem<TransformSystem>(StageType::SIMULATION);
-        m_scene->RegistrySystem<WorldSystem>(StageType::SIMULATION);
-        m_scene->RegistrySystem<CameraSystem>(StageType::SIMULATION);
+        m_scene->RegistrySystem<TransformSystem>();
+        m_scene->RegistrySystem<WorldSystem>();
+        m_scene->RegistrySystem<CameraSystem>();
 
-        m_scene->RegistrySystem<RenderSystem>(StageType::RENDER);
+        m_scene->RegistrySystem<RenderSystem>();
 
         Entity camera = m_scene->create("MainCamera");
         {
