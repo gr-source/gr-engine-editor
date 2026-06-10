@@ -17,6 +17,7 @@
 #include <gr-base/ecs/archetypeStorage.hpp>
 #include <gr-base/ecs/world.hpp>
 
+#include "core/sandbox.hpp"
 #include "editorApplication.hpp"
 #include "gr-base/core/renderer.hpp"
 #include "gr-base/ecs/default.hpp"
@@ -272,8 +273,35 @@ Editor::~Editor()
 
 void Editor::loadScript(const std::string& dir)
 {
+    Sandbox sandbox;
+    if (!sandbox.Run())
+        return;
+
+    std::unordered_set<Hash64> systemMap;
+    systemMap.emplace(engine::type_traits::hash<CameraEditorSystem>);
+
+    for (auto& info : sandbox.systems)
+        systemMap.emplace(info.hash);
+
+    std::unordered_set<TypeID> systemsRemovedMap;
+    for (size_t i=0;i<SystemRegistry::GetCount();i++)
+    {
+        auto& info = SystemRegistry::GetSystems()[i];
+
+        if (systemMap.find(info.hash) == systemMap.end())
+            systemsRemovedMap.emplace(info.index);
+    }
+
+    for (auto& id : systemsRemovedMap)
+    {
+        for (auto& scene : SceneManager::GetScenes())
+            scene->DelSystemByID(id);
+    }
+
+    // std::cout << "Components: " << sandbox.components.size() << " Systems: " << sandbox.systems.size() << std::endl;
+
     ModuleLoader::Unload("script");
-    
+
     if (ModuleLoader::CheckModuleHasInMemory("libscript.so"))
         return Console::LogError("[ Script ] Fatal error data not unloaded.");
 
