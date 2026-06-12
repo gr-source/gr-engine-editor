@@ -17,7 +17,7 @@
 #include <iostream>
 #include <vector>
 
-Sandbox::Sandbox() : m_pid(-1)
+Sandbox::Sandbox(const std::string& path) : m_path(path), m_pid(-1)
 {}
 
 Sandbox::~Sandbox()
@@ -64,9 +64,6 @@ void Sandbox::ClosePipes()
 
 bool Sandbox::Run()
 {
-    std::vector<ComponentInfo> components;
-    std::vector<SystemInfo> systems;
-
     if (!CreatePipes())
         return false;
 
@@ -115,16 +112,6 @@ bool Sandbox::WaitProcess()
     close(m_logPipe[1]);
     close(m_dataPipe[1]);
     
-    std::vector<std::string> data;
-    char temp[256];
-    ssize_t retVal;
-    while ((retVal = read(m_logPipe[0], temp, sizeof(temp)-1)) > 0)
-    {
-        temp[retVal] = '\0';
-
-        data.emplace_back(temp);
-    }
-
     size_t count = 0;
     read(m_dataPipe[0], &count, sizeof(size_t));
     systems.resize(count, {});
@@ -141,11 +128,6 @@ bool Sandbox::WaitProcess()
 
     int status;
     waitpid(m_pid, &status, 0);
-
-    std::cout << "=====  Output [Start] =====" << std::endl;
-    for (auto &line : data)
-        std::cout << line;
-    std::cout << "=====  Output [End] =====" << std::endl;
 
     if (WIFSIGNALED(status))
     {
@@ -203,7 +185,6 @@ void Sandbox::LoadPlugin(int fd)
 
     logger::Shutdown();
 
-    std::cout << "[ Sandbox ] Running..." << std::endl;
     // aqui você carrega o módulo
     
     logger_config config;
@@ -211,14 +192,16 @@ void Sandbox::LoadPlugin(int fd)
 
     logger::Initialize(config);
 
+    logger::info("[ Sandbox ] Running...");
+
     ComponentRegistry::Initialize();
     SystemRegistry::Initialize();
     // ModuleLoader::Initialize();
 
-    void* handle = dlopen("/home/NoirVoid/gr-engine/MySecondProject/.build/lib/libscript.so", RTLD_LAZY);
+    void* handle = dlopen(m_path.c_str(), RTLD_LAZY);
     if (handle == nullptr)
     {
-        std::cerr << "[ Sandbox ] Falha ao carregar o modulo" << std::endl;
+        logger::error("[ Sandbox ] Falha ao carregar o modulo.");
     } else
     {
         const auto systems = SystemRegistry::GetSystems();
@@ -240,9 +223,9 @@ void Sandbox::LoadPlugin(int fd)
     ComponentRegistry::Shutdown();
     SystemRegistry::Shutdown();
 
-    logger::Shutdown();
+    logger::info("[ Sandbox ] Satoped.");
 
-    std::cout << "[ Sandbox ] Stoped." << std::endl;
+    logger::Shutdown();
 }
 
 

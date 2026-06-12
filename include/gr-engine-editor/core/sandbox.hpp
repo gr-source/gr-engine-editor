@@ -3,6 +3,7 @@
 #include "gr-base/ecs/typeinfo.hpp"
 
 #include <vector>
+#include <string>
 
 class Sandbox
 {
@@ -10,7 +11,7 @@ public:
     std::vector<ComponentInfo> components;
     std::vector<SystemInfo> systems;
 
-    Sandbox();
+    Sandbox(const std::string& path);
     ~Sandbox();
 
     bool CreatePipes();
@@ -20,6 +21,8 @@ public:
     bool Run();
 
 private:
+    std::string m_path;
+
     int m_dataPipe[2] = { -1, -1 };
 
     int m_logPipe[2] { -1, -1 };

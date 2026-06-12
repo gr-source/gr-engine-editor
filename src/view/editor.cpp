@@ -97,6 +97,10 @@
 #include <gr-base/system/renderSystem.hpp>
 #include <gr-base/system/camerasystem.hpp>
 
+constexpr Hash64 kBuiltinSystems[] = {
+    engine::type_traits::hash<CameraEditorSystem>,
+};
+
 #define GET_N_ARRAY(c) sizeof(c) / sizeof(c[0])
 
 enum class DragDropFlags : uint32_t {
@@ -271,47 +275,135 @@ Editor::~Editor()
     shutdown();
 }
 
+void* GetVTable(const SystemInfo* info)
+{
+    ISystem* system = (ISystem*)malloc(info->stride);
+
+    ((void (*)(ISystem*, const ISystem*))(info->constructor))(system, nullptr);
+    void* vtable = *(void**)system;
+
+    ((void (*)(ISystem*))(info->constructor))(system);
+
+    free(system);
+    return vtable;
+}
+
 void Editor::loadScript(const std::string& dir)
 {
-    Sandbox sandbox;
+    std::string file = dir + "/libscript.so";
+    if (!gfile::exists(file))
+        return;
+
+    Sandbox sandbox(file);
     if (!sandbox.Run())
         return;
 
-    std::unordered_set<Hash64> systemMap;
-    systemMap.emplace(engine::type_traits::hash<CameraEditorSystem>);
+    std::unordered_map<Hash64, const SystemInfo*> newSystemMap;
+    for (auto& systems : kBuiltinSystems)
+        newSystemMap.emplace(systems, nullptr);
 
     for (auto& info : sandbox.systems)
-        systemMap.emplace(info.hash);
+        newSystemMap.emplace(info.hash, &info);
 
-    std::unordered_set<TypeID> systemsRemovedMap;
+    std::unordered_map<TypeID, void*> systemAliveMap;
+    std::unordered_set<TypeID> systemReload;
+
     for (size_t i=0;i<SystemRegistry::GetCount();i++)
     {
         auto& info = SystemRegistry::GetSystems()[i];
 
-        if (systemMap.find(info.hash) == systemMap.end())
-            systemsRemovedMap.emplace(info.index);
+        void* vtable = nullptr;
+
+        bool alive = newSystemMap.find(info.hash) != newSystemMap.end();
+        if (alive)
+        {
+            auto new_info = newSystemMap[info.hash];
+
+            vtable = GetVTable(&info);
+            if (new_info != nullptr && info.stride != new_info->stride)
+            {
+                systemReload.emplace(info.index);
+
+                std::cout << "REINSTANTIATE: " << info.name << std::endl;
+
+                vtable = nullptr;
+            }
+        } else
+        {
+            Console::LogWarning("[ Script ] Removed system: %s", info.name);
+        }
+
+        systemAliveMap.emplace(info.index, vtable);
+
+        newSystemMap.erase(info.hash);
     }
 
-    for (auto& id : systemsRemovedMap)
+    // Reinserção dos novos systemas
+    std::unordered_map<Scene*, std::vector<TypeID>> systemsToInstantiate;
+    for (auto& systemID : systemReload)
     {
         for (auto& scene : SceneManager::GetScenes())
-            scene->DelSystemByID(id);
+        {
+            auto system = scene->GetSystem(systemID);
+            if (system == nullptr)
+                continue;
+
+            systemsToInstantiate[scene].push_back(systemID);
+        }
     }
 
-    // std::cout << "Components: " << sandbox.components.size() << " Systems: " << sandbox.systems.size() << std::endl;
+    // Remo das cenas os systemas que não existe na nova build
+    for (auto &&[id, vtable] : systemAliveMap)
+    {
+        if (vtable == nullptr)
+        {
+            for (auto& scene : SceneManager::GetScenes())
+                scene->DelSystemByID(id);
+        }
+    }
 
+    // liberar o modulo da memoria
     ModuleLoader::Unload("script");
 
+    // Verica se ainda é valido na memoria
     if (ModuleLoader::CheckModuleHasInMemory("libscript.so"))
         return Console::LogError("[ Script ] Fatal error data not unloaded.");
 
-    ModuleLoader::Load("script", dir + "/libscript.so");
+    // Recarrega o modulo com novos dados
+    ModuleLoader::Load("script", file);
 
-    // std::string temp = gfile::get_cache_directory() + "/snapshot.scn";
+    // Apenas para log, imprime novos modulos se houver
+    for (auto &&[hash, info] : newSystemMap)
+        Console::LogInfo("[ Script ] Added system: %s", info->name);
 
-    // throw std::runtime_error("Falta ajustar");
+    // Faz checagem de vtable
+    for (auto &&[systemID, oldVTable] : systemAliveMap)
+    {
+        if (oldVTable != nullptr)
+        {
+            auto info = SystemRegistry::GetSystemByID(systemID);
 
-    // AssetsManager::SceneSaveAsync(temp, m_scene, &Editor::OnPostSaveSnapshot, this, temp);
+            void* newVTable = GetVTable(info);
+            if (oldVTable != newVTable)
+            {
+                for (auto& scene : SceneManager::GetScenes())
+                {
+                    ISystem* system = scene->GetSystem(systemID);
+
+                    void** vtable = (void**)(system);
+                    *vtable = newVTable;
+                }
+
+                Console::LogWarning("[ Script ] VTable realocated for system: %s", info->name);
+            }
+        }
+    }
+
+    for (auto&& [scene, systemIDs] : systemsToInstantiate)
+    {
+        for (auto& systemID : systemIDs)
+            scene->AddSystemByID(systemID);
+    }
 }
 
 // ===================================== END =========================================================
