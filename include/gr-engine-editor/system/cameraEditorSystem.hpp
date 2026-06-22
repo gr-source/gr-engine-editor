@@ -12,7 +12,9 @@ public:
     CameraEditorSystem();
 
 public:
-    float mouseSensitivity;
+    float m_mouseSensitivity;
+
+    float m_movementSpeed;
 
     Vector2 elapsed;
 

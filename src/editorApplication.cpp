@@ -63,7 +63,7 @@ void EditorApplication::renderer()
 {
     ViewManager::Renderer3D();
 
-    gr::gRender::SetBackgroundColor(Color::blue);
+    gr::gRender::SetBackgroundColor(COLOR_BLUE);
     gr::gRender::SetRenderState(gr::GR_BACKGROUND, gr::GR_COLOR_BUFFER);
     
     ImguiRenderer::Begin();

@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <gr-base/core/scene.hpp>
 
-CameraEditorSystem::CameraEditorSystem() : mouseSensitivity(0.1f), elapsed(Vector2::zero)
+CameraEditorSystem::CameraEditorSystem() : m_mouseSensitivity(0.1f), m_movementSpeed(30.0f), elapsed(Vector2::zero)
 {}
 
 void CameraEditorSystem::Update(Scene *scene)
@@ -18,37 +18,33 @@ void CameraEditorSystem::Update(Scene *scene)
 
     auto transform = go.GetComponent<Transform>();
 
-    float movementSpeed = 30.0f;
-
     Vector3 diretion = Vector3::zero;
 
     Vector3 forward = transform->rotation * Vector3::forward;
     Vector3 right = transform->rotation * Vector3::right;
 
-    if (Input::IsKeyPress(KEY_W)) {
+    if (Input::IsKeyPress(KEY_W))
         diretion += forward;
-    }
-    if (Input::IsKeyPress(KEY_S)) {
+    if (Input::IsKeyPress(KEY_S))
         diretion -= forward;
-    }
-    if (Input::IsKeyPress(KEY_A)) {
+
+    if (Input::IsKeyPress(KEY_A))
         diretion += right;
-    }
-    if (Input::IsKeyPress(KEY_D)) {
+    if (Input::IsKeyPress(KEY_D))
         diretion -= right;
-    }
 
     auto position = transform->position;
-    if (Input::IsKeyPress(KEY_UP)) {
+    if (Input::IsKeyPress(KEY_UP))
         diretion.y += 1.0f;
-    }
-    if (Input::IsKeyPress(KEY_DOWN)) {
+    if (Input::IsKeyPress(KEY_DOWN))
         diretion.y -= 1.0f;
-    }
 
-    if (Math::magnitude(diretion) > 0.0f) {
-        transform->position +=(Math::normalize(diretion) * movementSpeed * (float)Clock::deltaTime);
-    }
+    auto dt = Input::GetMouseScroll();
+    if (Math::magnitudeSqrt(dt) > 0.0f)
+        m_movementSpeed += dt.y;
+
+    if (Math::magnitudeSqrt(diretion) > 0.0f)
+        transform->position += (Math::normalize(diretion) * m_movementSpeed * (float)Clock::deltaTime);
 
     UpdateCursor(transform);
 
@@ -63,7 +59,7 @@ void CameraEditorSystem::UpdateCursor(Transform *transform)
 
 void CameraEditorSystem::ProcessMouse(const Vector2 &delta, Transform *transform)
 {
-    elapsed += delta * mouseSensitivity;
+    elapsed += delta * m_mouseSensitivity;
 
     elapsed.y = std::clamp(elapsed.y, -89.0f, 89.0f);
     elapsed.x = std::fmod(elapsed.x, 360.0f);
