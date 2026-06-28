@@ -26,7 +26,6 @@
 #include <gr-base/script/name.hpp>
 
 #include "gr-base/ecs/systemRegistry.hpp"
-#include "gr-base/system/worldsystem.hpp"
 #include "gr-base/task/modelsavetask.hpp"
 #include "Global.h"
 #include "core/time.hpp"
@@ -1877,7 +1876,7 @@ void Editor::create_popup_create_scene()
         // m_scene->RegistrySystem<CubeMovementSystem>(StageType::INPUT);
 
         m_scene->AddSystem<TransformSystem>();
-        m_scene->AddSystem<WorldSystem>();
+        // m_scene->AddSystem<WorldSystem>();
         m_scene->AddSystem<CameraSystem>();
 
         m_scene->AddSystem<RenderSystem>();
