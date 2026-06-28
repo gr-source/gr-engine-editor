@@ -132,7 +132,7 @@ public:
 
     void onBlur() override;
 
-    void drop(void *data) override;
+    void dropPath(const std::string& path) override;
 
     void loadScript(const std::string& dir);
 
@@ -192,8 +192,9 @@ private:
     std::vector<Entity> uiList;
 
     void initialize();
-
     void shutdown();
+
+    virtual void dropPath(const char* path) {}
 
     void create_dock();
 

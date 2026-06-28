@@ -69,9 +69,6 @@ int FilmboxLoadTask::doInBackground()
         m_materialCacheList.emplace(fbxMaterial.name, asset);
     }
 
-    std::cout << m_scene->meshes.size() << std::endl;
-
-    size_t vertexOffset = 0;
     for (auto& fbxMesh : m_scene->meshes)
     {
         if (m_meshCacheList.find(fbxMesh.GetName()) == m_meshCacheList.end())
@@ -85,22 +82,26 @@ int FilmboxLoadTask::doInBackground()
             m_meshCacheList.emplace(fbxMesh.GetName(), asset);
         }
 
+        const auto& vertices = fbxMesh.vertices;
+        const auto& indices = fbxMesh.indices;
+
         MeshAsset& asset = m_meshCacheList[fbxMesh.GetName()];
 
-        for (const auto& v : fbxMesh.vertices)
+        size_t vertexOffset = asset.vertices.size();
+        size_t indexOffset = asset.indices.size();
+
+        for (const auto& v : vertices)
         {
             asset.vertices.push_back({v.position, v.normal, v.texCoord});
         }
 
+        for (auto& idx : indices)
+            asset.indices.push_back(idx + static_cast<uint32_t>(vertexOffset));
+
         auto& submesh = asset.submeshes.emplace_back();
         submesh.materialName = m_scene->materials[fbxMesh.GetMaterialID()].name;
-
-        for (auto& idx : fbxMesh.indices)
-        {
-            submesh.indices.push_back(idx + static_cast<uint32_t>(vertexOffset));
-        }
-
-        vertexOffset += fbxMesh.vertices.size();
+        submesh.indexCount = static_cast<uint32_t>(indices.size());
+        submesh.indexOffset = static_cast<uint32_t>(indexOffset);
     }
 
     auto& root = m_scene->getRootNode();

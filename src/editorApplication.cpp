@@ -53,6 +53,13 @@ void EditorApplication::run()
     renderer();
 }
 
+void EditorApplication::dropPath(const char* path)
+{
+    auto view = ViewManager::GetCurrentView();
+    if (view != nullptr)
+        view->dropPath(path);
+}
+
 // private
 void EditorApplication::update()
 {

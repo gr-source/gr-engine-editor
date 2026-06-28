@@ -63,7 +63,7 @@ void EngineStatusView::onRenderUI()
         }
     }
 
-    if (scene != nullptr)
+    if (scene != nullptr && ImGui::CollapsingHeader("ECS"))
     {
         ImGui::Text("Entities: %ld", scene->GetEntityCount());
 
@@ -163,7 +163,10 @@ void EngineStatusView::onRenderUI()
     }
     */
 
-    ImGui::Text("DrawCall Count: %ld", Status::BatchDrawCallCount);
-    ImGui::Text("Render Count: %ld", Status::BatchRenderCount);
+    ImGui::Text("Draw Calls: %ld", RendererStats::DrawCallCount);
+    ImGui::Text("Triangles: %ld", RendererStats::TriangleCount);
+
+    ImGui::Text("Instances: %ld", RendererStats::InstanceCount);
+    ImGui::Text("Batches: %ld", RendererStats::BatchCount);
 }
 

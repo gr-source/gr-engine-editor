@@ -46,6 +46,7 @@
 #include "manager/viewManager.hpp"
 #include "settings.h"
 
+#include "task/filmboxtask.hpp"
 #include "view/engineStatusView.hpp"
 #include "view/popup/filmboximport.hpp"
 #include "view/sceneInspectorView.hpp"
@@ -453,13 +454,19 @@ void Editor::onFocus()
 }
 
 void Editor::onBlur()
+{}
+
+void Editor::dropPath(const std::string& path)
 {
+    std::string filename = gfile::get_file_name(path);
+    if (filename.find(".fbx") != std::string::npos)
+        TaskManager::Add<FilmboxLoadTask>(path);
 }
 
-void Editor::drop(void *data)
-{
-    updateFileTree(&root_tree_file);
-}
+// void Editor::drop(void *data)
+// {
+//     updateFileTree(&root_tree_file);
+// }
 
 #include <gr-base/core/renderer.hpp>
 
@@ -2323,9 +2330,14 @@ void Editor::OnPropertyCamera(Camera *camera)
 
 void Editor::OnPropertyMeshFilter(Entity e, MeshFilter *meshFilter)
 {
-    // auto name = AssetsManager::GetMeshName(meshFilter->meshID);
+    auto mesh = AssetsManager::GetMesh(meshFilter->mesh);
+    if (mesh == nullptr)
+        return ImGui::Text("No mesh");
 
     ImGui::Text("Mesh Handle: %ld", meshFilter->mesh);
+    ImGui::Text("Vertices: %ld", mesh->numVertices);
+    ImGui::Text("Indices: %ld", mesh->numIndices);
+    ImGui::Text("Sub: %ld", mesh->numSubmeshes);
 }
 
 void Editor::OnPropertyMeshRender(Entity e, MeshRender *meshRender)

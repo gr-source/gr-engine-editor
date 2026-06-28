@@ -24,6 +24,8 @@ public:
 
     void run() override;
 
+    void dropPath(const char* path) override;
+
     inline Project* getProject() const
     {
         return m_project != nullptr ? m_project.get() : nullptr;

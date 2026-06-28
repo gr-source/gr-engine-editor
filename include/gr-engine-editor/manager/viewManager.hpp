@@ -17,6 +17,11 @@ public:
     template <typename T>
     static T* Register();
 
+    static ViewLayout* GetCurrentView()
+    {
+        return s_ViewManager->s_current;
+    }
+
     static void Update();
 
     static void Renderer3D();
