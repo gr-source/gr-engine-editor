@@ -1,6 +1,7 @@
 #include "view/popup/filmboximport.hpp"
 
 #include "editorApplication.hpp"
+#include "gr-base/asset/assetResolver.hpp"
 #include "gr-base/core/file/file.hpp"
 
 #include "gr-base/core/thread/taskmanager.hpp"
@@ -76,9 +77,16 @@ void FilmboxImport::onRenderUI()
             {
                 for (auto&&[asset_name, asset] : cache.materialsAsset)
                 {
-                    auto path = "material/" + asset_name;
+                    URI uri = URI::parse("project://material/" + filename + "/" + asset_name);
 
-                    TaskManager::Add<MaterialSaveTask>(path, asset);
+                    auto parent = gfile::parent(AssetResolver::Resolve(uri));
+                    if (!gfile::exists(parent))
+                        gfile::create_directories(parent);
+
+                    TaskManager::Add<MaterialSaveTask>(
+                            uri,
+                            asset
+                        );
                 }
             }
 
@@ -86,9 +94,13 @@ void FilmboxImport::onRenderUI()
             {
                 for (auto&&[asset_name, asset] : cache.meshesAsset)
                 {
-                    auto path = "mesh/" + asset_name;
+                    URI uri = URI::parse("project://mesh/" + filename + "/" + asset_name);
 
-                    TaskManager::Add<MeshSaveTask>(path, asset);
+                    auto parent = gfile::parent(AssetResolver::Resolve(uri));
+                    if (!gfile::exists(parent))
+                        gfile::create_directories(parent);
+
+                    TaskManager::Add<MeshSaveTask>(uri, asset);
                 }
             }
 
@@ -96,9 +108,13 @@ void FilmboxImport::onRenderUI()
             {
                 auto& asset = cache.modelAsset;
 
-                auto path = "model/" + asset.name;
+                URI uri = URI::parse("project://model/" + filename + "/" + asset.name);
 
-                TaskManager::Add<ModelSaveTask>(path, asset);
+                auto parent = gfile::parent(AssetResolver::Resolve(uri));
+                if (!gfile::exists(parent))
+                    gfile::create_directories(parent);
+
+                TaskManager::Add<ModelSaveTask>(uri, asset);
             }
         }
 

@@ -24,7 +24,7 @@
 
 #include <gr-base/managers/assetsManager.hpp>
 
-FilmboxLoadTask::FilmboxLoadTask(const std::string& file) : m_file(file), m_scene(nullptr), m_shader("shader/simple_model.glsl")
+FilmboxLoadTask::FilmboxLoadTask(const std::string& file) : m_file(file), m_scene(nullptr), m_shader("engine://shader/simple_model")
 {}
 
 void FilmboxLoadTask::onPreExecute()
@@ -53,11 +53,8 @@ int FilmboxLoadTask::doInBackground()
         if (m_materialCacheList.find(fbxMaterial.name) != m_materialCacheList.end())
             continue;
 
-        std::string MaterialKey = "material/" + fbxMaterial.name;
-
         MaterialAsset asset;
         asset.name = fbxMaterial.name;
-        asset.hash = engine::hash::fnv1_str(MaterialKey.c_str());
 
         asset.SetShader(m_shader);
 
@@ -73,11 +70,8 @@ int FilmboxLoadTask::doInBackground()
     {
         if (m_meshCacheList.find(fbxMesh.GetName()) == m_meshCacheList.end())
         {
-            std::string MeshKey = "mesh/" + fbxMesh.GetName();
-
             MeshAsset asset;
             asset.name = fbxMesh.GetName();
-            asset.hash = engine::hash::fnv1_str(MeshKey.c_str());
 
             m_meshCacheList.emplace(fbxMesh.GetName(), asset);
         }
@@ -103,6 +97,14 @@ int FilmboxLoadTask::doInBackground()
         submesh.indexCount = static_cast<uint32_t>(indices.size());
         submesh.indexOffset = static_cast<uint32_t>(indexOffset);
     }
+
+    auto filename = gfile::get_file_name(m_file);
+
+    for (auto &&[name, asset] : m_materialCacheList)
+        asset.hash = engine::hash::fnv1_str("project://material/" + filename + "/" + name);
+
+    for (auto &&[name, asset] : m_meshCacheList)
+        asset.hash = engine::hash::fnv1_str("project://mesh/" + filename + "/" + name);
 
     auto& root = m_scene->getRootNode();
     for (auto& fbxNode : root.getChildren())
@@ -147,14 +149,18 @@ ModelAsset FilmboxLoadTask::PackingObject(const FbxNode* node)
         auto& fbxMesh = m_scene->meshes[meshID];
         const auto& meshName = fbxMesh.GetName();
 
-        std::string MeshKey = "mesh/" + meshName;
-
-        asset.mesh = engine::hash::fnv1_str(MeshKey.c_str());
+        {
+            auto it = m_meshCacheList.find(meshName);
+            if (it != m_meshCacheList.end())
+                asset.mesh = it->second.hash;
+        }
 
         auto& fbxMaterial = m_scene->materials[fbxMesh.GetMaterialID()];
-        std::string MaterialKey = "material/" + fbxMaterial.name;
-
-        asset.materials.push_back(engine::hash::fnv1_str(MaterialKey.c_str()));
+        {
+            auto it = m_materialCacheList.find(fbxMaterial.name);
+            if (it != m_materialCacheList.end())
+                asset.materials.push_back(it->second.hash);
+        }
     }
 
     Transform transform;

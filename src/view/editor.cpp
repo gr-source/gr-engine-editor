@@ -254,15 +254,15 @@ Editor::Editor()
     EventManager::Attach("delete_file_selected", &Editor::delete_file_selected, this);
     EventManager::Attach("editor_update_tree_file", &Editor::updateFileTree, this, &root_tree_file);
 
-    TaskManager::Add<ShaderBuildTask>(
-        "/home/NoirVoid/.local/share/gr-engine/assets/shader/line.glsl",
-        URI::parse("engine://shader/line")
-    );
-
-    TaskManager::Add<ShaderBuildTask>(
-            "/home/NoirVoid/.local/share/gr-engine/assets/shader/model/simple_model.glsl",
-            URI::parse("engine://shader/simple_model")
-        );
+    // TaskManager::Add<ShaderBuildTask>(
+    //     "/home/NoirVoid/.local/share/gr-engine/assets/shader/line.glsl",
+    //     URI::parse("engine://shader/line")
+    // );
+    //
+    // TaskManager::Add<ShaderBuildTask>(
+    //         "/home/NoirVoid/.local/share/gr-engine/assets/shader/model/simple_model.glsl",
+    //         URI::parse("engine://shader/simple_model")
+    //     );
 }
 
 Editor::~Editor()
@@ -1673,9 +1673,9 @@ void Editor::drop_gameobject_in_treefile(gtreefile *tree_file)
 
     auto gameobject = m_scene->Wrap(entity);
 
-    auto path = "model/" + m_scene->GetEntityName(entity);
+    URI uri = URI::parse("project://model/" + m_scene->GetEntityName(entity));
 
-    TaskManager::Add<ModelSaveTask>(path, m_scene, entity);
+    TaskManager::Add<ModelSaveTask>(uri, m_scene, entity);
 
     ImGui::EndDragDropTarget();
 }
