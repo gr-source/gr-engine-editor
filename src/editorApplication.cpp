@@ -152,9 +152,7 @@ void EditorApplication::drawScene(Scene* scene)
     });
 
     cameraUBO.Update(cameraBuffer);
-
-    if (lightBuffer.numLights > 0)
-        lightUBO.Update(lightBuffer);
+    lightUBO.Update(lightBuffer);
 
     Renderer::SetRenderTarget(
         camera->rendertarget
