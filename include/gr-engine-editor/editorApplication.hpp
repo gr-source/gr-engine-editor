@@ -2,6 +2,8 @@
 
 #include "core/project.hpp"
 
+#include <gr-base/core/default.hpp>
+
 #include <gr-base/application.hpp>
 #include <gr-base/runtime.hpp>
 
@@ -11,6 +13,42 @@ extern "C"
 {
 #include <gr-ini/config.h>
 }
+
+#include <gr-render/uniformBuffer.hpp>
+
+#include <gr-math/gmath.hpp>
+
+struct LightData
+{
+    Vector3 position;
+    Vector3 direction;
+
+    Color color;
+
+    Vector4 params;     // x = constant
+                           // y = linear
+                           // z = quadratic
+                           // w = tipo
+
+    Vector3 spot;       // x = cos(innerCone)
+                           // y = cos(outerCone)
+                           // z,w = reservados
+};
+
+typedef struct CameraBuffer
+{
+    Matrix4x4 projection;
+    Matrix4x4 view;
+    Vector3 position;
+} CameraBuffer;
+
+#define MAX_NUM_LIGHT 10
+
+typedef struct LightBuffer
+{
+    int numLights;
+    LightData lights[MAX_NUM_LIGHT];
+} LightBuffer;
 
 class EditorApplication : public Application
 {
@@ -38,9 +76,14 @@ private:
 
     Runtime runtime;
 
+    engine::renderer::UniformBuffer cameraUBO;
+    engine::renderer::UniformBuffer lightUBO;
+
     void update();
 
     void renderer();
+
+    void drawScene(Scene* scene);
 
     void checkProject();
 

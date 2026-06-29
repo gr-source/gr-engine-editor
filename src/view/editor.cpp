@@ -251,13 +251,13 @@ Editor::Editor()
     EventManager::Attach("delete_file_selected", &Editor::delete_file_selected, this);
     EventManager::Attach("editor_update_tree_file", &Editor::updateFileTree, this, &root_tree_file);
 
-    // TaskManager::Add<ShaderBuildTask>(
-    //         "/home/NoirVoid/.local/share/assets/shader/line.glsl"
-    //         );
+    TaskManager::Add<ShaderBuildTask>(
+            "/home/NoirVoid/.local/share/gr-engine/assets/shader/line.glsl"
+            );
 
-    // TaskManager::Add<ShaderBuildTask>(
-    //         "/home/NoirVoid/.local/share/assets/shader/model/simple_model.glsl"
-    //         );
+    TaskManager::Add<ShaderBuildTask>(
+            "/home/NoirVoid/.local/share/gr-engine/assets/shader/model/simple_model.glsl"
+            );
 }
 
 Editor::~Editor()
@@ -420,11 +420,6 @@ void Editor::onUpdate()
 
 void Editor::onRender3D()
 {
-    Renderer::BeginFrame();
-
-    Renderer::Render();
-
-    Renderer::EndFrame();
 }
 
 void Editor::onRenderUI()
@@ -2541,22 +2536,28 @@ void Editor::OnPropertyLight(Entity entity, Light *light)
 
     ImGui::Text("Type");
     if (ImGui::SliderInt("##light_type", &elem, 0, 3 - 1, elem_name))
-        light->type = static_cast<Light::LightType>(elem);
+        light->type = static_cast<LightType>(elem);
     
-    ImGui::Text("Constante");
-    ImGui::DragFloat("##light_constant", &light->attenuationConstant, 0.005f, 0.01f, 1.0f);
+    if (light->type != LightType::eDirection)
+    {
+        ImGui::Text("Constant");
+        ImGui::DragFloat("##light_constant", &light->attenuationConstant, 0.01f, 0.0f, 10.0f);
 
-    ImGui::Text("Linear:");
-    ImGui::DragFloat("##light_linear", &light->attenuationLinear, 0.005f, 0.01f, 1.0f);
+        ImGui::Text("Linear");
+        ImGui::DragFloat("##light_linear", &light->attenuationLinear, 0.001f, 0.0f, 1.0f);
 
-    ImGui::Text("Quadract:");
-    ImGui::DragFloat("##light_quadract", &light->attenuationQuadratic, 0.005f, 0.01f, 1.0f);
+        ImGui::Text("Quadract");
+        ImGui::DragFloat("##light_quadract", &light->attenuationQuadratic, 0.001f, 0.0f, 2.0f);
 
-    ImGui::Text("InConner:");
-    ImGui::DragFloat("##light_inconer", &light->angleInnerCone, 0.005f, 0.01f, 1.0f);
+        if (light->type == LightType::eSpot)
+        {
+            ImGui::Text("Inner angle:");
+            ImGui::DragFloat("##light_inconer", &light->angleInnerCone, 0.1f, 0.0f, 180.0f);
 
-    ImGui::Text("IuterConner:");
-    ImGui::DragFloat("##light_outerconner", &light->angleOuterCone, 0.005f, 0.01f, 1.0f);
+            ImGui::Text("Outer angle:");
+            ImGui::DragFloat("##light_outerconner", &light->angleOuterCone, 0.1f, 0.0f, 180.0f);
+        }
+    }
 
     ImGui::Text("Color");
     

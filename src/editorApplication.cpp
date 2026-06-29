@@ -30,6 +30,9 @@ void EditorApplication::initialize()
 
     loadConfig();
 
+    cameraUBO.Create(0, sizeof(CameraBuffer));
+    lightUBO.Create(1, sizeof(LightBuffer));
+
     ViewManager::AddView<CheckUpdate>(&EditorApplication::checkProject, this);
 }
 
@@ -38,6 +41,9 @@ void EditorApplication::shutdown()
     ViewManager::Shutdown();
 
     ImguiRenderer::Shutdown();
+
+    cameraUBO.Destroy();
+    lightUBO.Destroy();
 
     runtime.shutdown();
 
@@ -66,18 +72,101 @@ void EditorApplication::update()
     ViewManager::Update();
 }
 
+#include <gr-base/managers/sceneManager.hpp>
+
+#include <gr-base/core/renderer.hpp>
+
 void EditorApplication::renderer()
 {
-    ViewManager::Renderer3D();
+    auto scene = SceneManager::GetCurrent();
+    if (scene != nullptr)
+        drawScene(scene);
 
-    gr::gRender::SetBackgroundColor(COLOR_BLUE);
-    gr::gRender::SetRenderState(gr::GR_BACKGROUND, gr::GR_COLOR_BUFFER);
+    // gr::gRender::SetBackgroundColor(COLOR_BLUE);
+    // gr::gRender::SetRenderState(gr::GR_BACKGROUND, gr::GR_COLOR_BUFFER);
     
     ImguiRenderer::Begin();
 
     ViewManager::RendererUI();
 
     ImguiRenderer::End();
+}
+
+#include <gr-base/core/culling/frustum.hpp>
+
+#include <gr-base/ecs/world.hpp>
+
+#include <gr-base/script/transform.hpp>
+#include <gr-base/script/camera.hpp>
+#include <gr-base/script/light.hpp>
+
+void EditorApplication::drawScene(Scene* scene)
+{
+    auto world = scene->GetWorld();
+
+    auto go = scene->Wrap(scene->GetCamera());
+
+    Transform* transform =
+        go.GetComponent<Transform>();
+
+    Camera* camera =
+        go.GetComponent<Camera>();
+
+    CameraData* cameraData =
+        go.GetComponent<CameraData>();
+
+    CameraBuffer cameraBuffer;
+    cameraBuffer.projection = cameraData->projection;
+    cameraBuffer.view = cameraData->view;
+    cameraBuffer.position = transform->position;
+
+    LightBuffer lightBuffer{0};
+
+    world->Query<Transform, Light>([&](Entity*, Transform* transforms, Light* lights, size_t count)
+    {
+        for (size_t i=0;i<count;i++)
+        {
+            if (lightBuffer.numLights >= MAX_NUM_LIGHT)
+                break;
+
+            auto& transform = transforms[i];
+            auto& light = lights[i];
+
+            LightData& data = lightBuffer.lights[lightBuffer.numLights++];
+            data.position = transform.position;
+            data.direction = transform.rotation * Vector3::forward;
+
+            data.color = light.color;
+            data.params = {
+                light.attenuationConstant,
+                light.attenuationLinear,
+                light.attenuationQuadratic,
+                static_cast<float>(light.type)
+            };
+
+            data.spot = {
+                cosf(Math::rad(light.angleInnerCone)),
+                cosf(Math::rad(light.angleOuterCone))
+            };
+        }
+    });
+
+    cameraUBO.Update(cameraBuffer);
+
+    if (lightBuffer.numLights > 0)
+        lightUBO.Update(lightBuffer);
+
+    Renderer::SetRenderTarget(
+        camera->rendertarget
+    );
+
+    Frustum::CalculateFrustum(cameraData->viewProjection);
+
+    Renderer::BeginFrame();
+
+    Renderer::Render();
+
+    Renderer::EndFrame();
 }
 
 void EditorApplication::checkProject()
