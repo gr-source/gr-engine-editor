@@ -167,10 +167,25 @@ void EditorApplication::drawScene(Scene* scene)
     Renderer::EndFrame();
 }
 
+#include <gr-base/asset/assetProvider.hpp>
+#include <gr-base/asset/assetResolver.hpp>
+
+class ProjectAssetProvider : public IAssetProvider
+{
+    std::string m_directory;
+public:
+    ProjectAssetProvider(const std::string& dir) : m_directory(dir)
+    {}
+
+    virtual std::string resolve(const std::string& path) override
+    {
+        return m_directory + "/assets/" + path;
+    }
+};
+
 void EditorApplication::checkProject()
 {
     ViewManager::RemoveAllView();
-
 
     gSection* section = config_find_section(config, "project");
     if (section != NULL)
@@ -182,6 +197,8 @@ void EditorApplication::checkProject()
 
     if (m_project == nullptr)
         return ViewManager::AddView<ProjectMenu>();
+
+    AssetResolver::Registry<ProjectAssetProvider>(Scheme::Project, m_project->path);
 
     ViewManager::AddView<Editor>();
     // ViewManager::AddView<ShaderEditor>();

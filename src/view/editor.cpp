@@ -97,6 +97,10 @@
 #include <gr-base/system/renderSystem.hpp>
 #include <gr-base/system/camerasystem.hpp>
 
+
+#include <gr-base/task/textureBuildTask.hpp>
+#include <gr-base/task/shaderbuildtask.hpp>
+
 constexpr Hash64 kBuiltinSystems[] = {
     engine::type_traits::hash<CameraEditorSystem>,
 };
@@ -250,13 +254,15 @@ Editor::Editor()
     EventManager::Attach("delete_file_selected", &Editor::delete_file_selected, this);
     EventManager::Attach("editor_update_tree_file", &Editor::updateFileTree, this, &root_tree_file);
 
-    // TaskManager::Add<ShaderBuildTask>(
-    //         "/home/NoirVoid/.local/share/gr-engine/assets/shader/line.glsl"
-    //         );
-    //
-    // TaskManager::Add<ShaderBuildTask>(
-    //         "/home/NoirVoid/.local/share/gr-engine/assets/shader/model/simple_model.glsl"
-    //         );
+    TaskManager::Add<ShaderBuildTask>(
+        "/home/NoirVoid/.local/share/gr-engine/assets/shader/line.glsl",
+        URI::parse("engine://shader/line")
+    );
+
+    TaskManager::Add<ShaderBuildTask>(
+            "/home/NoirVoid/.local/share/gr-engine/assets/shader/model/simple_model.glsl",
+            URI::parse("engine://shader/simple_model")
+        );
 }
 
 Editor::~Editor()
@@ -466,11 +472,6 @@ void Editor::dropPath(const std::string& path)
 
 void Editor::initialize()
 {
-    // AssetConfig config;
-    // config.projectRoot = m_project->path + "/";
-    // config.assetFolder = "assets/";
-
-
     ViewManager::Register<SceneInspectorView>();
     ViewManager::Register<EngineStatusView>();
     ViewManager::Register<FilmboxImport>();
@@ -2570,8 +2571,6 @@ void Editor::OnPropertyLight(Entity entity, Light *light)
         ImGui::EndPopup();
     }
 }
-
-#include <gr-base/task/textureBuildTask.hpp>
 
 void Editor::LoadReources()
 {
