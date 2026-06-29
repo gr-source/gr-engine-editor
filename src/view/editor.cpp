@@ -153,7 +153,7 @@ Editor::Editor()
 
     m_scene = nullptr;
 
-    s_texturePlayGame = nullptr;
+    s_texturePlayGame = HANDLE_INVALID;
 
     g_treefile_dir_selected = nullptr;
     
@@ -242,7 +242,6 @@ Editor::Editor()
     root_tree_file.name = "Assets";
     root_tree_file.parent = nullptr;
     root_tree_file.bdirectory = true;
-    root_tree_file.icon = nullptr;
 
     updateFileTree(&root_tree_file);
 
@@ -251,13 +250,13 @@ Editor::Editor()
     EventManager::Attach("delete_file_selected", &Editor::delete_file_selected, this);
     EventManager::Attach("editor_update_tree_file", &Editor::updateFileTree, this, &root_tree_file);
 
-    TaskManager::Add<ShaderBuildTask>(
-            "/home/NoirVoid/.local/share/gr-engine/assets/shader/line.glsl"
-            );
-
-    TaskManager::Add<ShaderBuildTask>(
-            "/home/NoirVoid/.local/share/gr-engine/assets/shader/model/simple_model.glsl"
-            );
+    // TaskManager::Add<ShaderBuildTask>(
+    //         "/home/NoirVoid/.local/share/gr-engine/assets/shader/line.glsl"
+    //         );
+    //
+    // TaskManager::Add<ShaderBuildTask>(
+    //         "/home/NoirVoid/.local/share/gr-engine/assets/shader/model/simple_model.glsl"
+    //         );
 }
 
 Editor::~Editor()
@@ -467,11 +466,10 @@ void Editor::dropPath(const std::string& path)
 
 void Editor::initialize()
 {
-    AssetConfig config;
-    config.projectRoot = m_project->path + "/";
-    config.assetFolder = "assets/";
+    // AssetConfig config;
+    // config.projectRoot = m_project->path + "/";
+    // config.assetFolder = "assets/";
 
-    AssetDB::Initialize(config);
 
     ViewManager::Register<SceneInspectorView>();
     ViewManager::Register<EngineStatusView>();
@@ -481,7 +479,7 @@ void Editor::initialize()
 
 void Editor::shutdown()
 {
-    AssetDB::Shutdown();
+    // AssetDB::Shutdown();
 }
 
 void Editor::create_dock()
@@ -1021,7 +1019,8 @@ void Editor::render_scene(Scene *scene)
     auto cursorPos = ImGui::GetCursorPos();
 
     // Play button
-    if (s_texturePlayGame) {
+    if (s_texturePlayGame.Get())
+    {
         s_texturePlayGame = iconsUI[ICON_PLAY_GAME];
         if (Settings::bGameRunning) {
             if (ImGui::IsKeyReleased(ImGuiKey_Escape) && ImGui::IsWindowHovered()) {
@@ -1033,7 +1032,8 @@ void Editor::render_scene(Scene *scene)
         
         ImGui::SetCursorPos({regionAvail.x / 2 - cursorPos.x, cursorPos.y + 0.5f});
 
-        if (ImGui::ImageButton(reinterpret_cast<ImTextureID>(s_texturePlayGame->getTextureID()), ImVec2(16, 16))) {
+        if (ImGui::ImageButton(reinterpret_cast<ImTextureID>(s_texturePlayGame->id), ImVec2(16, 16)))
+        {
             if (!Settings::bGameRunning)
             {
                 OnPlayButton();
@@ -1557,12 +1557,10 @@ void Editor::render_files_on_dir(gtreefile *dir)
     ImGui::Columns(4, nullptr, false);
     for (auto &entry : dir->children)
     {
-        if (entry.bdirectory || entry.icon == nullptr || *entry.icon == nullptr)
-        {
+        if (entry.bdirectory || entry.texture.Get() == nullptr)
             continue;
-        }
 
-        if (ImguiWidget::ImageAndTextButton(reinterpret_cast<ImTextureID>((*entry.icon)->getTextureID()), entry.name.c_str(), selected_file(&entry)))
+        if (ImguiWidget::ImageAndTextButton(reinterpret_cast<ImTextureID>(entry.texture->id), entry.name.c_str(), selected_file(&entry)))
         {
         }
 
@@ -1651,7 +1649,8 @@ void Editor::drag_file(gtreefile *file)
                 pos.y -= 5.5f;
                 pos.x = after.x + (id * 5.0f);
 
-                ImGui::Image(reinterpret_cast<ImTextureID>(iconsUI[IconType::ICON_FILE]->getTextureID()), {32, 32});
+
+                ImGui::Image(reinterpret_cast<ImTextureID>(iconsUI[IconType::ICON_FILE]->id), {32, 32});
             }
 
             ImGui::SetDragDropPayload(m_extensionDragDrop[m_extensionNameToFlag[file->extension]], g_tree_file_selected.data(), g_tree_file_selected.size() * sizeof(gtreefile *));
@@ -2572,38 +2571,62 @@ void Editor::OnPropertyLight(Entity entity, Light *light)
     }
 }
 
+#include <gr-base/task/textureBuildTask.hpp>
+
 void Editor::LoadReources()
 {
     std::string internal_assets_path = gfile::get_data_directory() + "/assets";
 
-    #define LOAD_ICON(path, icon_type) \
-        AssetsManager::LoadTexture(internal_assets_path + path, &Editor::SetupTexture, this, icon_type)
+#define ICON_BUILD(name) \
+    do \
+    { \
+        TaskManager::Add<TextureBuildTask>(internal_assets_path + "/" + name, URI::parse("engine://" + std::string(name))); \
+    } while (0) \
 
-    LOAD_ICON("/icon/icons8-file-30.png",                    IconType::ICON_FILE);
-    LOAD_ICON("/icon/icons8-folder-50.png",                  IconType::ICON_FOLDER);
-    LOAD_ICON("/icon/icons8-go-back-50.png",                 IconType::ICON_BACK_FILE);
-    LOAD_ICON("/icon/icons8-3d-object-50.png",               IconType::ICON_GAMEOBJECT);
-    LOAD_ICON("/icon/icons8-lápis-30.png",                   IconType::ICON_PENCIL);
-    LOAD_ICON("/icon/icons8-lâmpada-globular-64.png",        IconType::ICON_LIGHT);
-    LOAD_ICON("/icon/icons8-textura-de-renderização-32.png", IconType::ICON_TEXTURE);
-    LOAD_ICON("/icon/icons8-png-24.png",                     IconType::ICON_PNG);
-    LOAD_ICON("/icon/icons8-reproduzir-30.png",              IconType::ICON_PLAY_GAME);
-    LOAD_ICON("/icon/icons8-parar-50.png",                   IconType::ICON_STOP_GAME);
-    LOAD_ICON("/icon/icons8-resíduos-50.png",                IconType::ICON_BIN);
-    LOAD_ICON("/icon/icons8-importar-50.png",                IconType::ICON_IMPORT);
-    LOAD_ICON("/icon/icons8-ordenar-para-a-direita-50.png",  IconType::ICON_ASCENDENTE);
-    LOAD_ICON("/icon/icons8-ordem-descendente-50.png",       IconType::ICON_DESCENDENTE);
-    LOAD_ICON("/icon/icons8-editar-24.png",                  IconType::ICON_EDIT);
-    LOAD_ICON("/icon/motion-graphics.png",                   IconType::ICON_ANIMATION);
-    LOAD_ICON("/icon/shade.png",                             IconType::ICON_SHADER);
-    LOAD_ICON("/icon/studio-set.png",                        IconType::ICON_SCENE);
+    #define ICON_LOAD(name, icon) \
+    do \
+    { \
+        try \
+        { \
+            SetupTexture(icon, AssetsManager::LoadTexture("engine://" + std::string(name))); \
+        } catch (const std::exception& e) \
+        { \
+            Console::LogError("[ Editor ] [ LoadReources ] error='%s'.", e.what()); \
+        } \
+    } while (0)
+
+    #define LOAD_ICON(n, t) ICON_LOAD(n, t)
+
+        // AssetsManager::LoadTexture(internal_assets_path + path, &Editor::SetupTexture, this, icon_type)
+
+    LOAD_ICON("icon/icons8-file-30.png",                    IconType::ICON_FILE);
+    LOAD_ICON("icon/icons8-folder-50.png",                  IconType::ICON_FOLDER);
+    LOAD_ICON("icon/icons8-go-back-50.png",                 IconType::ICON_BACK_FILE);
+    LOAD_ICON("icon/icons8-3d-object-50.png",               IconType::ICON_GAMEOBJECT);
+    LOAD_ICON("icon/icons8-lápis-30.png",                   IconType::ICON_PENCIL);
+    LOAD_ICON("icon/icons8-lâmpada-globular-64.png",        IconType::ICON_LIGHT);
+    LOAD_ICON("icon/icons8-textura-de-renderização-32.png", IconType::ICON_TEXTURE);
+    LOAD_ICON("icon/icons8-png-24.png",                     IconType::ICON_PNG);
+    LOAD_ICON("icon/icons8-reproduzir-30.png",              IconType::ICON_PLAY_GAME);
+    LOAD_ICON("icon/icons8-parar-50.png",                   IconType::ICON_STOP_GAME);
+    LOAD_ICON("icon/icons8-resíduos-50.png",                IconType::ICON_BIN);
+    LOAD_ICON("icon/icons8-importar-50.png",                IconType::ICON_IMPORT);
+    LOAD_ICON("icon/icons8-ordenar-para-a-direita-50.png",  IconType::ICON_ASCENDENTE);
+    LOAD_ICON("icon/icons8-ordem-descendente-50.png",       IconType::ICON_DESCENDENTE);
+    LOAD_ICON("icon/icons8-editar-24.png",                  IconType::ICON_EDIT);
+    LOAD_ICON("icon/motion-graphics.png",                   IconType::ICON_ANIMATION);
+    LOAD_ICON("icon/shade.png",                             IconType::ICON_SHADER);
+    LOAD_ICON("icon/studio-set.png",                        IconType::ICON_SCENE);
+
     #undef LOAD_ICON
 }
 
-void Editor::SetupTexture(IconType type, gr::gTexture *texture) {
-    iconsUI[type] = texture;
+void Editor::SetupTexture(IconType type, TextureHandle h)
+{
+    iconsUI[type] = h;
 
-    if (type == IconType::ICON_PLAY_GAME) {
+    if (type == IconType::ICON_PLAY_GAME)
+    {
         s_texturePlayGame = iconsUI[IconType::ICON_PLAY_GAME];
     }
 }
@@ -2957,28 +2980,28 @@ void Editor::updateFileTree(gtreefile *tree_file)
 
         auto extension = files[i].path().extension().string();
 
-        auto texture = &iconsUI[IconType::ICON_FILE];
-        if (extension == ".gmdx")
+        auto icon = IconType::ICON_FILE;
+        if (extension == HEADER_MODEL_EXTENSION)
         {
-            texture = &iconsUI[IconType::ICON_GAMEOBJECT];
+            icon = IconType::ICON_GAMEOBJECT;
         } else if (extension == ".anm")
         {
-            texture = &iconsUI[IconType::ICON_ANIMATION];
+            icon = IconType::ICON_ANIMATION;
         } else if (extension == ".scn")
         {
-            texture = &iconsUI[IconType::ICON_SCENE];
-        } else if (extension == ".glsl")
+            icon = IconType::ICON_SCENE;
+        } else if (extension == HEADER_SHADER_EXTENSION)
         {
-            texture = &iconsUI[IconType::ICON_SHADER];
+            icon = IconType::ICON_SHADER;
         } else if (extension == ".hpp" || extension == ".cpp")
         {
-            texture = &iconsUI[IconType::ICON_SCRIPT];
+            icon = IconType::ICON_SCRIPT;
         } else if (extension == ".png")
         {
-            texture = &iconsUI[IconType::ICON_TEXTURE];
+            icon = IconType::ICON_TEXTURE;
         }
 
-        child.icon = texture;
+        child.texture = iconsUI[icon];
 
         updateFileTree(&child);
     }

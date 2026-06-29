@@ -12,6 +12,8 @@
 #include "gr-base/core/scene.hpp"
 #include "gr-base/core/thread/asynctask.hpp"
 
+#include <gr-base/asset/assetPtr.hpp>
+
 #include "Global.h"
 
 #include "guizmo/ImGuizmo.h"
@@ -107,7 +109,7 @@ typedef struct gtreefile
 
     std::string extension;
 
-    gr::gTexture **icon;
+    AssetPtr<gr::Texture> texture;
 
     bool bdirectory;
 
@@ -138,12 +140,12 @@ public:
 
     void LoadReources();
     
-    void SetupTexture(IconType type, gr::gTexture *texture);
+    void SetupTexture(IconType type, TextureHandle h);
 
 private:
     std::unordered_map<std::string, std::function<void(GameObject *)>> m_guiscriptmap;
 
-    std::unordered_map<IconType, gr::gTexture *> iconsUI;
+    std::unordered_map<IconType, AssetPtr<gr::Texture>> iconsUI;
 
     std::vector<gtreefile *> g_tree_file_selected;
 
@@ -165,7 +167,7 @@ private:
 
     ImGuiViewport *m_viewport;
 
-    gr::gTexture *s_texturePlayGame;
+    AssetPtr<gr::Texture> s_texturePlayGame;
 
     uint32_t popupFlags;
 
