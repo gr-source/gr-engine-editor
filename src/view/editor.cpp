@@ -3040,37 +3040,6 @@ void Editor::delete_file_selected()
     updateFileTree(&root_tree_file);
 }
 
-void Editor::drop_gmdx(std::function<void (std::string)> func)
-{
-    auto isOpen = ImGui::BeginDragDropTarget();
-    if (!isOpen)
-    {
-        return;
-    }
-
-    auto payload = ImGui::AcceptDragDropPayload(m_extensionDragDrop[DragDropFlags::GMDL]);
-    if (!payload)
-    {
-        return ImGui::EndDragDropTarget();
-    }
-
-    std::vector<gtreefile *> files(payload->DataSize / sizeof(gtreefile *), nullptr);
-    memcpy(files.data(), payload->Data, payload->DataSize);
-
-    for (auto &file : files)
-    {
-        if (file->extension == ".gmdx")
-        {
-            func(file->path);
-            // AssetsManager::LoadGameObject(file->path, &Editor::PostLoadGameObject, this);
-        }
-    }
-
-    unselect_all_file();
-
-    ImGui::EndDragDropTarget();
-}
-
 void Editor::RebuildHierarchyVector()
 {
     uiList.clear();

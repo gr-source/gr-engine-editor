@@ -355,8 +355,6 @@ private:
 
     void delete_file_selected();
 
-    void drop_gmdx(std::function<void (std::string)> func);
-
     void RebuildHierarchyVector();
 };
 

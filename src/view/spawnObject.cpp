@@ -24,7 +24,7 @@ void SpawnObject::onRenderUI()
 
     if (ImGui::Button("Spawn"))
     {
-        AssetsManager::LoadGameObject("model/Cubo", &SpawnObject::SetPrefab, this);
+        AssetsManager::LoadGameObjectFromFile("/home/NoirVoid/gr-engine/MySecondProject/assets/model/Cubo.mdl", &SpawnObject::SetPrefab, this);
     }
 
     ImGui::SameLine();
