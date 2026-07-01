@@ -698,7 +698,7 @@ void Editor::ShowGameObjectHierarchy(Scene *scene, Entity entity)
 
     auto name = scene->GetEntityName(entity);
 
-    auto rel = scene->GetWorld()->GetComponent<Relationship>(entity);
+    auto rel = scene->GetWorldDynamic().GetComponent<Relationship>(entity);
 
     if (scene->object_has_been_selected(entity))
         flags |= ImGuiTreeNodeFlags_Selected;
@@ -727,7 +727,7 @@ void Editor::ShowGameObjectHierarchy(Scene *scene, Entity entity)
     }
 
     if (dragDropGameObject(entity, name))
-        rel = scene->GetWorld()->GetComponent<Relationship>(entity);
+        rel = scene->GetWorldDynamic().GetComponent<Relationship>(entity);
     
     if (isOpen)
     {
@@ -739,7 +739,7 @@ void Editor::ShowGameObjectHierarchy(Scene *scene, Entity entity)
             {
                 ShowGameObjectHierarchy(scene, child);
 
-                auto childRel = scene->GetWorld()->GetComponent<Relationship>(child);
+                auto childRel = scene->GetWorldDynamic().GetComponent<Relationship>(child);
                 if (!childRel)
                     break;
 
@@ -1194,12 +1194,12 @@ void Editor::create_render_guizmo(Scene *scene, const GameObject* go)
 
             Matrix4x4 localMatrix = manipulatedWorld;
 
-            Relationship* rel = scene->GetWorld()->GetComponent<Relationship>(entity);
+            Relationship* rel = scene->GetWorldDynamic().GetComponent<Relationship>(entity);
 
             if (rel != nullptr && rel->parent != INVALID_ENTITY)
             {
                 auto* parentTransform =
-                    scene->GetWorld()->GetComponent<Transform>(rel->parent);
+                    scene->GetWorldDynamic().GetComponent<Transform>(rel->parent);
 
                 if (parentTransform != nullptr)
                 {
@@ -1755,7 +1755,7 @@ void Editor::create_render_property()
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Definir como Estático");
 
-    for (auto typeID : m_scene->GetWorld()->GetAllComponentType(go.entity))
+    for (auto typeID : m_scene->GetWorldDynamic().GetAllComponentType(go.entity))
         ShowComponentInfoUI(&go, ComponentRegistry::GetComponentByID(typeID));
 
     auto avail = ImGui::GetContentRegionAvail();
@@ -3048,14 +3048,14 @@ void Editor::RebuildHierarchyVector()
 
     Entity root = m_scene->GetRoot();
 
-    auto rel = m_scene->GetWorld()->GetComponent<Relationship>(root);
+    auto rel = m_scene->GetWorldDynamic().GetComponent<Relationship>(root);
 
     Entity child = rel->firstChild;
     while (child != INVALID_ENTITY)
     {
         uiList.push_back(child);
 
-        auto cRel = m_scene->GetWorld()->GetComponent<Relationship>(child);
+        auto cRel = m_scene->GetWorldDynamic().GetComponent<Relationship>(child);
         child = cRel->nextSibling;
     }
 }

@@ -102,7 +102,7 @@ void EditorApplication::renderer()
 
 void EditorApplication::drawScene(Scene* scene)
 {
-    auto world = scene->GetWorld();
+    auto& world = scene->GetWorldDynamic();
 
     auto go = scene->Wrap(scene->GetCamera());
 
@@ -122,7 +122,7 @@ void EditorApplication::drawScene(Scene* scene)
 
     LightBuffer lightBuffer{0};
 
-    world->Query<Transform, Light>([&](Entity*, Transform* transforms, Light* lights, size_t count)
+    world.Query<Transform, Light>([&](Entity*, Transform* transforms, Light* lights, size_t count)
     {
         for (size_t i=0;i<count;i++)
         {

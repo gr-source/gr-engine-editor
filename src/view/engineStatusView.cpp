@@ -67,15 +67,15 @@ void EngineStatusView::onRenderUI()
     {
         ImGui::Text("Entities: %ld", scene->GetEntityCount());
 
-        auto world = scene->GetWorld();
+        auto& world = scene->GetWorldDynamic();
 
-        ImGui::Text("Archetypes: %u", world->GetArchetypeCount());
+        ImGui::Text("Archetypes: %u", world.GetArchetypeCount());
 
-        auto array = world->GetRawArchetype();
+        auto array = world.GetRawArchetype();
 
-        for (ArchetypeID i = 0; i < world->GetArchetypeCount(); i++)
+        for (ArchetypeID i = 0; i < world.GetArchetypeCount(); i++)
         {
-            const ArchetypeStorage& arche = array[i];
+            const auto& arche = array[i];
 
             if (ImGui::TreeNode((void*)(intptr_t)i, "Archetype %u", i))
             {
@@ -97,10 +97,10 @@ void EngineStatusView::onRenderUI()
                 // =========================
                 // STORAGE STATS
                 // =========================
-                size_t entityCount = arche.stats.entityCount;
+                size_t entityCount = arche.entityCount;
 
-                size_t chunk_capacity = arche.chunk_capacity;
-                size_t chunks_count = arche.component_capacity > 0 ? (entityCount + arche.component_capacity - 1) / arche.component_capacity : 0;
+                size_t chunk_capacity = arche.chunkCapacity;
+                size_t chunks_count = arche.chunkCapacity > 0 ? (entityCount + arche.chunkCapacity - 1) / arche.chunkCapacity : 0;
 
                 ImGui::Text("Entities: %lu", entityCount);
                 ImGui::Text("Chunks: %lu / %lu", chunks_count, chunk_capacity);
@@ -119,17 +119,17 @@ void EngineStatusView::onRenderUI()
                 {
                     for (uint32_t c = 0; c < chunks_count; c++)
                     {
-                        Chunk& chunk = arche.chunks[c];
+                        auto& chunk = arche.chunks[c];
 
                         ImGui::Text(
                             "Chunk %u -> %lu / %lu",
                             c,
                             chunk.count,
-                            chunk.capacity
+                            arche.layout->capacity
                         );
 
-                        float fill = chunk.capacity > 0
-                            ? (float)chunk.count / chunk.capacity
+                        float fill = arche.layout->capacity > 0
+                            ? (float)chunk.count / arche.layout->capacity
                             : 0.0f;
 
                         ImGui::ProgressBar(fill, ImVec2(0, 0));
