@@ -38,7 +38,9 @@
 
 #include "gr-base/core/mainthreaddispatcher.hpp"
 // #include "gr-base/core/debugdraw.hpp"
-#include "gr-base/core/assetDB.hpp"
+//
+#include <gr-base/asset/assetDB.hpp>
+
 #include "gr-base/core/clock.hpp"
 
 #include "gr-base/core/thread/taskmanager.hpp"
