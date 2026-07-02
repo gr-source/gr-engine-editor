@@ -1870,8 +1870,8 @@ void Editor::create_popup_create_scene()
     if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(ImGuiMouseButton_Left))
         ImGui::SetKeyboardFocusHere();
 
-    char name[256] = {0};
-    if (ImGui::InputText("##popup_create_scene_inputtext", name, sizeof(name), ImGuiInputTextFlags_EnterReturnsTrue))
+    static std::string name(256, '\0');
+    if (ImGui::InputText("##popup_create_scene_inputtext", name.data(), name.size(), ImGuiInputTextFlags_EnterReturnsTrue))
     {
         m_scene = SceneManager::Create(name);
 
