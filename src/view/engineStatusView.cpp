@@ -9,7 +9,6 @@
 
 #include <gr-base/managers/assetsManager.hpp>
 
-#include <gr-base/ecs/archetypeStorage.hpp>
 #include <gr-base/ecs/world.hpp>
 
 #include <imgui.h>
@@ -67,13 +66,13 @@ void EngineStatusView::onRenderUI()
     {
         ImGui::Text("Entities: %ld", scene->GetEntityCount());
 
-        auto& world = scene->GetWorldDynamic();
+        auto world = scene->GetWorldDynamic();
 
-        ImGui::Text("Archetypes: %u", world.GetArchetypeCount());
+        ImGui::Text("Archetypes: %u", world->GetArchetypeCount());
 
-        auto array = world.GetRawArchetype();
+        auto array = world->GetRawArchetype();
 
-        for (ArchetypeID i = 0; i < world.GetArchetypeCount(); i++)
+        for (ArchetypeID i = 0; i < world->GetArchetypeCount(); i++)
         {
             const auto& arche = array[i];
 
@@ -119,6 +118,7 @@ void EngineStatusView::onRenderUI()
                 {
                     for (uint32_t c = 0; c < chunks_count; c++)
                     {
+                        /*
                         auto& chunk = arche.chunks[c];
 
                         ImGui::Text(
@@ -131,8 +131,9 @@ void EngineStatusView::onRenderUI()
                         float fill = arche.layout->capacity > 0
                             ? (float)chunk.count / arche.layout->capacity
                             : 0.0f;
+                        */
 
-                        ImGui::ProgressBar(fill, ImVec2(0, 0));
+                        // ImGui::ProgressBar(fill, ImVec2(0, 0));
                     }
 
                     ImGui::TreePop();
