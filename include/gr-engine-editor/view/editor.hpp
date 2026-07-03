@@ -210,7 +210,7 @@ private:
 
     void RenderSceneObject(Scene *scene);
 
-    void ShowGameObjectHierarchy(Scene *scene, Entity entity);
+    void ShowGameObjectHierarchy(GameObject& go);
 
     bool dragDropGameObject(Entity entity, const std::string &name);
 
@@ -294,7 +294,7 @@ private:
 
     void dropScriptInAddComponent();
 
-    void ShowComponentInfoUI(GameObject* go, const ComponentInfo* info);
+    void ShowComponentInfoUI(GameObject& go, const ComponentInfo* info);
 
     void ShowUserComponentUI(void *component);
 
@@ -364,7 +364,7 @@ inline void Editor::RenderProperty(Args&&... args)
     if (m_scene == nullptr || !m_scene->has_object_selected())
         return;
 
-    auto go = m_scene->Wrap(m_scene->get_object_selected().back());
+    GameObject go(m_scene, m_scene->get_object_selected().back());
     if (!go.GetComponent<T>())
         return;
 

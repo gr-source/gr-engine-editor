@@ -628,7 +628,7 @@ void Editor::create_render_hierarchy(Scene* scene)
         scene->deselect_all();
 
 
-        GameObject root = scene->Wrap(scene->GetRoot());
+        GameObject root(scene, scene->GetRoot());
 
         auto rel = root.GetComponent<Relationship>();
         if (rel != nullptr)
@@ -675,7 +675,8 @@ void Editor::RenderSceneObject(Scene *scene)
     {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
         {
-            ShowGameObjectHierarchy(scene, uiList[i]);
+            GameObject go(scene, uiList[i]);
+            ShowGameObjectHierarchy(go);
         }
     }
 
@@ -691,58 +692,58 @@ void Editor::RenderSceneObject(Scene *scene)
     ImGui::EndChild();
 }
 
-void Editor::ShowGameObjectHierarchy(Scene *scene, Entity entity)
+void Editor::ShowGameObjectHierarchy(GameObject& go)
 {
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth;
 
-    auto name = scene->GetEntityName(entity);
+    auto name = go.GetName();
 
-    auto rel = scene->GetWorldDynamic()->GetComponent<Relationship>(entity);
+    auto rel = go.GetComponent<Relationship>();
 
-    if (scene->object_has_been_selected(entity))
+    if (go.scene->object_has_been_selected(go.entity))
         flags |= ImGuiTreeNodeFlags_Selected;
 
     if (rel != nullptr && rel->firstChild != INVALID_ENTITY)
         flags &= ~ImGuiTreeNodeFlags_Leaf;
 
-    ImGui::PushID(entity);
+    ImGui::PushID(go.entity);
 
     auto isOpen = ImGui::TreeNodeEx(name.c_str(), flags);
 
     if (ImGui::IsKeyDown(ImGuiKey_ModShift) && ImGui::IsItemClicked(ImGuiMouseButton_Left))
     {
-        if (scene->object_has_been_selected(entity))
+        if (go.scene->object_has_been_selected(go.entity))
         {
-            scene->deselect(entity);
+            go.scene->deselect(go.entity);
         } else
         {
-            scene->select(entity);
+            go.scene->select(go.entity);
         }
     } else if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
     {
-        scene->deselect_all();
+        go.scene->deselect_all();
 
-        scene->select(entity);
+        go.scene->select(go.entity);
     }
 
-    if (dragDropGameObject(entity, name))
-        rel = scene->GetWorldDynamic()->GetComponent<Relationship>(entity);
+    if (dragDropGameObject(go.entity, name))
+        rel = go.GetComponent<Relationship>();
     
     if (isOpen)
     {
         if (rel != nullptr)
         {
-            Entity child = rel->firstChild;
+            GameObject child(go.scene, rel->firstChild);
 
-            while (child != INVALID_ENTITY)
+            while (child.IsAlive())
             {
-                ShowGameObjectHierarchy(scene, child);
+                ShowGameObjectHierarchy(child);
 
-                auto childRel = scene->GetWorldDynamic()->GetComponent<Relationship>(child);
+                auto childRel = go.GetComponent<Relationship>();
                 if (!childRel)
                     break;
 
-                child = childRel->nextSibling;
+                child.entity = childRel->nextSibling;
             }
         }
 
@@ -842,11 +843,10 @@ void Editor::create_render_viewport()
 
         if (!bactive)
         {
-            if (scene == m_scene)
-            {
-                m_scene = nullptr;
-                SceneManager::SetActive(nullptr);
-            }
+            m_scene = nullptr;
+            
+            SceneManager::SetActive(nullptr);
+
             SceneManager::Remove(scene);
         }
     }
@@ -1048,7 +1048,7 @@ void Editor::render_scene(Scene *scene)
     ImGuizmo::SetDrawlist();
     ImGuizmo::SetRect(windowPos.x + cursorPos.x, windowPos.y + cursorPos.y, regionAvail.x, regionAvail.y);
 
-    auto obj = m_scene->Wrap(m_scene->GetCamera());
+    GameObject obj(m_scene, m_scene->GetCamera());
     if (obj.IsAlive())
     {
         regionAvail = ImGui::GetContentRegionAvail();
@@ -1126,7 +1126,7 @@ void Editor::render_scene(Scene *scene)
 
 void Editor::UpdateResizeSceneFramebuffer()
 {
-    auto obj = m_scene->Wrap(m_scene->GetCamera());
+    GameObject obj(m_scene, m_scene->GetCamera());
     if (!obj.IsAlive())
         return;
 
@@ -1177,7 +1177,7 @@ void Editor::create_render_guizmo(Scene *scene, const GameObject* go)
     // static std::unordered_set<Transform *> nodeup;
     for (auto entity : scene->get_object_selected())
     {
-        GameObject entitySelected = scene->Wrap(entity);
+        GameObject entitySelected(scene, entity);
         if (!entitySelected.IsAlive())
             continue;
 
@@ -1672,11 +1672,11 @@ void Editor::drop_gameobject_in_treefile(gtreefile *tree_file)
 
     auto entity = *reinterpret_cast<Entity*>(payload->Data);
 
-    auto gameobject = m_scene->Wrap(entity);
+    GameObject gameobject(m_scene, entity);
 
-    URI uri = URI::parse("project://model/" + m_scene->GetEntityName(entity));
+    URI uri = URI::parse("project://model/" + gameobject.GetName());
 
-    TaskManager::Add<ModelSaveTask>(uri, m_scene, entity);
+    TaskManager::Add<ModelSaveTask>(uri, gameobject);
 
     ImGui::EndDragDropTarget();
 }
@@ -1727,7 +1727,10 @@ void Editor::RenderLog(Log &info)
 
 void Editor::create_window_property()
 {
-    if (ImGui::Begin("property", NULL, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysHorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar) && m_scene != nullptr && m_scene->has_object_selected())
+    if (ImGui::Begin("property", NULL, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysHorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar) &&
+            m_scene != nullptr &&
+            m_scene->has_object_selected()
+        )
         create_render_property();
 
     ImGui::End();
@@ -1735,11 +1738,11 @@ void Editor::create_window_property()
 
 void Editor::create_render_property()
 {
-    auto go = m_scene->Wrap(m_scene->get_object_selected().back());
+    GameObject go(m_scene, m_scene->get_object_selected().back());
     if (!go.IsAlive())
         return;
 
-    auto objName = m_scene->GetEntityName(go.entity);
+    auto objName = go.GetName();
 
     ImGui::SeparatorText(objName.c_str());
 
@@ -1755,7 +1758,7 @@ void Editor::create_render_property()
         ImGui::SetTooltip("Definir como Estático");
 
     for (auto typeID : m_scene->GetWorldDynamic()->GetAllComponentType(go.entity))
-        ShowComponentInfoUI(&go, ComponentRegistry::GetComponentByID(typeID));
+        ShowComponentInfoUI(go, ComponentRegistry::GetComponentByID(typeID));
 
     auto avail = ImGui::GetContentRegionAvail();
 
@@ -1870,10 +1873,13 @@ void Editor::create_popup_create_scene()
     if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(ImGuiMouseButton_Left))
         ImGui::SetKeyboardFocusHere();
 
-    static std::string name(256, '\0');
-    if (ImGui::InputText("##popup_create_scene_inputtext", name.data(), name.size(), ImGuiInputTextFlags_EnterReturnsTrue))
+    std::vector<char> buffer(256, '\0');
+    if (ImGui::InputText("##popup_create_scene_inputtext", buffer.data(), buffer.size() - 1, ImGuiInputTextFlags_EnterReturnsTrue))
     {
+        std::string name = buffer.data();
+
         m_scene = SceneManager::Create(name);
+        SceneManager::SetActive(m_scene);
 
         m_scene->AddSystem<CameraEditorSystem>();
         m_scene->AddSystem<TransformSystem>();
@@ -1883,7 +1889,7 @@ void Editor::create_popup_create_scene()
 
         Entity camera = m_scene->create("MainCamera");
         {
-            GameObject go = m_scene->Wrap(camera);
+            GameObject go(m_scene, camera);
             go.AddComponent<CameraData>();
             go.GetOrAddComponent<Camera>()->rendertarget = m_backbuffer.get();
         }
@@ -1935,9 +1941,11 @@ void Editor::create_popup_add_component()
         bool isFirst = (it == m_componentName.begin());
         if (ImGui::Selectable(it->c_str(), isFirst) || bSelect && go != HANDLE_INVALID)
         {
-            auto gameObject = m_scene->Wrap(go);
+            /*
+            GameObject gameObject(m_scene, go);
 
             auto component = gameObject.AddComponent(it->c_str());
+            */
 
             std::memset(componentName, '\0', sizeof(componentName));
 
@@ -1960,10 +1968,10 @@ void Editor::create_popup_rename_object()
 
     Entity entity = m_scene->get_object_selected().back();
 
-    auto go = m_scene->Wrap(entity);
+    GameObject go(m_scene, entity);
 
     // auto object = GameObject::Get();
-    auto entityName = m_scene->GetEntityName(entity);
+    auto entityName = go.GetName();
 
     char newName[256] = {0};
     strcpy(newName, entityName.c_str());
@@ -2129,7 +2137,7 @@ void Editor::dropScriptInAddComponent()
     */
 }
 
-void Editor::ShowComponentInfoUI(GameObject* go, const ComponentInfo* info)
+void Editor::ShowComponentInfoUI(GameObject& go, const ComponentInfo* info)
 {
     char name[512] = {0};
     sprintf(name, "%s 0x%lX", info->name, info->hash);
@@ -2143,13 +2151,13 @@ void Editor::ShowComponentInfoUI(GameObject* go, const ComponentInfo* info)
     {
         auto it = m_guiscriptmap.find(info->name);
         if (it != m_guiscriptmap.end())
-            it->second(go);
+            it->second(&go);
         else
-            ShowUserComponentUI(go->GetComponent(info->index));
+            ShowUserComponentUI(go.GetComponentByID(info->index));
     }
 
-    if (!bVisible)
-        go->DelComponent(info->index);
+    // if (!bVisible)
+        // go->DelComponent(info->index);
 
     ImGui::PopID();
 }

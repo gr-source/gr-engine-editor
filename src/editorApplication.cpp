@@ -7,6 +7,7 @@
 #include "view/checkupdate.hpp"
 #include "view/editor.hpp"
 
+#include <cassert>
 #include <gr-base/core/file/file.hpp>
 
 #include <gr-render/gRender.h>
@@ -103,8 +104,14 @@ void EditorApplication::renderer()
 void EditorApplication::drawScene(Scene* scene)
 {
     auto world = scene->world;
+// #ifdef NDEBUG
+    if (world == nullptr)
+        return;
+// #endif
 
-    auto go = scene->Wrap(scene->GetCamera());
+    const GameObject go(scene, scene->GetCamera());
+    if (!go.IsAlive())
+        return;
 
     Transform* transform =
         go.GetComponent<Transform>();

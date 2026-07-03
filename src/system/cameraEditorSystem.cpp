@@ -1,7 +1,9 @@
 #include "system/cameraEditorSystem.hpp"
 
+#include "gr-base/core/gameObject.hpp"
 #include "gr-base/core/clock.hpp"
 #include "gr-base/core/input.hpp"
+
 #include "gr-base/script/transform.hpp"
 
 #include <algorithm>
@@ -12,7 +14,7 @@ CameraEditorSystem::CameraEditorSystem() : m_mouseSensitivity(0.1f), m_movementS
 
 void CameraEditorSystem::Update(Scene *scene)
 {
-    GameObject go = scene->Wrap(scene->GetCamera());
+    GameObject go(scene, scene->GetCamera());
     if (!go.IsAlive())
         return;
 

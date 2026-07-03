@@ -59,7 +59,7 @@ void SpawnObject::SetPrefab(Entity prefabID)
 
             std:: string str = "Test[" + std::to_string(targetX) + "][" + std::to_string(targetZ) + "]";
 
-            auto gameObject = scene->Wrap(scene->create(prefabID));
+            GameObject gameObject(scene, scene->create(prefabID));
 
             auto name = gameObject.GetOrAddComponent<Name>();
             name->value = strdup(str.c_str());

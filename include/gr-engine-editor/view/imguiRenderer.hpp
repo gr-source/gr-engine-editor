@@ -4,6 +4,7 @@
 #include <backends/imgui_impl_glfw.h>
 #include <imgui_internal.h>
 #include <imgui.h>
+#include <string>
 
 class ImguiRenderer
 {
@@ -14,9 +15,9 @@ public:
 
     static void PushStyle(ImGuiStyle& dst);
 
-    static void SetFont(const char* path);
+    static void SetFont(const std::string& path);
 
-    static void SetConfigPath(const char* path);
+    static void SetConfigPath(const std::string& path);
 
     static void Begin();
 

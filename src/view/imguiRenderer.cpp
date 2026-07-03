@@ -35,6 +35,10 @@ void ImguiRenderer::Shutdown()
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+
+
+    // if (m_io->IniFilename != nullptr)
+    //     free((void*)m_io->IniFilename);
 }
 
 void ImguiRenderer::PushStyle(ImGuiStyle& dst) {
@@ -103,18 +107,18 @@ void ImguiRenderer::PushStyle(ImGuiStyle& dst) {
     dst.SeparatorTextAlign = {0.5f, 0.5f};
 }
 
-void ImguiRenderer::SetFont(const char* path)
+void ImguiRenderer::SetFont(const std::string& path)
 {
-    m_io->Fonts->AddFontFromFileTTF(path, 16.5f);
+    m_io->Fonts->AddFontFromFileTTF(path.c_str(), 16.5f);
 
-    logger::debug("[ImguiRenderer] Set font file '%s'", path);
+    logger::debug("[ImguiRenderer] Set font file '%s'", path.c_str());
 }
 
-void ImguiRenderer::SetConfigPath(const char *path)
+void ImguiRenderer::SetConfigPath(const std::string& path)
 {
-    m_io->IniFilename = strdup(path);
+    m_io->IniFilename = strdup(path.c_str());
 
-    logger::debug("[ImguiRenderer] Set config file '%s'", path);
+    logger::debug("[ImguiRenderer] Set config file '%s'", path.c_str());
 }
 
 void ImguiRenderer::Begin() {
