@@ -1941,11 +1941,9 @@ void Editor::create_popup_add_component()
         bool isFirst = (it == m_componentName.begin());
         if (ImGui::Selectable(it->c_str(), isFirst) || bSelect && go != HANDLE_INVALID)
         {
-            /*
             GameObject gameObject(m_scene, go);
 
-            auto component = gameObject.AddComponent(it->c_str());
-            */
+            gameObject.AddComponentByName(it->c_str());
 
             std::memset(componentName, '\0', sizeof(componentName));
 
