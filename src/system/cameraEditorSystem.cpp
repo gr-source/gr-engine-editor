@@ -46,17 +46,24 @@ void CameraEditorSystem::Update(Scene *scene)
         m_movementSpeed += dt.y;
 
     if (Math::magnitudeSqrt(diretion) > 0.0f)
+    {
         transform->position += (Math::normalize(diretion) * m_movementSpeed * (float)Clock::deltaTime);
 
-    UpdateCursor(transform);
+        scene->MarkChanged<Transform>(go.entity);
+    }
 
-    scene->MarkChanged<Transform>(go.entity);
+    if (Input::IsMousePress(MOUSE_BUTTON_MIDDLE))
+    {
+        ProcessMouse(Input::GetMouseDelta(), transform);
+
+        scene->MarkChanged<Transform>(go.entity);
+    }
 }
 
 void CameraEditorSystem::UpdateCursor(Transform *transform)
 {
-    if (Input::IsMousePress(MOUSE_BUTTON_MIDDLE))
-        ProcessMouse(Input::GetMouseDelta(), transform);
+
+
 }
 
 void CameraEditorSystem::ProcessMouse(const Vector2 &delta, Transform *transform)
