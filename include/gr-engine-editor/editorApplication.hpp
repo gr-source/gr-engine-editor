@@ -62,7 +62,7 @@ public:
 
     void run() override;
 
-    void dropPath(const char* path) override;
+    void dropPath(const std::vector<std::string>& entries) override;
 
     inline Project* getProject() const
     {

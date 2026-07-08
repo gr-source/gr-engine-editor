@@ -60,11 +60,11 @@ void EditorApplication::run()
     renderer();
 }
 
-void EditorApplication::dropPath(const char* path)
+void EditorApplication::dropPath(const std::vector<std::string>& entries)
 {
     auto view = ViewManager::GetCurrentView();
     if (view != nullptr)
-        view->dropPath(path);
+        view->dropPath(entries);
 }
 
 // private

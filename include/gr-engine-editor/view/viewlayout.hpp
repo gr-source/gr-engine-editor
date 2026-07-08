@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 #include <string>
 
 typedef uint64_t ViewHash;
@@ -35,7 +36,7 @@ public:
 
     virtual void onRenderUI() {}
 
-    virtual void dropPath(const std::string& path) {}
+    virtual void dropPath(const std::vector<std::string>& entries) {}
 };
 
 

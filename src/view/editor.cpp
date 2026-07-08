@@ -18,6 +18,7 @@
 
 #include "core/sandbox.hpp"
 #include "editorApplication.hpp"
+#include "gr-base/asset/assetResolver.hpp"
 #include "gr-base/core/renderer.hpp"
 #include "gr-base/ecs/default.hpp"
 
@@ -457,11 +458,31 @@ void Editor::onFocus()
 void Editor::onBlur()
 {}
 
-void Editor::dropPath(const std::string& path)
+void Editor::dropPath(const std::vector<std::string>& entries)
 {
-    std::string filename = gfile::get_file_name(path);
-    if (filename.find(".fbx") != std::string::npos)
-        TaskManager::Add<FilmboxLoadTask>(path);
+    for (auto& file : entries)
+    {
+        if (gfile::is_directory(file))
+            continue;
+
+        std::string filename = gfile::get_file_name(file);
+        if (filename.find(".fbx") != std::string::npos)
+            TaskManager::Add<FilmboxLoadTask>(file);
+        else if (filename.find(".png") != std::string::npos)
+        {
+            std::string parent = gfile::parent(file);
+
+            std::string path =
+                "texture/" +
+                gfile::get_file_name(parent) +
+                "/" +
+                gfile::get_file_name(file);
+
+            URI uri = URI::parse("project://" + path);
+
+            TaskManager::Add<TextureBuildTask>(file, uri);
+        }
+    }
 }
 
 // void Editor::drop(void *data)
@@ -1021,7 +1042,7 @@ void Editor::render_scene(Scene *scene)
     auto cursorPos = ImGui::GetCursorPos();
 
     // Play button
-    if (s_texturePlayGame.Get())
+    if (s_texturePlayGame.get() != nullptr)
     {
         s_texturePlayGame = iconsUI[ICON_PLAY_GAME];
         if (Settings::bGameRunning) {
@@ -1559,7 +1580,7 @@ void Editor::render_files_on_dir(gtreefile *dir)
     ImGui::Columns(4, nullptr, false);
     for (auto &entry : dir->children)
     {
-        if (entry.bdirectory || entry.texture.Get() == nullptr)
+        if (entry.bdirectory || entry.texture.get() == nullptr)
             continue;
 
         if (ImguiWidget::ImageAndTextButton(reinterpret_cast<ImTextureID>(entry.texture->id), entry.name.c_str(), selected_file(&entry)))

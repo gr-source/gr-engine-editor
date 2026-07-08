@@ -134,7 +134,7 @@ public:
 
     void onBlur() override;
 
-    void dropPath(const std::string& path) override;
+    void dropPath(const std::vector<std::string>& entries) override;
 
     void loadScript(const std::string& dir);
 
