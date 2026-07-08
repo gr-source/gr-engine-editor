@@ -129,7 +129,11 @@ void EditorApplication::drawScene(Scene* scene)
 
     LightBuffer lightBuffer{0};
 
-    world->Query<Transform, Light>([&](Entity*, Transform* transforms, Light* lights, size_t count)
+    world->Query<Transform, Light>([&](
+                size_t count,
+                Entity*,
+                Transform* transforms,
+                Light* lights)
     {
         for (size_t i=0;i<count;i++)
         {
