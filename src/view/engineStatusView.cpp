@@ -96,11 +96,23 @@ void EngineStatusView::onRenderUI()
                 // =========================
                 // STORAGE STATS
                 // =========================
+                // size_t chunk_capacity =
+                    // arche.chunkCapacity;
+
+                // size_t chunks_count =
+                //     arche.chunkCount;
+
+                size_t entityCount =
+                    arche.entityCount;
+
                 size_t chunk_capacity =
                     arche.chunkCapacity;
 
                 size_t chunks_count =
                     arche.chunkCount;
+
+                    // arche.layout->capacity > 0
+                    //     ? (entityCount + arche.layout->capacity - 1) / arche.layout->capacity : 0;
 
                 ImGui::Text("Entities: %lu", arche.entityCount);
                 ImGui::Text("Chunks: %lu / %lu", chunks_count, chunk_capacity);
