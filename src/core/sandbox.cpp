@@ -190,7 +190,7 @@ void Sandbox::LoadPlugin(int fd)
     logger_config config;
     config.path = gfile::get_config_directory() + "/logs/sanbox";
 
-    logger::Initialize(config);
+    logger::Initialize(&config);
 
     logger::info("[ Sandbox ] Running...");
 

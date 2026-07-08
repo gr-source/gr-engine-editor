@@ -96,12 +96,13 @@ void EngineStatusView::onRenderUI()
                 // =========================
                 // STORAGE STATS
                 // =========================
-                size_t entityCount = arche.entityCount;
+                size_t chunk_capacity =
+                    arche.chunkCapacity;
 
-                size_t chunk_capacity = arche.chunkCapacity;
-                size_t chunks_count = arche.chunkCapacity > 0 ? (entityCount + arche.chunkCapacity - 1) / arche.chunkCapacity : 0;
+                size_t chunks_count =
+                    arche.chunkCount;
 
-                ImGui::Text("Entities: %lu", entityCount);
+                ImGui::Text("Entities: %lu", arche.entityCount);
                 ImGui::Text("Chunks: %lu / %lu", chunks_count, chunk_capacity);
 
                 // densidade
@@ -118,22 +119,20 @@ void EngineStatusView::onRenderUI()
                 {
                     for (uint32_t c = 0; c < chunks_count; c++)
                     {
-                        /*
                         auto& chunk = arche.chunks[c];
 
                         ImGui::Text(
                             "Chunk %u -> %lu / %lu",
                             c,
-                            chunk.count,
+                            chunk->count,
                             arche.layout->capacity
                         );
 
                         float fill = arche.layout->capacity > 0
-                            ? (float)chunk.count / arche.layout->capacity
+                            ? (float)chunk->count / arche.layout->capacity
                             : 0.0f;
-                        */
 
-                        // ImGui::ProgressBar(fill, ImVec2(0, 0));
+                        ImGui::ProgressBar(fill, ImVec2(0, 0));
                     }
 
                     ImGui::TreePop();
