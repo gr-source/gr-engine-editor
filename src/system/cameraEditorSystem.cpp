@@ -9,7 +9,10 @@
 #include <algorithm>
 #include <gr-base/core/scene.hpp>
 
-CameraEditorSystem::CameraEditorSystem() : m_mouseSensitivity(0.1f), m_movementSpeed(30.0f), elapsed(Vector2::zero)
+CameraEditorSystem::CameraEditorSystem() :
+    m_mouseSensitivity(0.1f),
+    m_movementSpeed(30.0f),
+    elapsed(type_traits<Vector2>::zero)
 {}
 
 void CameraEditorSystem::Update(Scene *scene)
@@ -20,10 +23,10 @@ void CameraEditorSystem::Update(Scene *scene)
 
     auto transform = go.GetComponent<Transform>();
 
-    Vector3 diretion = Vector3::zero;
+    Vector3 diretion = type_traits<Vector3>::zero;
 
-    Vector3 forward = transform->rotation * Vector3::forward;
-    Vector3 right = transform->rotation * Vector3::right;
+    Vector3 forward = transform->rotation * type_traits<Vector3>::forward;
+    Vector3 right = transform->rotation * type_traits<Vector3>::right;
 
     if (Input::IsKeyPress(KEY_W))
         diretion += forward;

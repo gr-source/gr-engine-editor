@@ -17,7 +17,7 @@ Screen &Screen::GetInstance()
     return instance;
 }
 
-Screen::Screen() : s_Resolution(Vector2::zero)
+Screen::Screen() : s_Resolution(type_traits<Vector2>::zero)
 {}
 
 void Screen::setResolution(const Vector2 &value)

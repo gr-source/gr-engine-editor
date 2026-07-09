@@ -722,12 +722,12 @@ void Editor::ShowGameObjectHierarchy(GameObject& go)
 
     auto name = go.GetName();
 
-    auto rel = go.GetComponent<Relationship>();
+    // auto rel = ;
 
     if (go.scene->object_has_been_selected(go.entity))
         flags |= ImGuiTreeNodeFlags_Selected;
 
-    if (rel != nullptr && rel->firstChild != INVALID_ENTITY)
+    if (go.HasComponent<Relationship>() && go.GetComponent<Relationship>()->firstChild != INVALID_ENTITY)
         flags &= ~ImGuiTreeNodeFlags_Leaf;
 
     ImGui::PushID(go.entity);
@@ -750,24 +750,24 @@ void Editor::ShowGameObjectHierarchy(GameObject& go)
         go.scene->select(go.entity);
     }
 
-    if (dragDropGameObject(go.entity, name))
-        rel = go.GetComponent<Relationship>();
+    dragDropGameObject(go.entity, name);
     
     if (isOpen)
     {
-        if (rel != nullptr)
+        if (go.HasComponent<Relationship>())
         {
+            auto rel = go.GetComponent<Relationship>();
+
             GameObject child(go.scene, rel->firstChild);
 
             while (child.IsAlive())
             {
                 ShowGameObjectHierarchy(child);
 
-                auto childRel = go.GetComponent<Relationship>();
-                if (!childRel)
+                if (!child.HasComponent<Relationship>())
                     break;
 
-                child.entity = childRel->nextSibling;
+                child.entity = child.GetComponent<Relationship>()->nextSibling;
             }
         }
 
@@ -1226,7 +1226,8 @@ void Editor::create_render_guizmo(Scene *scene, const GameObject* go)
 
                 if (parentTransform != nullptr)
                 {
-                    Matrix4x4 invParent = Matrix4x4::identityMatrix;
+                    Matrix4x4 invParent =
+                        type_traits<Matrix4x4>::identity;
 
                     if (gluInvertMatrix(
                             &parentTransform->worldMatrix[0][0],
@@ -1237,10 +1238,12 @@ void Editor::create_render_guizmo(Scene *scene, const GameObject* go)
                 }
             }
 
-            localMatrix.decompose(
-                transform->scale,
-                transform->rotation,
-                transform->position);
+            Math::mat4_decompose(
+                    localMatrix,
+                    transform->scale,
+                    transform->rotation,
+                    transform->position
+                );
 
             m_scene->MarkChildrenDirty(entity);
         }
@@ -2461,7 +2464,7 @@ void Editor::RenderShaderUniform(Material *material, gr::Shader *shader)
             {
                 auto value = material->Get<Vector3>(uniform.name);
                 if (value == nullptr)
-                    material->Set<Vector3>(uniform.name, Vector3::zero);
+                    material->Set<Vector3>(uniform.name, type_traits<Vector3>::zero);
 
                 if (value != nullptr)
                     ImGui::DragFloat3(("##" + std::string(uniform.name)).c_str(), (float *)value);

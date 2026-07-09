@@ -145,7 +145,7 @@ void EditorApplication::drawScene(Scene* scene)
 
             LightData& data = lightBuffer.lights[lightBuffer.numLights++];
             data.position = transform.position;
-            data.direction = transform.rotation * Vector3::forward;
+            data.direction = transform.rotation * type_traits<Vector3>::forward;
 
             data.color = light.color;
             data.params = {

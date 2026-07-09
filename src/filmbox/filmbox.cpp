@@ -102,7 +102,7 @@ void Filmbox::ProcessNode(aiNode *mNode, FbxNode& root, const aiScene *scene, Fb
         Quaternion r;
         Vector3 s;
 
-        boneMap[name.C_Str()].decompose(s, r, t);
+        Math::mat4_decompose(boneMap[name.C_Str()], s, r, t);
         
         node.setPosition(t);
         node.setRotation(r);
