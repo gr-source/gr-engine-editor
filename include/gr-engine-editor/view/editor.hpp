@@ -300,13 +300,15 @@ private:
 
     void renderDropGameObject(GameObject **ref);
 
-    void OnPropertyTransform(Entity e, Transform *transform);
+    void OnPropertyTransform(GameObject& go, Transform *transform);
 
-    void OnPropertyCamera(Camera *camera);
+    void OnPropertyCamera(GameObject& go, Camera *camera);
     
-    void OnPropertyMeshFilter(Entity e, MeshFilter *meshFilter);
+    void OnPropertyMeshFilter(GameObject& go, MeshFilter *meshFilter);
 
-    void OnPropertyMeshRender(Entity e, MeshRender *meshRender);
+    void OnPropertyMeshRender(GameObject& go, MeshRender *meshRender);
+
+    void OnPropertyLight(GameObject& go, Light *light);
 
     // bool render_material(MaterialID id);
 
@@ -317,8 +319,6 @@ private:
     void dropShaderInMaterial(Material *material);
 
     void InsertTexture(Material *material);
-
-    void OnPropertyLight(Entity entity, Light *light);
 
     // Loader    
     void PostLoadGameObject(Entity entity);
@@ -368,7 +368,7 @@ inline void Editor::RenderProperty(Args&&... args)
     if (!go.GetComponent<T>())
         return;
 
-    std::invoke(std::bind(std::forward<Args>(args)..., go.entity, go.GetComponent<T>()));
+    std::invoke(std::bind(std::forward<Args>(args)..., go, go.GetComponent<T>()));
 }
 
 class PhysicsTask : public IAsyncTask<int>

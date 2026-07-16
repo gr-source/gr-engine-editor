@@ -197,7 +197,7 @@ Editor::Editor()
                 RenderProperty<Transform>(&Editor::OnPropertyTransform, this);
             }
         },
-        // INSERT_SCRIPT(Camera),
+        INSERT_SCRIPT(Camera),
         INSERT_SCRIPT(Light),
         INSERT_SCRIPT(MeshRender),
         // INSERT_SCRIPT(SkinnedMeshRender),
@@ -212,12 +212,12 @@ Editor::Editor()
     
     m_viewport = ImGui::GetMainViewport();
 
-    initialize();
-
     SystemRegistry::Register<CameraEditorSystem>();
     ComponentRegistry::Register<CameraEditor>(false);
 
     AssetDB::Load(m_project->path + "/asset.txt");
+
+    initialize();
 
     /*
     {
@@ -439,7 +439,7 @@ void Editor::onRenderUI()
 
     create_window_hierarchy();
 
-    create_window_browser();
+    // create_window_browser();
 
     create_window_console();
 
@@ -495,11 +495,14 @@ void Editor::dropPath(const std::vector<std::string>& entries)
 
 #include <gr-base/core/renderer.hpp>
 
+#include "view/browserFile.hpp"
+
 void Editor::initialize()
 {
     ViewManager::Register<SceneInspectorView>();
     ViewManager::Register<EngineStatusView>();
     ViewManager::Register<FilmboxImport>();
+    ViewManager::Register<BrowserFile>();
     ViewManager::Register<SpawnObject>();
 }
 
@@ -562,6 +565,12 @@ void Editor::create_dock()
                 bool visible = ViewManager::IsVisible<SceneInspectorView>();
                 if (ImGui::MenuItem("Scene Inspector", nullptr, &visible))
                     ViewManager::SetVisible<SceneInspectorView>(visible);
+            }
+
+            {
+                bool visible = ViewManager::IsVisible<BrowserFile>();
+                if (ImGui::MenuItem("Browser File", nullptr, &visible))
+                    ViewManager::SetVisible<BrowserFile>(visible);
             }
 
             {
@@ -2271,7 +2280,7 @@ void Editor::renderDropGameObject(GameObject **ref)
 }
 
 /* ********** Propriedades ********** */
-void Editor::OnPropertyTransform(Entity e, Transform *transform)
+void Editor::OnPropertyTransform(GameObject& go, Transform *transform)
 {
     static std::vector<const char*> textItemsToVector = {"X:", "Y:", "Z:"};
 
@@ -2294,42 +2303,48 @@ void Editor::OnPropertyTransform(Entity e, Transform *transform)
     }
 
     if (dirty)
-        m_scene->MarkChildrenDirty(e);
+        m_scene->MarkChildrenDirty(go.entity);
 }
 
-void Editor::OnPropertyCamera(Camera *camera)
+void Editor::OnPropertyCamera(GameObject& go, Camera *camera)
 {
-    /*
     auto avail = ImGui::GetContentRegionAvail();
 
-    bool isChanged = false;
+    ImGui::Text("Far plane");
+    ImGui::DragFloat("##camera_farplane", &camera->farPlane, 1.0f, 0.0f, 1000.0f);
 
-    ImGui::Text("Rect");
-    auto rect = camera->getRect();
+    ImGui::Text("Near plane");
+    ImGui::DragFloat("##camera_nearplane", &camera->nearPlane, 0.1f, 0.0f, 10.0f);
 
-    ImGui::Text("x");
-    ImGui::SameLine();
+    // bool isChanged = false;
 
-    isChanged |= ImGui::DragFloat("##camera_rect_x", &rect.x);
+    // ImGui::Text("Rect");
+    // auto rect = camera->getRect();
 
-    ImGui::Text("y");
-    ImGui::SameLine();
+    // ImGui::Text("x");
+    // ImGui::SameLine();
 
-    isChanged |= ImGui::DragFloat("##camera_rect_y", &rect.y);
+    // isChanged |= ImGui::DragFloat("##camera_rect_x", &rect.x);
 
-    ImGui::Text("w");
-    ImGui::SameLine();
+    // ImGui::Text("y");
+    // ImGui::SameLine();
 
-    isChanged |= ImGui::DragFloat("##camera_rect_w", &rect.w);
+    // isChanged |= ImGui::DragFloat("##camera_rect_y", &rect.y);
 
-    ImGui::Text("h");
-    ImGui::SameLine();
+    // ImGui::Text("w");
+    // ImGui::SameLine();
 
-    isChanged |= ImGui::DragFloat("##camera_rect_h", &rect.h);
+    // isChanged |= ImGui::DragFloat("##camera_rect_w", &rect.w);
 
-    if (isChanged)
-        camera->setRect(rect);
+    // ImGui::Text("h");
+    // ImGui::SameLine();
 
+    // isChanged |= ImGui::DragFloat("##camera_rect_h", &rect.h);
+
+    // if (isChanged)
+        // camera->setRect(rect);
+
+    /*
     ImGui::Text("Background");
     if (ImGui::ColorButton("##camera_background", (*(ImVec4*)&camera->background), ImGuiColorEditFlags_NoLabel, ImVec2(avail.x, 0.0f)))
         ImGui::OpenPopup("##camera_background_popup");
@@ -2339,22 +2354,22 @@ void Editor::OnPropertyCamera(Camera *camera)
         ImGui::ColorPicker4("##camera_background_colorpicker", camera->background.data);
         ImGui::EndPopup();
     }
+    */
 
     m_cameraObjectSelected = ImGui::CollapsingHeader("Render") ? camera : nullptr;
 
     if (m_cameraObjectSelected != nullptr)
     {
-        camera->setRect(Rect{0.0f, 0.0f, 64.0f, 64.0f});
+        // camera->setRect(Rect{0.0f, 0.0f, 64.0f, 64.0f});
 
-        auto rendertarget = camera->getRenderTarget();
+        auto rendertarget = camera->rendertarget;
 
-        if (rendertarget->is_valid())
+        if (rendertarget != nullptr)
             ImGui::Image(reinterpret_cast<ImTextureID>(rendertarget->GetTextureID()), {64.0f, 64.0f}, {0.0f, 1.0f}, {1.0f, 0.0f});
     }
-    */
 }
 
-void Editor::OnPropertyMeshFilter(Entity e, MeshFilter *meshFilter)
+void Editor::OnPropertyMeshFilter(GameObject& go, MeshFilter *meshFilter)
 {
     auto mesh = AssetsManager::GetMesh(meshFilter->mesh);
     if (mesh == nullptr)
@@ -2366,7 +2381,7 @@ void Editor::OnPropertyMeshFilter(Entity e, MeshFilter *meshFilter)
     ImGui::Text("Sub: %ld", mesh->numSubmeshes);
 }
 
-void Editor::OnPropertyMeshRender(Entity e, MeshRender *meshRender)
+void Editor::OnPropertyMeshRender(GameObject& go, MeshRender *meshRender)
 {
     auto avail = ImGui::GetContentRegionAvail();
     
@@ -2381,6 +2396,52 @@ void Editor::OnPropertyMeshRender(Entity e, MeshRender *meshRender)
         ImGui::Text("Material: %ld", material);
     }
     ImGui::Unindent();
+}
+
+void Editor::OnPropertyLight(GameObject& go, Light *light)
+{
+    int elem = static_cast<int>(light->type);
+    
+    const char* elems_names[3] = {"Directional", "Point", "Spot"};
+    
+    const char* elem_name = (elem >= 0 && elem < 3) ? elems_names[elem] : "Unknown";
+
+    ImGui::Text("Type");
+    if (ImGui::SliderInt("##light_type", &elem, 0, 3 - 1, elem_name))
+        light->type = static_cast<LightType>(elem);
+    
+    if (light->type != LightType::eDirection)
+    {
+        ImGui::Text("Constant");
+        ImGui::DragFloat("##light_constant", &light->attenuationConstant, 0.01f, 0.0f, 10.0f);
+
+        ImGui::Text("Linear");
+        ImGui::DragFloat("##light_linear", &light->attenuationLinear, 0.001f, 0.0f, 1.0f);
+
+        ImGui::Text("Quadract");
+        ImGui::DragFloat("##light_quadract", &light->attenuationQuadratic, 0.001f, 0.0f, 2.0f);
+
+        if (light->type == LightType::eSpot)
+        {
+            ImGui::Text("Inner angle:");
+            ImGui::DragFloat("##light_inconer", &light->angleInnerCone, 0.1f, 0.0f, 180.0f);
+
+            ImGui::Text("Outer angle:");
+            ImGui::DragFloat("##light_outerconner", &light->angleOuterCone, 0.1f, 0.0f, 180.0f);
+        }
+    }
+
+    ImGui::Text("Color");
+    
+    if (ImGui::ColorButton("##light_color", *reinterpret_cast<ImVec4 *>(&light->color)))
+        ImGui::OpenPopup("##light_color_popup");
+    
+    if (ImGui::BeginPopup("##light_color_popup"))
+    {
+        ImGui::ColorPicker4("#light_color_pick", reinterpret_cast<float *>(&light->color));
+
+        ImGui::EndPopup();
+    }
 }
 
 /*
@@ -2555,52 +2616,6 @@ void Editor::dropShaderInMaterial(Material *material) {
     // AssetsManager::LoadShader(AssetShader_Shader3D, file, &Material::setShader, material);
 
     ImGui::EndDragDropTarget();
-}
-
-void Editor::OnPropertyLight(Entity entity, Light *light)
-{
-    int elem = static_cast<int>(light->type);
-    
-    const char* elems_names[3] = {"Directional", "Point", "Spot"};
-    
-    const char* elem_name = (elem >= 0 && elem < 3) ? elems_names[elem] : "Unknown";
-
-    ImGui::Text("Type");
-    if (ImGui::SliderInt("##light_type", &elem, 0, 3 - 1, elem_name))
-        light->type = static_cast<LightType>(elem);
-    
-    if (light->type != LightType::eDirection)
-    {
-        ImGui::Text("Constant");
-        ImGui::DragFloat("##light_constant", &light->attenuationConstant, 0.01f, 0.0f, 10.0f);
-
-        ImGui::Text("Linear");
-        ImGui::DragFloat("##light_linear", &light->attenuationLinear, 0.001f, 0.0f, 1.0f);
-
-        ImGui::Text("Quadract");
-        ImGui::DragFloat("##light_quadract", &light->attenuationQuadratic, 0.001f, 0.0f, 2.0f);
-
-        if (light->type == LightType::eSpot)
-        {
-            ImGui::Text("Inner angle:");
-            ImGui::DragFloat("##light_inconer", &light->angleInnerCone, 0.1f, 0.0f, 180.0f);
-
-            ImGui::Text("Outer angle:");
-            ImGui::DragFloat("##light_outerconner", &light->angleOuterCone, 0.1f, 0.0f, 180.0f);
-        }
-    }
-
-    ImGui::Text("Color");
-    
-    if (ImGui::ColorButton("##light_color", *reinterpret_cast<ImVec4 *>(&light->color)))
-        ImGui::OpenPopup("##light_color_popup");
-    
-    if (ImGui::BeginPopup("##light_color_popup"))
-    {
-        ImGui::ColorPicker4("#light_color_pick", reinterpret_cast<float *>(&light->color));
-
-        ImGui::EndPopup();
-    }
 }
 
 void Editor::LoadReources()
