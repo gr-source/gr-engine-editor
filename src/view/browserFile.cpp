@@ -13,6 +13,7 @@
 
 #include "gr-base/managers/assetsManager.hpp"
 
+#include "gr-base/managers/eventManager.hpp"
 #include "gr-base/task/modelsavetask.hpp"
 #include "view/imguiWidget.hpp"
 
@@ -28,16 +29,24 @@ BrowserFile::BrowserFile() :
     m_root->name = "project://";
     m_root->path = "/";
 
-    try
-    {
-        m_fileTexture =
-            AssetsManager::LoadTexture("engine://icon/icons8-file-30.png");
-    } catch (const std::exception& e)
-    {
-        Console::LogError("[ BrowserFile ] %s", e.what());
-    }
+    m_hashmap.emplace(engine::hash::fnv1_str(m_root->path), m_root.get());
 
-    readDataBase();
+    EventManager::Attach(ASSET_EVENT_LOADED_DB,
+            &BrowserFile::onAssetLoadedDB,
+            this
+        );
+
+    EventManager::Attach(
+            ASSET_EVENT_CREATED,
+            &BrowserFile::onAssetCreated,
+            this
+        );
+
+    EventManager::Attach(
+            ASSET_EVENT_REMOVE,
+            &BrowserFile::onAssetRemove,
+            this
+        );
 }
 
 void BrowserFile::onRenderUI()
@@ -53,6 +62,8 @@ void BrowserFile::onRenderUI()
     ImGui::SameLine();
     if (ImGui::BeginChild("browserFile_render_entries", ImVec2(0.0f, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding))
         render_virtual_entries();
+
+    create_render_popup_asset_info();
 
     ImGui::EndChild();
 }
@@ -70,7 +81,11 @@ void BrowserFile::render_virtual_directories(FileInfo* info)
 
     auto isOpen = ImGui::TreeNodeEx(name.c_str(), flags);
     if (ImGui::IsItemClicked())
+    {
         m_selected_dir = info;
+
+        m_selected_assets.clear();
+    }
 
     drop_source_in_directories();
 
@@ -125,16 +140,19 @@ void BrowserFile::render_virtual_entries()
 
         bool bSelected = m_selected_assets.find(entry->assetID) != m_selected_assets.end();
 
-        if (ImguiWidget::ImageAndTextButton(
+        if (m_fileTexture.get() != nullptr)
+        {
+            ImguiWidget::ImageAndTextButton(
                     reinterpret_cast<ImTextureID>(m_fileTexture->id),
                     name.c_str(),
-                    bSelected)
-            )
+                    bSelected);
+        } else
         {
+            ImGui::Text("%s", name.c_str());
         }
 
         if (
-            ImGui::IsItemClicked(ImGuiMouseButton_Right) ||
+            ImGui::IsItemClicked(ImGuiMouseButton_Right) &&
             (m_imguiIO->KeyShift &&
                 ImGui::IsItemClicked(ImGuiMouseButton_Left))
         )
@@ -142,6 +160,12 @@ void BrowserFile::render_virtual_entries()
             if (bSelected)
                 m_selected_assets.erase(entry->assetID);
             else
+                m_selected_assets.emplace(entry->assetID);
+        } else if (
+            ImGui::IsItemClicked(ImGuiMouseButton_Right)
+        )
+        {
+            if (!bSelected)
                 m_selected_assets.emplace(entry->assetID);
         }
 
@@ -158,6 +182,10 @@ void BrowserFile::render_virtual_entries()
 
             drag_selected_entries();
         }
+
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right) && !m_selected_assets.empty())
+            ImGui::OpenPopup("create_render_popup_asset_info");
+
         ImGui::NextColumn();
     }
 
@@ -178,24 +206,6 @@ void BrowserFile::render_virtual_entries()
         if (ImGui::IsKeyPressed(ImGuiKey_Escape, false))
             m_selected_assets.clear();
     }
-
-    /*
-    if (ImGui::IsWindowHovered())
-    {
-        if (ImGui::IsKeyPressed(ImGuiKey_Delete, false))
-        {
-            EventManager::Notify("delete_file_selected");
-        }
-        else if (!(popupFlags & EditorPopupFlags_FileManager) && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-        {
-            unselect_all_file();
-
-            select_file(dir);
-
-            popupFlags |= EditorPopupFlags_CurrentDirManager;
-        }
-    }
-    */
 }
 
 void BrowserFile::drag_selected_entries()
@@ -237,22 +247,63 @@ void BrowserFile::drag_selected_entries()
     }
 }
 
-void BrowserFile::readDataBase()
+void BrowserFile::onAssetLoadedDB(IEvent* data)
 {
-    m_root->children.clear();
-    m_hashmap.clear();
-
-    Hash64 roothash =  engine::hash::fnv1_str(m_root->path);
-    m_hashmap.emplace(roothash, m_root.get());
-
-    for (auto& id : AssetDB::GetAssets(Scheme::Project))
+    try
     {
-        auto info = AssetDB::GetAsset(id);
-
-        create_hierarchy(info);
+        m_fileTexture =
+            AssetsManager::LoadTexture("engine://icon/icons8-file-30.png");
+    } catch (const std::exception& e)
+    {
+        Console::LogError("[ BrowserFile ] %s", e.what());
     }
+
+    std::cout << "Loaded DB" << std::endl;
 }
 
+void BrowserFile::onAssetCreated(IEvent* data)
+{
+    auto event = static_cast<AssetEventOnCreated*>(data);
+
+    auto info = AssetDB::GetAsset(event->value);
+
+    create_hierarchy(info);
+}
+
+void BrowserFile::onAssetRemove(IEvent* data)
+{
+    auto event = static_cast<AssetEventOnRemove*>(data);
+
+    auto info = AssetDB::GetAsset(event->value);
+    if (info == nullptr)
+        return;
+
+    URI uri = URI::parse(info->path);
+
+    std::string path = "/" + uri.path;
+
+    auto hash = engine::hash::fnv1_str(path);
+
+    auto node = m_hashmap[hash];
+
+    {
+        std::string parentPath = gfile::parent(path);
+        auto parentHash = engine::hash::fnv1_str(parentPath);
+
+        auto parentNode = m_hashmap[parentHash];
+
+        parentNode->children.erase(
+            std::remove_if(parentNode->children.begin(), 
+                           parentNode->children.end(), 
+                           [&](auto& n) { return n.get() == node; }),
+            parentNode->children.end() // Este argumento estava faltando/fora do lugar
+        );   
+    }
+
+    m_hashmap.erase(hash);
+}
+
+#include <filesystem>
 std::vector<BrowserFile::EntryInfo> BrowserFile::splitPath(const std::string& path)
 {
     std::vector<EntryInfo> entries;
@@ -260,8 +311,8 @@ std::vector<BrowserFile::EntryInfo> BrowserFile::splitPath(const std::string& pa
     std::string current = path;
     while (!current.empty())
     {
-        std::string name = gfile::get_file_name(current);
-        // std::string name = std::filesystem::path(current).filename();
+        // std::string name = gfile::get_file_name(current);
+        std::string name = std::filesystem::path(current).filename();
 
         EntryInfo entry;
         entry.path = current;
@@ -272,7 +323,8 @@ std::vector<BrowserFile::EntryInfo> BrowserFile::splitPath(const std::string& pa
         if (name.empty())
             break;
 
-        current = gfile::parent(current);
+        // current = gfile::parent(current);
+        current = std::filesystem::path(current).parent_path();
     }
 
     std::reverse(entries.begin(), entries.end());
@@ -290,6 +342,8 @@ void BrowserFile::create_hierarchy(AssetInfo* info)
         splitPath(path);
 
     auto parent = m_root.get();
+
+    // std::cout << path << std::endl;
 
     for (const auto& entry : entries)
     {
@@ -321,4 +375,94 @@ void BrowserFile::create_hierarchy(AssetInfo* info)
         parent->assetID = info->id;
     }
 }
+
+void BrowserFile::create_render_popup_asset_info()
+{
+    if (!ImGui::BeginPopup("create_render_popup_asset_info"))
+        return;
+
+    ImGui::SeparatorText("Asset Menu");
+
+    ImGui::Text("Selected: %zu", m_selected_assets.size());
+    ImGui::Spacing();
+
+    if (ImGui::BeginChild("AssetList", ImVec2(350.0f, 150.0f), true))
+    {
+        for (AssetID id : m_selected_assets)
+        {
+            if (auto* info = AssetDB::GetAsset(id))
+            {
+                ImGui::BulletText("%s - %d", info->path, info->id);
+            }
+        }
+
+        ImGui::EndChild();
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+
+    if (ImGui::Button("Remove Asset"))
+    {
+        for (auto& id : m_selected_assets)
+        {
+            auto info = AssetDB::GetAsset(id);
+            if (info == nullptr)
+                continue;
+
+            AssetDB::Unregistry(info->hash);
+        }
+
+        m_selected_assets.clear();
+
+        ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Copy Id"))
+    {
+        std::string str;
+        for (auto& id : m_selected_assets)
+            str += std::to_string(id) + "\n";
+
+        ImGui::SetClipboardText(str.c_str());
+    }
+
+    if (ImGui::Button("Copy Path"))
+    {
+        std::string str;
+        for (auto& id : m_selected_assets)
+        {
+            auto info = AssetDB::GetAsset(id);
+            if (info == nullptr)
+                continue;
+
+            str += info->path;
+            str += '\n';
+        }
+
+        ImGui::SetClipboardText(str.c_str());
+    }
+
+    /*
+    ImGui::SameLine();
+
+    if (ImGui::Button("Reload"))
+    {
+    }
+    */
+
+    ImGui::Separator();
+
+    if (ImGui::Button("Close"))
+    {
+        ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::EndPopup();
+}
+
+
+
 

@@ -4,6 +4,7 @@
 
 #include "gr-base/asset/assetDB.hpp"
 #include "gr-base/asset/assetPtr.hpp"
+#include "gr-base/asset/default.hpp"
 
 #include "gr-base/asset/default.hpp"
 
@@ -71,11 +72,17 @@ private:
 
     void drag_selected_entries();
 
-    void readDataBase();
+    void onAssetLoadedDB(IEvent* event);
+
+    void onAssetCreated(IEvent* data);
+
+    void onAssetRemove(IEvent* data);
 
     std::vector<EntryInfo> splitPath(const std::string& path);
 
     void create_hierarchy(AssetInfo* info);
+
+    void create_render_popup_asset_info();
 };
 
 

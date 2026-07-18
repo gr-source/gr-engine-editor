@@ -215,9 +215,9 @@ Editor::Editor()
     SystemRegistry::Register<CameraEditorSystem>();
     ComponentRegistry::Register<CameraEditor>(false);
 
-    AssetDB::Load(m_project->path + "/asset.db");
-
     initialize();
+
+    AssetDB::Load(m_project->path + "/asset.db");
 
     /*
     {
@@ -253,8 +253,8 @@ Editor::Editor()
 
     Window::SetWindowTitle(String::format("GR - %s", m_project->name.c_str()).c_str());
 
-    EventManager::Attach("delete_file_selected", &Editor::delete_file_selected, this);
-    EventManager::Attach("editor_update_tree_file", &Editor::updateFileTree, this, &root_tree_file);
+    // EventManager::Attach("delete_file_selected", &Editor::delete_file_selected, this);
+    // EventManager::Attach("editor_update_tree_file", &Editor::updateFileTree, this, &root_tree_file);
 
     TaskManager::Add<ShaderBuildTask>(
         "/home/NoirVoid/.local/share/gr-engine/assets/shader/line.glsl",
