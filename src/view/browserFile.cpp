@@ -31,19 +31,17 @@ BrowserFile::BrowserFile() :
 
     m_hashmap.emplace(engine::hash::fnv1_str(m_root->path), m_root.get());
 
-    EventManager::Attach(ASSET_EVENT_LOADED_DB,
+    EventManager::Attach<AssetEventOnLoaded>(
             &BrowserFile::onAssetLoadedDB,
             this
         );
 
-    EventManager::Attach(
-            ASSET_EVENT_CREATED,
+    EventManager::Attach<AssetEventOnCreated>(
             &BrowserFile::onAssetCreated,
             this
         );
 
-    EventManager::Attach(
-            ASSET_EVENT_REMOVE,
+    EventManager::Attach<AssetEventOnRemove>(
             &BrowserFile::onAssetRemove,
             this
         );
@@ -266,6 +264,12 @@ void BrowserFile::onAssetCreated(IEvent* data)
     auto event = static_cast<AssetEventOnCreated*>(data);
 
     auto info = AssetDB::GetAsset(event->value);
+    if (info == nullptr)
+        return;
+
+    URI uri = URI::parse(info->path);
+    if (uri.scheme != Scheme::Project)
+        return;
 
     create_hierarchy(info);
 }
@@ -311,8 +315,8 @@ std::vector<BrowserFile::EntryInfo> BrowserFile::splitPath(const std::string& pa
     std::string current = path;
     while (!current.empty())
     {
-        // std::string name = gfile::get_file_name(current);
-        std::string name = std::filesystem::path(current).filename();
+        std::string name = gfile::get_file_name(current);
+        // std::string name = std::filesystem::path(current).filename();
 
         EntryInfo entry;
         entry.path = current;
@@ -323,8 +327,8 @@ std::vector<BrowserFile::EntryInfo> BrowserFile::splitPath(const std::string& pa
         if (name.empty())
             break;
 
-        // current = gfile::parent(current);
-        current = std::filesystem::path(current).parent_path();
+        current = gfile::parent(current);
+        // current = std::filesystem::path(current).parent_path();
     }
 
     std::reverse(entries.begin(), entries.end());
