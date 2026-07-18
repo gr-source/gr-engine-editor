@@ -1,14 +1,35 @@
 #pragma once
 
 #include "gr-base/asset/URI.hpp"
+
+#include "gr-base/asset/assetDB.hpp"
+#include "gr-base/asset/assetPtr.hpp"
+
+#include "gr-base/asset/default.hpp"
+
 #include "view/viewlayout.hpp"
+
+#include "imgui.h"
+
+#include <gr-render/default.hpp>
+
+#include <unordered_map>
+#include <unordered_set>
+#include <memory>
 
 struct FileInfo
 {
     std::string name;
     std::string path;
 
-    bool isDirectory;
+    AssetID assetID = INVALID_ASSET;
+
+    std::vector<std::shared_ptr<FileInfo>> children;
+
+    bool leaf() const
+    {
+        return children.empty();
+    }
 };
 
 class BrowserFile : public ViewLayout
@@ -22,15 +43,39 @@ public:
     }
 
 private:
-    std::vector<FileInfo> files;
+    struct EntryInfo
+    {
+        std::string name;
+        std::string path;
+    };
+
+    std::unordered_map<uint64_t, FileInfo*> m_hashmap;
+
+    std::shared_ptr<FileInfo> m_root;
+
+    FileInfo* m_selected_dir;
+
+    AssetPtr<gr::Texture> m_fileTexture;
+
+    std::unordered_set<AssetID> m_selected_assets;
+
+    ImGuiIO* m_imguiIO;
 
     void onRenderUI() override;
 
-    void render_virtual_directories();
+    void render_virtual_directories(FileInfo* info);
 
-    void render_files();
+    void drop_source_in_directories();
 
-    void create_hierarchy(const URI& uri);
+    void render_virtual_entries();
+
+    void drag_selected_entries();
+
+    void readDataBase();
+
+    std::vector<EntryInfo> splitPath(const std::string& path);
+
+    void create_hierarchy(AssetInfo* info);
 };
 
 

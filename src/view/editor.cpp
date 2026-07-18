@@ -215,7 +215,7 @@ Editor::Editor()
     SystemRegistry::Register<CameraEditorSystem>();
     ComponentRegistry::Register<CameraEditor>(false);
 
-    AssetDB::Load(m_project->path + "/asset.txt");
+    AssetDB::Load(m_project->path + "/asset.db");
 
     initialize();
 
@@ -256,20 +256,20 @@ Editor::Editor()
     EventManager::Attach("delete_file_selected", &Editor::delete_file_selected, this);
     EventManager::Attach("editor_update_tree_file", &Editor::updateFileTree, this, &root_tree_file);
 
-    // TaskManager::Add<ShaderBuildTask>(
-    //     "/home/NoirVoid/.local/share/gr-engine/assets/shader/line.glsl",
-    //     URI::parse("engine://shader/line")
-    // );
-    //
-    // TaskManager::Add<ShaderBuildTask>(
-    //         "/home/NoirVoid/.local/share/gr-engine/assets/shader/model/simple_model.glsl",
-    //         URI::parse("engine://shader/simple_model")
-    //     );
+    TaskManager::Add<ShaderBuildTask>(
+        "/home/NoirVoid/.local/share/gr-engine/assets/shader/line.glsl",
+        URI::parse("engine://shader/line")
+    );
+
+    TaskManager::Add<ShaderBuildTask>(
+            "/home/NoirVoid/.local/share/gr-engine/assets/shader/model/simple_model.glsl",
+            URI::parse("engine://shader/simple_model")
+        );
 }
 
 Editor::~Editor()
 {
-    AssetDB::Save(m_project->path + "/asset.txt");
+    AssetDB::Save(m_project->path + "/asset.db");
 
     for (auto& scene : SceneManager::GetScenes())
     {
@@ -1380,17 +1380,26 @@ void Editor::drop_gameobject_in_scene()
     if (!isOpen)
         return;
 
-    auto payload = ImGui::AcceptDragDropPayload(m_extensionDragDrop[DragDropFlags::GMDL]);
-    if (!payload)
+    auto payload = ImGui::AcceptDragDropPayload("AssetID");
+    if (payload == nullptr)
         return ImGui::EndDragDropTarget();
 
-    std::vector<gtreefile *> files(payload->DataSize / sizeof(gtreefile *), nullptr);
-    memcpy(files.data(), payload->Data, payload->DataSize);
+    std::vector<AssetID> assets(payload->DataSize / sizeof(AssetID), INVALID_ASSET);
+    memcpy(assets.data(), payload->Data, payload->DataSize);
 
-    for (auto &file : files)
+    for (auto &assetID : assets)
     {
+        auto info = AssetDB::GetAsset(assetID);
+        if (info == nullptr)
+            continue;
+
+        if ((info->flags & AssetFlags_AssetModel) == AssetFlags_AssetModel)
+            AssetsManager::LoadGameObjectAsync(info->path, &Editor::PostLoadGameObject, this);
+
+        /*
         if (file->extension == HEADER_MODEL_EXTENSION)
-            AssetsManager::LoadGameObjectFromFile(file->path, &Editor::PostLoadGameObject, this);
+
+        */
     }
 
     unselect_all_file();
@@ -1526,195 +1535,6 @@ void Editor::PopupCreateShader()
     }
     ImGui::EndPopup();
     */
-}
-
-void Editor::create_window_browser()
-{
-    if (ImGui::Begin("browser"))
-    {
-        create_render_browser();
-    }
-    ImGui::End();
-}
-
-void Editor::create_render_browser()
-{
-    auto avail = ImGui::GetContentRegionAvail();
-
-    ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
-    if (ImGui::BeginChild("aaa", ImVec2(avail.x / 3.0f, 0), ImGuiChildFlags_AlwaysUseWindowPadding))
-    {
-        render_node_directory(&root_tree_file);
-    }
-    ImGui::EndChild();
-
-    ImGui::SameLine();
-    if (ImGui::BeginChild("bbb", ImVec2(0.0f, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding) && g_treefile_dir_selected != nullptr)
-    {
-        render_files_on_dir(g_treefile_dir_selected);
-    }
-    ImGui::EndChild();
-}
-
-void Editor::render_node_directory(gtreefile *tree_file)
-{
-    if (!tree_file->bdirectory)
-    {
-        return;
-    }
-
-    ImGuiTreeNodeFlags flags = 0;
-    if (g_treefile_dir_selected == tree_file)
-        flags |= ImGuiTreeNodeFlags_Selected;
-
-    auto isOpen = ImGui::TreeNodeEx(tree_file->name.c_str(), flags);
-
-    drop_gameobject_in_treefile(tree_file);
-
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-    {
-        g_treefile_dir_selected = tree_file;
-
-        popupFlags |= EditorPopupFlags_DirManager;
-    } else if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
-    {
-        g_treefile_dir_selected = tree_file;
-    }
-
-    if (!isOpen)
-        return;
-
-    for (auto &file : tree_file->children)
-        render_node_directory(&file);
-
-    ImGui::TreePop();
-}
-
-void Editor::render_files_on_dir(gtreefile *dir)
-{
-    ImGui::Columns(4, nullptr, false);
-    for (auto &entry : dir->children)
-    {
-        if (entry.bdirectory || entry.texture.get() == nullptr)
-            continue;
-
-        if (ImguiWidget::ImageAndTextButton(reinterpret_cast<ImTextureID>(entry.texture->id), entry.name.c_str(), selected_file(&entry)))
-        {
-        }
-
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-        {
-            if (!selected_file(&entry))
-                select_file(&entry);
-
-            popupFlags |= EditorPopupFlags_FileManager;
-        } else if (mImGuiIO->KeyShift && ImGui::IsItemClicked(ImGuiMouseButton_Left))
-        {
-            if (!selected_file(&entry))
-                select_file(&entry);
-        }
-
-        drop_gameobject_in_treefile(&entry);
-
-        drag_file(&entry);
-
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-        {
-            OpenFileDoubleClick(entry.path);
-        }
-        
-        ImGui::NextColumn();
-    }
-
-    if (ImGui::IsWindowHovered())
-    {
-        if (mImGuiIO->KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_A, false))
-        {
-            unselect_all_file();
-
-            for (auto &entry : dir->children)
-            {
-                if (entry.bdirectory)
-                {
-                    continue;
-                }
-
-                select_file(&entry);
-            }
-        }
-        if (ImGui::IsKeyPressed(ImGuiKey_Escape, false))
-        {
-            unselect_all_file();
-        }
-    }
-
-    if (ImGui::IsWindowHovered())
-    {
-        if (ImGui::IsKeyPressed(ImGuiKey_Delete, false))
-        {
-            EventManager::Notify("delete_file_selected");
-        }
-        else if (!(popupFlags & EditorPopupFlags_FileManager) && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-        {
-            unselect_all_file();
-
-            select_file(dir);
-
-            popupFlags |= EditorPopupFlags_CurrentDirManager;
-        }
-    }
-}
-
-void Editor::drag_file(gtreefile *file)
-{
-    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoDisableHover | ImGuiDragDropFlags_SourceNoHoldToOpenOthers | ImGuiDragDropFlags_SourceAllowNullID))
-    {
-        if (m_extensionNameToFlag.find(file->extension) != m_extensionNameToFlag.end())
-        {
-            if (!selected_file(file))
-                select_file(file);
-
-            auto count = g_tree_file_selected.size() > 10 ? 10 : g_tree_file_selected.size();
-
-            auto pos = ImGui::GetCursorPos();
-            auto after = pos;
-
-            for (std::size_t i={};i<count;i++)
-            {
-                int id = i % 2;
-
-                ImGui::SetCursorPos(pos);
-                pos.y -= 5.5f;
-                pos.x = after.x + (id * 5.0f);
-
-
-                ImGui::Image(reinterpret_cast<ImTextureID>(iconsUI[IconType::ICON_FILE]->id), {32, 32});
-            }
-
-            ImGui::SetDragDropPayload(m_extensionDragDrop[m_extensionNameToFlag[file->extension]], g_tree_file_selected.data(), g_tree_file_selected.size() * sizeof(gtreefile *));
-        }
-        ImGui::EndDragDropSource();
-    }
-}
-
-void Editor::drop_gameobject_in_treefile(gtreefile *tree_file)
-{
-    if (!ImGui::BeginDragDropTarget())
-        return;
-    
-    auto payload = ImGui::AcceptDragDropPayload(m_extensionDragDrop[DragDropFlags::GAMEOBJECT]);
-    if (!payload || payload->DataSize <= 0)
-        return ImGui::EndDragDropTarget();
-
-    auto entity = *reinterpret_cast<Entity*>(payload->Data);
-
-    GameObject gameobject(m_scene, entity);
-
-    URI uri = URI::parse("project://model/" + gameobject.GetName());
-
-    TaskManager::Add<ModelSaveTask>(uri, gameobject);
-
-    ImGui::EndDragDropTarget();
 }
 
 void Editor::create_window_console()

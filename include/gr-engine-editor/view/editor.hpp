@@ -250,18 +250,6 @@ private:
 
     void PopupCreateShader();
 
-    void create_window_browser();
-
-    void create_render_browser();
-
-    void render_node_directory(gtreefile *tree_file);
-
-    void render_files_on_dir(gtreefile *file);
-
-    void drag_file(gtreefile *file);
-
-    void drop_gameobject_in_treefile(gtreefile *tree_file);
-
     void create_window_console();
 
     void create_render_console();

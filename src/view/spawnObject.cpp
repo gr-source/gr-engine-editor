@@ -1,6 +1,5 @@
 #include "view/spawnObject.hpp"
 
-#include <cstring>
 #include <gr-base/managers/assetsManager.hpp>
 
 #include <gr-base/core/gameObject.hpp>
@@ -24,7 +23,7 @@ void SpawnObject::onRenderUI()
 
     if (ImGui::Button("Spawn"))
     {
-        AssetsManager::LoadGameObjectFromFile("/home/NoirVoid/gr-engine/MySecondProject/assets/model/BirchTree_1.mdl", &SpawnObject::SetPrefab, this);
+        // AssetsManager::LoadGameObjectFromFile("/home/NoirVoid/gr-engine/MySecondProject/assets/model/BirchTree_1.mdl", &SpawnObject::SetPrefab, this);
     }
 
     ImGui::SameLine();

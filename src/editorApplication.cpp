@@ -212,6 +212,7 @@ void EditorApplication::checkProject()
     AssetResolver::Registry<ProjectAssetProvider>(Scheme::Project, m_project->path);
 
     ViewManager::AddView<Editor>();
+
     // ViewManager::AddView<ShaderEditor>();
 }
 
