@@ -53,7 +53,7 @@
 #include "view/popup/filmboximport.hpp"
 #include "view/sceneInspectorView.hpp"
 #include "view/spawnObject.hpp"
-#include "view/worldManagerView.hpp"
+// #include "view/worldManagerView.hpp"
 #include "view/imguiWidget.hpp"
 
 
@@ -414,26 +414,25 @@ void Editor::loadScript(const std::string& dir)
 }
 
 // ===================================== END =========================================================
-const char* Editor::getName() const
-{
-    return "Editor";
-}
-
-void Editor::onUpdate()
+void Editor::Update()
 {
     if (m_scene != nullptr)
         m_scene->Update();
 }
 
+/*
 void Editor::onRender3D()
 {
 }
+*/
 
-void Editor::onRenderUI()
+void Editor::DrawWorkspace()
 {
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
     create_dock();
+
+    viewManager.renderer();
 
     create_window_viewport();
 
@@ -450,6 +449,7 @@ void Editor::onRenderUI()
     create_popup();
 }
 
+/*
 void Editor::onFocus()
 {
     // m_scene = Scene::GetCurrentScene();
@@ -487,6 +487,7 @@ void Editor::dropPath(const std::vector<std::string>& entries)
         }
     }
 }
+*/
 
 // void Editor::drop(void *data)
 // {
@@ -499,11 +500,7 @@ void Editor::dropPath(const std::vector<std::string>& entries)
 
 void Editor::initialize()
 {
-    ViewManager::Register<SceneInspectorView>();
-    ViewManager::Register<EngineStatusView>();
-    ViewManager::Register<FilmboxImport>();
-    ViewManager::Register<BrowserFile>();
-    ViewManager::Register<SpawnObject>();
+    viewManager.show<BrowserFile>();
 }
 
 void Editor::shutdown()
@@ -562,27 +559,27 @@ void Editor::create_dock()
         if (ImGui::BeginMenu("View"))
         {
             {
-                bool visible = ViewManager::IsVisible<SceneInspectorView>();
+                bool visible = viewManager.isVisible<SceneInspectorView>();
                 if (ImGui::MenuItem("Scene Inspector", nullptr, &visible))
-                    ViewManager::SetVisible<SceneInspectorView>(visible);
+                    viewManager.setVisible<SceneInspectorView>(visible);
             }
 
             {
-                bool visible = ViewManager::IsVisible<BrowserFile>();
+                bool visible = viewManager.isVisible<BrowserFile>();
                 if (ImGui::MenuItem("Browser File", nullptr, &visible))
-                    ViewManager::SetVisible<BrowserFile>(visible);
+                    viewManager.setVisible<BrowserFile>(visible);
             }
 
             {
-                bool visible = ViewManager::IsVisible<SpawnObject>();
+                bool visible = viewManager.isVisible<SpawnObject>();
                 if (ImGui::MenuItem("Spawn Object", nullptr, &visible))
-                    ViewManager::SetVisible<SpawnObject>(visible);
+                    viewManager.setVisible<SpawnObject>(visible);
             }
 
             {
-                bool visible = ViewManager::IsVisible<EngineStatusView>();
+                bool visible = viewManager.isVisible<EngineStatusView>();
                 if (ImGui::MenuItem("Status", nullptr, &visible))
-                    ViewManager::SetVisible<EngineStatusView>(visible);
+                    viewManager.setVisible<EngineStatusView>(visible);
             }
 
             ImGui::EndMenu();

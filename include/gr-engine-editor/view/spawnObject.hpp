@@ -1,6 +1,8 @@
 #pragma once
 
-#include "view/viewlayout.hpp"
+#include "gr-base/core/default.hpp"
+
+#include "view/windowView.hpp"
 
 #include <gr-base/ecs/default.hpp>
 
@@ -8,7 +10,7 @@
 
 #include <vector>
 
-class SpawnObject : public ViewLayout
+class SpawnObject : public WindowView
 {
     int numInstances;
 
@@ -19,14 +21,16 @@ class SpawnObject : public ViewLayout
 public:
     SpawnObject();
 
-    inline virtual const char* getName() const override
+    const char* GetTitle() const override
     {
-        return "SpawnObject";
+        return "SpawnO bject";
     }
 
-    virtual void onRenderUI() override;
+    void Draw() override;
 
 private:
+    void renderer(Scene* scene);
+
     void SetPrefab(Entity prefabID);
 };
 

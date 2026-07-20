@@ -18,6 +18,7 @@
 
 #include "guizmo/ImGuizmo.h"
 
+#include "manager/viewManager.hpp"
 #include "plugin/default.hpp"
 
 #include <gr-render/gTexture.h>
@@ -26,9 +27,10 @@
 #include <string>
 #include <vector>
 
-#include "view/viewlayout.hpp"
+#include "view/browserFile.hpp"
 
 #include "core/default.hpp"
+#include "view/iworkspace.hpp"
 
 #include <gr-base/ecs/default.hpp>
 
@@ -116,25 +118,28 @@ typedef struct gtreefile
     std::vector<gtreefile> children;
 } gtreefile;
 
-class Editor : public ViewLayout
+class Editor : public IWorkspace
 {
 public:
     Editor();
     ~Editor() override;
 
-    const char *getName() const override;
+    const char *GetWorkspaceID() const override
+    {
+        return "Editor";
+    }
 
-    void onUpdate() override;
+    void Update() override;
 
-    void onRender3D() override;
+    // void onRender3D() override;
 
-    void onRenderUI() override;
+    void DrawWorkspace() override;
 
-    void onFocus() override;
+    // void onFocus() override;
 
-    void onBlur() override;
+    // void onBlur() override;
 
-    void dropPath(const std::vector<std::string>& entries) override;
+    // void dropPath(const std::vector<std::string>& entries) override;
 
     void loadScript(const std::string& dir);
 
@@ -192,6 +197,8 @@ private:
     ImGuizmo::MODE m_guizmoManipulate;
 
     std::vector<Entity> uiList;
+
+    ViewManager viewManager;
 
     void initialize();
     void shutdown();

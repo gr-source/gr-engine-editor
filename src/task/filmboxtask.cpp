@@ -6,11 +6,6 @@
 
 #include "filmbox/filmbox.hpp"
 
-#include "manager/viewManager.hpp"
-
-#include "view/popup/filmboximport.hpp"
-
-#include <cstring>
 #include <gr-base/core/file/memoryStream.hpp>
 #include <gr-base/core/file/file.hpp>
 
@@ -24,14 +19,19 @@
 
 #include <gr-base/managers/assetsManager.hpp>
 
-FilmboxLoadTask::FilmboxLoadTask(const std::string& file) : m_file(file), m_scene(nullptr), m_shader("engine://shader/simple_model")
+FilmboxLoadTask::FilmboxLoadTask(const std::string& file) :
+    m_file(file),
+    m_scene(nullptr),
+    m_shader("engine://shader/simple_model")
 {}
 
 void FilmboxLoadTask::onPreExecute()
 {
+    /*
     std::string filename = gfile::get_file_name(m_file);
 
     Console::LogInfo("[ FilmboxTask ] Loading: %s", filename.c_str());
+    */
 }
 
 int FilmboxLoadTask::doInBackground()
@@ -55,8 +55,7 @@ int FilmboxLoadTask::doInBackground()
 
         MaterialAsset asset;
         asset.name = fbxMaterial.name;
-
-        asset.SetShader(m_shader);
+        asset.shader = m_shader;
 
         asset.Set("albedo", fbxMaterial.albedo);
         asset.Set("metallic", fbxMaterial.metallic);
@@ -68,18 +67,18 @@ int FilmboxLoadTask::doInBackground()
 
     for (auto& fbxMesh : m_scene->meshes)
     {
-        if (m_meshCacheList.find(fbxMesh.GetName()) == m_meshCacheList.end())
+        if (m_meshCacheList.find(fbxMesh.name) == m_meshCacheList.end())
         {
             MeshAsset asset;
-            asset.name = fbxMesh.GetName();
+            asset.name = fbxMesh.name;
 
-            m_meshCacheList.emplace(fbxMesh.GetName(), asset);
+            m_meshCacheList.emplace(fbxMesh.name, asset);
         }
 
         const auto& vertices = fbxMesh.vertices;
         const auto& indices = fbxMesh.indices;
 
-        MeshAsset& asset = m_meshCacheList[fbxMesh.GetName()];
+        MeshAsset& asset = m_meshCacheList[fbxMesh.name];
 
         size_t vertexOffset = asset.vertices.size();
         size_t indexOffset = asset.indices.size();
@@ -93,21 +92,15 @@ int FilmboxLoadTask::doInBackground()
             asset.indices.push_back(idx + static_cast<uint32_t>(vertexOffset));
 
         auto& submesh = asset.submeshes.emplace_back();
-        submesh.materialName = m_scene->materials[fbxMesh.GetMaterialID()].name;
+        submesh.materialName = m_scene->materials[fbxMesh.materialID].name;
         submesh.indexCount = static_cast<uint32_t>(indices.size());
         submesh.indexOffset = static_cast<uint32_t>(indexOffset);
     }
 
-    auto filename = gfile::get_file_name(m_file);
+    // auto filename = gfile::get_file_name(m_file);
 
-    for (auto &&[name, asset] : m_materialCacheList)
-        asset.hash = engine::hash::fnv1_str("project://material/" + filename + "/" + name);
-
-    for (auto &&[name, asset] : m_meshCacheList)
-        asset.hash = engine::hash::fnv1_str("project://mesh/" + filename + "/" + name);
-
-    auto& root = m_scene->getRootNode();
-    for (auto& fbxNode : root.getChildren())
+    const auto& root = m_scene->root;
+    for (const auto& fbxNode : root.children)
         m_objectCacheList.push_back(PackingObject(&fbxNode));
 
     return 0;
@@ -115,6 +108,7 @@ int FilmboxLoadTask::doInBackground()
 
 void FilmboxLoadTask::onPostExecute(Result<int> result)
 {
+    /*
     if (result.value != 0)
         return Console::LogError("[FilmboxLoadTask] fail in to load '%s' error code: %s", m_file.c_str(), result.error.c_str());
 
@@ -129,46 +123,50 @@ void FilmboxLoadTask::onPostExecute(Result<int> result)
     pack.materialsAsset = m_materialCacheList;
     pack.meshesAsset = m_meshCacheList;
 
-    ModelAsset& asset = pack.modelAsset;
-    asset.childrent = m_objectCacheList;
-    asset.name = filename;
-    asset.isStatic = false;
+    auto& root = pack.root;
+    root.children = m_objectCacheList;
+    root.name = filename;
 
     view->addFile(filename, pack);
+    */
 }
 
-ModelAsset FilmboxLoadTask::PackingObject(const FbxNode* node)
+ModelNode FilmboxLoadTask::PackingObject(const FbxNode* fbxNode)
 {
-    ModelAsset asset;
-    asset.name = node->getName();
-    asset.isStatic = false;
-    asset.mesh = INVALID_HASH64;
+    ModelNode node;
+    node.name = fbxNode->name;
 
-    for (auto& meshID : node->GetMesheIDs())
+    node.position =
+        fbxNode->position;
+    node.rotation =
+        fbxNode->rotation;
+    node.scale =
+        fbxNode->scale;
+
+    for (auto& meshID : fbxNode->meshes)
     {
         auto& fbxMesh = m_scene->meshes[meshID];
-        const auto& meshName = fbxMesh.GetName();
+        const auto& meshName = fbxMesh.name;
 
         {
+            /*
             auto it = m_meshCacheList.find(meshName);
             if (it != m_meshCacheList.end())
                 asset.mesh = it->second.hash;
+            */
         }
 
-        auto& fbxMaterial = m_scene->materials[fbxMesh.GetMaterialID()];
+        auto& fbxMaterial = m_scene->materials[fbxMesh.materialID];
         {
+            /*
             auto it = m_materialCacheList.find(fbxMaterial.name);
             if (it != m_materialCacheList.end())
                 asset.materials.push_back(it->second.hash);
+            */
         }
     }
 
-    Transform transform;
-    transform.position = node->getPosition();
-    transform.rotation = node->getRotation();
-    transform.scale = node->getScale();
-
-    asset.AddComponent(transform);
+    // asset.AddComponent(transform);
 
     // if (asset.mesh != INVALID_HASH64)
     // {
@@ -187,10 +185,10 @@ ModelAsset FilmboxLoadTask::PackingObject(const FbxNode* node)
         */
     // }
 
-    for (auto& child : node->getChildren())
-        asset.childrent.push_back(PackingObject(&child));
+    for (auto& child : fbxNode->children)
+        node.children.push_back(PackingObject(&child));
 
-    return asset;
+    return node;
 }
 
 

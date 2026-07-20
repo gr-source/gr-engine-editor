@@ -10,32 +10,26 @@ enum TextureType {
     TextureType_Albedo
 };
 
-class FbxMaterial
+struct FbxMaterial
 {
-public:
-    FbxMaterial() = default;
-
     std::string name;
 
-    Color albedo;
+    Color albedo = COLOR_BLUE;
 
-    float roughness;
+    float roughness = 0.0f;
 
-    float metallic;
+    float metallic = 0.0f;
 
-    float ao;
+    float ao = 0.0f;
+
+    std::unordered_map<TextureType, const std::string> textures;
 
     template <typename ...Args>
     void addTexture(Args &&...args);
-
-    const std::unordered_map<TextureType, const std::string> &getTextures() const;
-
-private:
-
-    std::unordered_map<TextureType, const std::string> m_textures;
 };
 
 template <typename... Args>
-inline void FbxMaterial::addTexture(Args &&...args) {
-    m_textures.emplace(std::forward<Args>(args)...);
+inline void FbxMaterial::addTexture(Args &&...args)
+{
+    textures.emplace(std::forward<Args>(args)...);
 }

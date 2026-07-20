@@ -1,4 +1,5 @@
 #include "view/engineStatusView.hpp"
+
 #include "gr-base/ecs/componentRegistry.hpp"
 #include "gr-base/ecs/systemRegistry.hpp"
 
@@ -13,10 +14,17 @@
 
 #include <imgui.h>
 
-void EngineStatusView::onRenderUI()
+void EngineStatusView::Draw()
 {
     Scene* scene = Scene::GetCurrent();
 
+    if (ImGui::Begin("Status") && scene != nullptr)
+        renderer(scene);
+    ImGui::End();
+}
+
+void EngineStatusView::renderer(Scene* scene)
+{
     ImGui::SeparatorText("World");
     if (ImGui::CollapsingHeader("Components"))
     {
@@ -62,7 +70,7 @@ void EngineStatusView::onRenderUI()
         }
     }
 
-    if (scene != nullptr && ImGui::CollapsingHeader("ECS"))
+    if (ImGui::CollapsingHeader("ECS"))
     {
         ImGui::Text("Entities: %ld", scene->GetEntityCount());
 

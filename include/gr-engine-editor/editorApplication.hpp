@@ -2,6 +2,9 @@
 
 #include "core/project.hpp"
 
+#include "gr-base/core/ievent.hpp"
+#include "view/iworkspace.hpp"
+
 #include <gr-base/core/default.hpp>
 
 #include <gr-base/application.hpp>
@@ -56,6 +59,8 @@ public:
     EditorApplication();
     ~EditorApplication() override;
 
+    std::unique_ptr<IWorkspace> m_workspace;
+
     void initialize() override;
     
     void shutdown() override;
@@ -85,11 +90,15 @@ private:
 
     void drawScene(Scene* scene);
 
-    void checkProject();
-
     void loadConfig();
 
     void saveConfig();
+
+    void onCheckProject(IEvent* event);
+
+    void onOpenProject(IEvent* event);
+
+    void onCloseProject(IEvent* event);
 };
 
 

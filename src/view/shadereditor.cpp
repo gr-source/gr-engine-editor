@@ -1,4 +1,5 @@
 #include "view/shadereditor.hpp"
+/*
 
 ShaderEditor::ShaderEditor()
 {}
@@ -18,5 +19,5 @@ void ShaderEditor::onRenderUI()
 {}
 
 
-
+*/
 

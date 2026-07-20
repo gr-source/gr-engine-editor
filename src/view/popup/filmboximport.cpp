@@ -1,29 +1,14 @@
 #include "view/popup/filmboximport.hpp"
 
 #include "editorApplication.hpp"
-#include "gr-base/asset/assetResolver.hpp"
-#include "gr-base/core/file/file.hpp"
-
-#include "gr-base/core/thread/taskmanager.hpp"
-
-#include "gr-base/externals/hash.hpp"
-#include "gr-base/managers/assetsManager.hpp"
-#include "gr-base/managers/eventManager.hpp"
-
-#include "manager/viewManager.hpp"
 
 #include <gr-base/script/transform.hpp>
 
 #include <gr-base/core/gameObject.hpp>
 
-#include "gr-base/task/materialsavetask.hpp"
-#include "gr-base/task/modelsavetask.hpp"
-#include "gr-base/task/meshsavetask.hpp"
-
-#include "imgui.h"
-
 #include <imgui.h>
 
+/*
 FilmboxImport::FilmboxImport()
 {}
 
@@ -34,8 +19,6 @@ void FilmboxImport::addFile(const std::string& filename, const ModelPack& pack)
 
 void FilmboxImport::onRenderUI()
 {
-    EditorApplication* engine = static_cast<EditorApplication*>(Application::application);
-
     for (auto &&[filename, pack] : m_modelPack)
     {
         if (ImGui::CollapsingHeader(filename.c_str()))
@@ -61,7 +44,7 @@ void FilmboxImport::onRenderUI()
 
             if (ImGui::TreeNode("GameObject"))
             {
-                render_tree_node(&pack.modelAsset);
+                render_tree_node(&pack.root);
                 ImGui::TreePop();
             }
         }
@@ -69,10 +52,11 @@ void FilmboxImport::onRenderUI()
 
     auto avail = ImGui::GetContentRegionAvail();
 
-    if (engine->getProject() != nullptr && ImGui::Button("Save", ImVec2(avail.x, 0.0f)))
+    if (ImGui::Button("Save", ImVec2(avail.x, 0.0f)))
     {
         for (auto &&[filename, cache] : m_modelPack)
         {
+            /*
             // material
             {
                 for (auto&&[asset_name, asset] : cache.materialsAsset)
@@ -106,15 +90,16 @@ void FilmboxImport::onRenderUI()
 
             // gameObject
             {
-                auto& asset = cache.modelAsset;
+                auto& modelCache = cache.modelCache;
 
-                URI uri = URI::parse("project://model/" + filename + "/" + asset.name);
+                URI uri =
+                    URI::parse("project://model/" + filename + "/" + modelCache.name);
 
                 auto parent = gfile::parent(AssetResolver::Resolve(uri));
                 if (!gfile::exists(parent))
                     gfile::create_directories(parent);
 
-                TaskManager::Add<ModelSaveTask>(uri, asset);
+                TaskManager::Add<BuildImpotedTask>(uri, cache);
             }
         }
 
@@ -122,19 +107,20 @@ void FilmboxImport::onRenderUI()
     }
 }
 
-void FilmboxImport::render_tree_node(const ModelAsset* asset)
+void FilmboxImport::render_tree_node(const ModelNode* node)
 {
-    auto& childrent = asset->childrent;
+    auto& children = node->children;
+    auto& name = node->name;
 
-    auto isOpen = ImGui::TreeNodeEx(asset->name.c_str(), childrent.empty() ? ImGuiTreeNodeFlags_Leaf : 0);
+    auto isOpen = ImGui::TreeNodeEx(name.c_str(), children.empty() ? ImGuiTreeNodeFlags_Leaf : 0);
     if (!isOpen)
         return;
 
-    for (auto &child : childrent)
+    for (auto &child : children)
         render_tree_node(&child);
 
     ImGui::TreePop();
 }
-
+*/
 
 

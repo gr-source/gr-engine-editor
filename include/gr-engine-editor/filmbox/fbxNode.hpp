@@ -1,54 +1,27 @@
 #pragma once
 
+#include <gr-math/gmath.hpp>
+
 #include <string>
 #include <vector>
 
-#include "fbxMesh.hpp"
+struct FbxNode
+{
+    std::string name;
 
-class FbxNode {
-public:
-    FbxNode(const std::string &name = "default");
+    Vector3 position = type_traits<Vector3>::zero;
+    Quaternion rotation = type_traits<Quaternion>::identity;
+    Vector3 scale = type_traits<Vector3>::one;
 
-    std::string getName() const;
-
-    void AddMesh(uint32_t id);
-
-    std::vector<uint32_t> GetMesheIDs() const;
-
-    bool HasMeshe() const;
+    std::vector<FbxNode> children;
+    std::vector<uint32_t> meshes;
 
     template <typename ...Args>
-    FbxNode &addNode(Args &&...args);
-
-    const std::vector<FbxNode> &getChildren() const;
-
-    void setPosition(const Vector3 &position);
-
-    const Vector3 &getPosition() const;
-
-    void setScale(const Vector3 &scale);
-
-    const Vector3 &getScale() const;
-
-    void setRotation(const Quaternion &rotation);
-
-    const Quaternion &getRotation() const;
-
-private:
-    std::string m_name;
-
-    std::vector<FbxNode> m_children;
-
-    std::vector<uint32_t> m_mesheIDs;
-
-    Vector3 m_position;
-
-    Vector3 m_scale;
-    
-    Quaternion m_rotation;
+    void addChild(Args &&...args);
 };
 
 template <typename... Args>
-inline FbxNode &FbxNode::addNode(Args &&...args) {
-    return m_children.emplace_back(std::forward<Args>(args)...);
+inline void FbxNode::addChild(Args &&...args)
+{
+    children.emplace_back(std::forward<Args>(args)...);
 }

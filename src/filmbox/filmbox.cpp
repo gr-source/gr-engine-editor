@@ -31,9 +31,10 @@ void Filmbox::load(const std::string &path)
         throw std::runtime_error("fail to load scene.");
     }
 
-    m_scene = std::make_unique<FbxScene>(scene->mName.C_Str());
+    m_scene = std::make_unique<FbxScene>();
+    m_scene->name = scene->mName.C_Str();
 
-    loadSceneToCache(scene, m_scene.get());
+    loadSceneToCache(scene);
 
     importer.FreeScene();
 }
@@ -48,116 +49,122 @@ std::unique_ptr<FbxScene> Filmbox::get_scene()
     return std::move(m_scene);
 }
 
-void Filmbox::loadSceneToCache(const aiScene *scene, FbxScene *fbxScene)
+void Filmbox::loadSceneToCache(const aiScene *scene)
 {
     if (scene->HasMaterials())
     {
         Console::LogWarning("Loading material...");
-        loadMaterial(scene, fbxScene);
+        m_scene->materials = loadMaterials(scene);
     }
-
-    std::unordered_map<std::string, Matrix4x4> boneMap;
-    std::unordered_map<std::string, int> boneIndex;
 
     if (scene->HasMeshes())
     {
         Console::LogWarning("Loading Mesh...");
-        loadMesh(scene, fbxScene, boneMap, boneIndex);
+        m_scene->meshes = loadMeshes(scene);
     }
 
+    /*
     if (scene->HasAnimations())
     {
         Console::LogWarning("Loading Animations...");
         LoadAnimation(scene, fbxScene, boneIndex);
     }
+    */
 
     Console::LogWarning("Loading Node...");
 
     auto mRootNode = scene->mRootNode;
-    auto& fRootNode = fbxScene->m_rootNode;
+
+    FbxNode root;
+    root.name = "Root";
 
     for (std::uint32_t i=0;i<mRootNode->mNumChildren;++i)
-    {
-        ProcessNode(mRootNode->mChildren[i], fRootNode, scene, fbxScene, boneMap);
-    }
+        root.addChild(readNode(mRootNode->mChildren[i], scene));
+
+    m_scene->root = root;
 }
 
-void Filmbox::ProcessNode(aiNode *mNode, FbxNode& root, const aiScene *scene, FbxScene *fbxScene, std::unordered_map<std::string, Matrix4x4> &boneMap) {
+FbxNode Filmbox::readNode(aiNode *mNode, const aiScene *scene)
+{
     auto name = mNode->mName;
 
-    auto& node = root.addNode(name.C_Str());
+    FbxNode node;
+    node.name = name.C_Str();
 
     aiVector3D scale;
     aiVector3D position;
     aiQuaternion rotation;
     mNode->mTransformation.Decompose(scale, rotation, position);
 
-    node.setPosition({position.x, position.y, position.z});
-    node.setScale({scale.x, scale.y, scale.z});
-    node.setRotation({rotation.w, rotation.x, rotation.y, rotation.z});
+    node.position =
+        { position.x, position.y, position.z };
+    node.rotation =
+        { rotation.w, rotation.x, rotation.y, rotation.z };
+    node.scale =
+        { scale.x, scale.y, scale.z };
     
-    if (boneMap.find(name.C_Str()) != boneMap.end())
+    if (m_boneMap.find(name.C_Str()) != m_boneMap.end())
     {
-        Vector3 t;
-        Quaternion r;
-        Vector3 s;
-
-        Math::mat4_decompose(boneMap[name.C_Str()], s, r, t);
-        
-        node.setPosition(t);
-        node.setRotation(r);
-        node.setScale(s);
+        Math::mat4_decompose(
+                m_boneMap[name.C_Str()],
+                node.scale,
+                node.rotation,
+                node.position
+            );
     }
 
     for (auto i=0;i<mNode->mNumMeshes;++i)
-        node.AddMesh(mNode->mMeshes[i]);
+        node.meshes.push_back(mNode->mMeshes[i]);
 
     for (auto i=0;i<mNode->mNumChildren;++i)
-    {
-        auto child = mNode->mChildren[i];
+        node.addChild(readNode(mNode->mChildren[i], scene));
 
-        ProcessNode(child, node, scene, fbxScene, boneMap);
-    }
+    return node;
 }
 
-void Filmbox::loadMaterial(const aiScene* scene, FbxScene* fbxScene)
+std::vector<FbxMaterial> Filmbox::loadMaterials(const aiScene* scene)
 {
-    auto& outMaterials = fbxScene->materials;
-    outMaterials.resize(scene->mNumMaterials);
+    std::vector<FbxMaterial> materials(scene->mNumMaterials);
+    for (uint32_t i = 0; i < scene->mNumMaterials; ++i)
+        materials[i] = readMaterial(scene->mMaterials[i]);
+    return materials;
+}
 
-    for (uint32_t i = 0; i < scene->mNumMaterials; ++i) 
+FbxMaterial Filmbox::readMaterial(const aiMaterial* material)
+{
+    FbxMaterial fbxMaterial{};
+
+    aiString name;
+    if (material->Get(AI_MATKEY_NAME, name) == AI_SUCCESS)
+        fbxMaterial.name = name.C_Str();
+
+    aiColor4D color;
+    if (material->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
+        fbxMaterial.albedo = { color.r, color.g, color.b, color.a };
+
+    material->Get(AI_MATKEY_METALLIC_FACTOR, fbxMaterial.metallic);
+    material->Get(AI_MATKEY_ROUGHNESS_FACTOR, fbxMaterial.roughness);
+
+    // Alguns formatos usam propriedades GLTF específicas
+    material->Get(
+        "$mat.gltf.pbrMetallicRoughness.metallicFactor",
+        0,
+        0,
+        fbxMaterial.metallic);
+
+    material->Get(
+        "$mat.gltf.pbrMetallicRoughness.roughnessFactor",
+        0,
+        0,
+        fbxMaterial.roughness);
+
+    float ao = 1.0f;
+    if (material->Get(AI_MATKEY_USE_AO_MAP, ao) == AI_SUCCESS)
     {
-        const aiMaterial* aiMat = scene->mMaterials[i];
-        auto& targetMat = outMaterials[i];
-
-        aiString matName;
-        if (aiMat->Get(AI_MATKEY_NAME, matName) == AI_SUCCESS)
-            targetMat.name = matName.C_Str();
-
-        ProcessTexture(aiMat, targetMat);
-
-        targetMat.albedo = { 1.0f, 1.0f, 1.0f, 1.0f };
-        targetMat.metallic = 0.0f;
-        targetMat.roughness = 0.5f;
-        targetMat.ao = 1.0f;
-        
-        aiColor4D color;
-        if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
-            targetMat.albedo = { color.r, color.g, color.b, color.a };
-
-        float factor = 0.0f;
-        
-        if (aiMat->Get(AI_MATKEY_METALLIC_FACTOR, factor) == AI_SUCCESS || 
-            aiMat->Get("$mat.gltf.pbrMetallicRoughness.metallicFactor", 0, 0, factor) == AI_SUCCESS)
-            targetMat.metallic = factor;
-
-        if (aiMat->Get(AI_MATKEY_ROUGHNESS_FACTOR, factor) == AI_SUCCESS || 
-            aiMat->Get("$mat.gltf.pbrMetallicRoughness.roughnessFactor", 0, 0, factor) == AI_SUCCESS)
-            targetMat.roughness = factor;
-
-        if (aiMat->Get(AI_MATKEY_USE_AO_MAP, factor) == AI_SUCCESS)
-            targetMat.ao = factor;
+        fbxMaterial.ao = ao;
     }
+
+    return fbxMaterial;
 }
 
 void Filmbox::ProcessTexture(const aiMaterial *iMaterial, FbxMaterial &fbxMaterial) {
@@ -173,29 +180,25 @@ void Filmbox::ProcessTexture(const aiMaterial *iMaterial, FbxMaterial &fbxMateri
     }
 }
 
-void Filmbox::loadMesh(const aiScene *scene, FbxScene *fbxScene, std::unordered_map<std::string, Matrix4x4> &boneMap, std::unordered_map<std::string, int> &boneIndex)
+std::vector<FbxMesh> Filmbox::loadMeshes(const aiScene *scene)
 {
-    auto& meshes = fbxScene->meshes;
-    meshes.resize(scene->mNumMeshes, {});
-
+    std::vector<FbxMesh> meshes(scene->mNumMeshes);
     for (uint32_t i=0;i<scene->mNumMeshes;++i)
-    {
-        FbxMesh& fbxMesh = meshes[i];
-
-        setupMesh(scene->mMeshes[i], &fbxMesh, boneMap, boneIndex);
-    }
+        meshes[i] = readMesh(scene->mMeshes[i]);
+    return meshes;
 }
 
-void Filmbox::setupMesh(const aiMesh *mMesh, FbxMesh* fbxMesh, std::unordered_map<std::string, Matrix4x4> &boneMap, std::unordered_map<std::string, int> &boneIndex)
+FbxMesh Filmbox::readMesh(const aiMesh *mMesh)
 {
-    fbxMesh->SetMaterialID(mMesh->mMaterialIndex);
-    fbxMesh->SetName(mMesh->mName.C_Str());
+    FbxMesh fbxMesh;
+    fbxMesh.materialID = mMesh->mMaterialIndex;
+    fbxMesh.name = mMesh->mName.C_Str();
 
     bool bHasPosition = mMesh->HasPositions();
     bool bHasNormal = mMesh->HasNormals();
     bool bHasTexCoord = mMesh->HasTextureCoords(0);
 
-    auto& vertices = fbxMesh->vertices;
+    auto& vertices = fbxMesh.vertices;
     vertices.resize(mMesh->mNumVertices, {});
 
     for (uint32_t i=0;i<mMesh->mNumVertices;++i)
@@ -224,7 +227,7 @@ void Filmbox::setupMesh(const aiMesh *mMesh, FbxMesh* fbxMesh, std::unordered_ma
         }
     }
 
-    auto& indices = fbxMesh->indices;
+    auto& indices = fbxMesh.indices;
     indices.resize(mMesh->mNumFaces * 3, 0);
 
     for (uint32_t i = 0; i < mMesh->mNumFaces; ++i)
@@ -236,41 +239,41 @@ void Filmbox::setupMesh(const aiMesh *mMesh, FbxMesh* fbxMesh, std::unordered_ma
             indices[i * 3 + j] = face.mIndices[j];
     }
 
-    if (mMesh->HasBones()) {
-        for (auto i=0;i<mMesh->mNumBones;++i) {
+    if (mMesh->HasBones())
+    {
+        for (auto i=0;i<mMesh->mNumBones;++i)
+        {
             auto mBone = mMesh->mBones[i];
 
             auto name = mBone->mName;
 
-            if (boneIndex.find(name.C_Str()) == boneIndex.end())
-            {
-                boneIndex.emplace(name.C_Str(), i);
-            }
+            if (m_boneIndexMap.find(name.C_Str()) == m_boneIndexMap.end())
+                m_boneIndexMap.emplace(name.C_Str(), i);
 
             aiVector3D scale;
             aiQuaternion rotation;
             aiVector3D position;
             mBone->mOffsetMatrix.Decompose(scale, rotation, position);
 
-            auto& fBone = fbxMesh->addBone(name.C_Str(), i);
-            fBone.setScale({scale.x, scale.y, scale.z});
-            fBone.setPosition({position.x, position.y, position.z});
-            fBone.setRotation({rotation.w, rotation.x, rotation.y, rotation.z});
-
             int parentIndex = 0;
             if (mBone->mNode->mParent != nullptr)
             {
-                auto it = boneIndex.find(mBone->mNode->mParent->mName.C_Str());
-                if (it != boneIndex.end())
+                auto it = m_boneIndexMap.find(mBone->mNode->mParent->mName.C_Str());
+                if (it != m_boneIndexMap.end())
                     parentIndex = it->second;
             }
 
-            fBone.setParentIndex(parentIndex);
+            FbxBone bone;
+            bone.id = i;
+            bone.scale = { scale.x, scale.y, scale.z };
+            bone.position = { position.x, position.y, position.z };
+            bone.rotation = { rotation.w, rotation.x, rotation.y, rotation.z };
+            bone.parentID = parentIndex;
 
-            if (boneMap.find(name.C_Str()) == boneMap.end())
-            {
-                boneMap.emplace(name.C_Str(), fBone.getLocalMatrix());
-            }
+            fbxMesh.addBone(bone);
+
+            if (m_boneMap.find(name.C_Str()) == m_boneMap.end())
+                m_boneMap.emplace(name.C_Str(), bone.getLocalMatrix());
 
             for (auto j=0;j<mBone->mNumWeights;++j) {
                 auto weight = mBone->mWeights[j];
@@ -287,8 +290,11 @@ void Filmbox::setupMesh(const aiMesh *mMesh, FbxMesh* fbxMesh, std::unordered_ma
             }
         }
     }
+
+    return fbxMesh;
 }
 
+/*
 void Filmbox::LoadAnimation(const aiScene *scene, FbxScene *fbxScene, std::unordered_map<std::string, int> &boneIndex)
 {
     for (auto i=0;i<scene->mNumAnimations;i++) {
@@ -336,7 +342,7 @@ void Filmbox::AddKeys(aiNodeAnim *mNodeAnim, FbxChannel *channel) {
         channel->addKeyRotation(static_cast<float>(key.mTime), Quaternion{key.mValue.w, key.mValue.x, key.mValue.y, key.mValue.z});
     }
 }
-
+*/
 
 
 

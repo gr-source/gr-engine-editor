@@ -23,7 +23,7 @@ BrowserFile::BrowserFile() :
     m_selected_dir(nullptr),
     m_imguiIO(&ImGui::GetIO())
 {
-    visible = true;
+    open = true;
 
     m_root = std::make_shared<FileInfo>();
     m_root->name = "project://";
@@ -47,7 +47,14 @@ BrowserFile::BrowserFile() :
         );
 }
 
-void BrowserFile::onRenderUI()
+void BrowserFile::Draw()
+{
+    if (ImGui::Begin("Browser File"))
+        renderer();
+    ImGui::End();
+}
+
+void BrowserFile::renderer()
 {
     auto avail = ImGui::GetContentRegionAvail();
 

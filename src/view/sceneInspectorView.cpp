@@ -4,12 +4,18 @@
 #include "gr-base/ecs/systemRegistry.hpp"
 #include "imgui.h"
 
-void SceneInspectorView::onRenderUI()
+void SceneInspectorView::Draw()
 {
     Scene* scene = Scene::GetCurrent();
-    if (scene == nullptr)
-        return;
 
+    if (ImGui::Begin("Scene Inspector") && scene != nullptr)
+        renderer(scene);
+
+    ImGui::End();
+}
+
+void SceneInspectorView::renderer(Scene* scene)
+{
     auto avail = ImGui::GetContentRegionAvail();
 
     ImGui::SeparatorText("Systems Added");

@@ -76,12 +76,7 @@ ProjectMenu::~ProjectMenu()
     // DebugDraw::Shutdown();
 }
 
-const char* ProjectMenu::getName() const
-{
-    return "ProjectMenu";
-}
-
-void ProjectMenu::onRenderUI()
+void ProjectMenu::Draw()
 {
     create_window_project_list();
 

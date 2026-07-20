@@ -1,5 +1,7 @@
 #pragma once
 
+#include "view/windowView.hpp"
+
 #include "gr-base/asset/URI.hpp"
 
 #include "gr-base/asset/assetDB.hpp"
@@ -7,8 +9,6 @@
 #include "gr-base/asset/default.hpp"
 
 #include "gr-base/asset/default.hpp"
-
-#include "view/viewlayout.hpp"
 
 #include "imgui.h"
 
@@ -33,12 +33,12 @@ struct FileInfo
     }
 };
 
-class BrowserFile : public ViewLayout
+class BrowserFile : public WindowView
 {
 public:
     BrowserFile();
 
-    inline const char* getName() const override
+    inline const char* GetTitle() const override
     {
         return "Browser File";
     }
@@ -62,7 +62,9 @@ private:
 
     ImGuiIO* m_imguiIO;
 
-    void onRenderUI() override;
+    void Draw() override;
+
+    void renderer();
 
     void render_virtual_directories(FileInfo* info);
 

@@ -13,12 +13,17 @@
 SpawnObject::SpawnObject() : numInstances(100), position({0.0f, 0.0f})
 {}
 
-void SpawnObject::onRenderUI()
+void SpawnObject::Draw()
 {
     auto scene = Scene::GetCurrent();
-    if (scene == nullptr)
-        return;
 
+    if (ImGui::Begin("SpawnO bject") && scene != nullptr)
+        renderer(scene);
+    ImGui::End();
+}
+
+void SpawnObject::renderer(Scene* scene)
+{
     ImGui::InputInt("Num", &numInstances);
 
     if (ImGui::Button("Spawn"))

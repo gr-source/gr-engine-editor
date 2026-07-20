@@ -1,17 +1,21 @@
 #pragma once
 
-#include "view/viewlayout.hpp"
+#include "gr-base/core/default.hpp"
 
-class EngineStatusView : public ViewLayout
+#include "view/windowView.hpp"
+
+class EngineStatusView : public WindowView
 {
 public:
-    inline const char* getName() const override
+private:
+    inline const char* GetTitle() const override
     {
         return "Status";
     }
 
-private:
-    void onRenderUI() override;
+    void Draw() override;
+
+    void renderer(Scene* scene);
 };
 
 

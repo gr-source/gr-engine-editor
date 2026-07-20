@@ -4,19 +4,21 @@
 
 #include "gr-base/ecs/typeinfo.hpp"
 
-#include "view/viewlayout.hpp"
+#include "view/windowView.hpp"
 
-class SceneInspectorView : public ViewLayout
+class SceneInspectorView : public WindowView
 {
 public:
-    virtual const char* getName() const override
+    const char* GetTitle() const override
     {
         return "Scene Inspector";
     }
 
-    virtual void onRenderUI() override;
+    void Draw() override;
 
 private:
+    void renderer(Scene* scene);
+
     void ShowSystemInfo(const SystemInfo* info, ISystem* system);
 
     void AddSystemPopup(Scene* scene);

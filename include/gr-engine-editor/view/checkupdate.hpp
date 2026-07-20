@@ -1,40 +1,30 @@
 #pragma once
 
-#include "view/viewlayout.hpp"
+#include "view/ipopupView.hpp"
 
+#include <cstdint>
 #include <functional>
 #include <string>
 
-class CheckUpdate : public ViewLayout
+class CheckUpdate : public IPopupView
 {
 public:
-    template <typename... Args>
-    CheckUpdate(Args&&... args);
+    CheckUpdate();
+
+    void addFile(const std::string& file);
+
+    void taskFinished();
 
 private:
-    std::function<void ()> m_function;
+    std::vector<std::string> m_files;
 
-    inline const char* getName() const override
+    const char* GetPopupID() const override
     {
         return "Check Update";
     }
 
-    void init();
-
-    void onRenderUI() override;
-
-    void doInBackground();
-
-    bool copydata(const std::string& src_dir);
-
-    uint64_t GetHashFromFile(const std::string& file);
+    void DrawPopup() override;
 };
 
-
-template <typename... Args>
-inline CheckUpdate::CheckUpdate(Args&&... args) : m_function(std::bind(std::forward<Args>(args)...))
-{
-    init();
-}
 
 

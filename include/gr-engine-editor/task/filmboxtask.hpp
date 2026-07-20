@@ -4,6 +4,8 @@
 
 #include "gr-base/core/geometry/default.hpp"
 
+#include "task/model/modelCache.hpp"
+
 #include <gr-base/core/thread/asynctask.hpp>
 
 #include <gr-base/script/default.hpp>
@@ -35,7 +37,7 @@ private:
 
     std::unordered_map<std::string, MeshAsset> m_meshCacheList;
 
-    std::vector<ModelAsset> m_objectCacheList;
+    std::vector<ModelNode> m_objectCacheList;
 
     const FbxScene *m_scene;
 
@@ -45,6 +47,6 @@ private:
 
     void onPostExecute(Result<int> result) override;
 
-    ModelAsset PackingObject(const FbxNode* node);
+    ModelNode PackingObject(const FbxNode* node);
 };
 

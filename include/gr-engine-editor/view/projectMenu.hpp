@@ -13,7 +13,9 @@
 
 #include "core/project.hpp"
 
-#include "viewlayout.hpp"
+#include "editorApplication.hpp"
+
+#include "windowView.hpp"
 
 using ProjectMenuPopup_ = std::uint32_t;
 
@@ -22,7 +24,7 @@ enum ProjectMenuPopup : ProjectMenuPopup_
     ProjectMenuPopup_CreateProject = 1 << 1,
 };
 
-class ProjectMenu : public ViewLayout
+class ProjectMenu : public WindowView
 {
 public:
     static std::shared_ptr<Project> Load(const std::string& path);
@@ -30,9 +32,12 @@ public:
     ProjectMenu();
     ~ProjectMenu() override;
 
-    const char* getName() const override;
+    const char* GetTitle() const override
+    {
+        return "Project Menu";
+    }
     
-    void onRenderUI() override;
+    void Draw() override;
 
 private:
     std::vector<Project> m_projects;

@@ -1,10 +1,8 @@
 #pragma once
 
-#include "gr-base/asset/materialasset.hpp"
-#include "gr-base/asset/meshasset.hpp"
+#include "view/windowView.hpp"
 
-#include "gr-base/asset/modelasset.hpp"
-#include "view/viewlayout.hpp"
+#include "task/model/modelCache.hpp"
 
 #include <gr-base/core/geometry/default.hpp>
 
@@ -12,34 +10,29 @@
 
 #include <string>
 
-#include <unordered_map>
-
-struct ModelPack
-{
-    std::unordered_map<std::string, MaterialAsset> materialsAsset;
-    std::unordered_map<std::string, MeshAsset> meshesAsset;
-
-    ModelAsset modelAsset;
-};
-
-class FilmboxImport : public ViewLayout
+/*
+class FilmboxImport : public WindowView
 {
 public:
     FilmboxImport();
 
-    inline const char* getName() const override
+    inline const char* GetTitle() const override
     {
         return "Filmbox Import";
     }
 
     void addFile(const std::string& filename, const ModelPack& pack);
 
+    void SetTitle(const std::string& title);
+    void SetMessage(const std::string& message);
+    void Show();
+
 private:
     std::unordered_map<std::string, ModelPack> m_modelPack;
 
-    void onRenderUI() override;
+    void Draw() override;
 
-    void render_tree_node(const ModelAsset *asset);
+    void render_tree_node(const ModelNode* node);
 };
-
+*/
 

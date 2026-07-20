@@ -1,19 +1,14 @@
 #pragma once
 
-#include <cstdint>
-#include <vector>
-#include <string>
-
-typedef uint64_t ViewHash;
-
 class IView
 {
 public:
     virtual ~IView() {}
 
-    virtual void Renderer() {}
+    virtual void Render() = 0;
 };
 
+/*
 class ViewLayout
 {
 public:
@@ -38,7 +33,7 @@ public:
 
     virtual void dropPath(const std::vector<std::string>& entries) {}
 };
-
+*/
 
 
 

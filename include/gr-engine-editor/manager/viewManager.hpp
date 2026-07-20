@@ -1,124 +1,141 @@
 #pragma once
 
-#include "view/viewlayout.hpp"
+#include "view/windowView.hpp"
+#include "view/ipopupView.hpp"
 
-#include <unordered_map>
-#include <typeinfo>
-#include <vector>
+#include <type_traits>
+#include <cstdint>
 #include <memory>
+#include <vector>
+
+typedef uint32_t ViewID;
 
 class ViewManager
 {
 public:
-    static void Initialize();
-
-    static void Shutdown();
-
-    template <typename T>
-    static T* Register();
-
-    static ViewLayout* GetCurrentView()
-    {
-        return s_ViewManager->s_current;
-    }
-
-    static void Update();
-
-    static void Renderer3D();
-
-    static void RendererUI();
-
-    static void RemoveAllView();
-
-    template <typename T, typename... Args>
-    static void AddView(Args&&... args);
-
-    template <typename T>
-    static T* GetView();
-
-    template <typename T>
-    static void RemoveView();
-
-    template <typename T>
-    static bool IsVisible();
-
-    template <typename T>
-    static void SetVisible(bool value);
-
-private:
-    static ViewManager* s_ViewManager;
-
-    std::unordered_map<ViewHash, std::shared_ptr<ViewLayout>> s_ViewMap;
-
-    std::vector<ViewLayout*> s_viewRegistryPopup;
-
-    std::vector<ViewLayout*> s_viewRegistry;
-
-    ViewLayout* s_current;
-
     ViewManager();
     ~ViewManager();
 
-    ViewLayout* addView(ViewHash hash, std::shared_ptr<ViewLayout> view);
+    void renderer();
 
-    ViewLayout* addSubView(ViewHash hash, std::shared_ptr<ViewLayout> view);
+    template <typename T>
+    void show();
 
-    ViewLayout* getView(ViewHash hash);
+    template <typename T>
+    void hide();
 
-    void remove(ViewHash hash);
+    template <typename T>
+    bool isVisible() const;
 
-    void removeAllView();
+    template <typename T>
+    void setVisible(bool value);
 
-    void update();
+    void clear();
 
-    void renderer3D();
+private:
+    std::vector<std::shared_ptr<WindowView>> m_windows;
 
-    void rendererUI();
+    std::vector<std::shared_ptr<IPopupView>> m_popups;
 
-    void render_tabbar();
+    inline static ViewID GenViewID() noexcept
+    {
+        static ViewID nextID = 0;
+        return nextID++;
+    }
+
+    template <typename T>
+    inline static ViewID GetViewID() noexcept
+    {
+        static ViewID id = GenViewID();
+        return id;
+    }
 };
 
-
 template <typename T>
-inline T* ViewManager::Register()
+inline void ViewManager::show()
 {
-    return static_cast<T*>(s_ViewManager->addSubView(typeid(T).hash_code(), std::make_shared<T>()));
-}
+    static_assert(std::is_base_of_v<WindowView, T> || std::is_base_of_v<IPopupView, T>, 
+              "This object is not valid.");   
 
-template <typename T, typename... Args>
-inline void ViewManager::AddView(Args&&... args)
-{
-    if (s_ViewManager->GetView<T>() != nullptr)
-        return;
-    s_ViewManager->addView(typeid(T).hash_code(), std::make_shared<T>(std::forward<Args>(args)...));
-}
+    ViewID id = GetViewID<T>();
+    if constexpr (std::is_base_of_v<IPopupView, T>)
+    {
+        if (id >= m_popups.size())
+            m_popups.resize(id + 1, nullptr);
 
-template <typename T>
-inline T* ViewManager::GetView()
-{
-    return static_cast<T*>(s_ViewManager->getView(typeid(T).hash_code()));
-}
+        if (m_popups[id] == nullptr)
+            m_popups[id] = std::make_shared<T>();
 
-template <typename T>
-inline void ViewManager::RemoveView()
-{
-    s_ViewManager->remove(typeid(T).hash_code());
-}
+        m_popups[id]->requestOpen = true;
+    } else if constexpr (std::is_base_of_v<WindowView, T>)
+    {
+        if (id >= m_windows.size())
+            m_windows.resize(id + 1, nullptr);
 
-template <typename T>
-inline bool ViewManager::IsVisible()
-{
-    auto view = s_ViewManager->getView(typeid(T).hash_code());
+        if (m_windows[id] == nullptr)
+            m_windows[id] = std::make_shared<T>();
 
-    return view != nullptr ? view->visible : false;
+        m_windows[id]->open = true;
+    }
 }
 
 template <typename T>
-void ViewManager::SetVisible(bool value)
+inline void ViewManager::hide()
 {
-    auto view = s_ViewManager->getView(typeid(T).hash_code());
-    if (view != nullptr)
-        view->visible = value;
+    static_assert(std::is_base_of_v<WindowView, T> || std::is_base_of_v<IPopupView, T>, 
+              "This object is not valid.");   
+
+    ViewID id = GetViewID<T>();
+    if constexpr (std::is_base_of_v<IPopupView, T>)
+    {
+        if (id >= m_popups.size())
+            m_popups.resize(id + 1, nullptr);
+
+        if (m_popups[id] != nullptr)
+            m_popups[id]->requestOpen = false;
+
+    } else if constexpr (std::is_base_of_v<WindowView, T>)
+    {
+        if (id >= m_windows.size())
+            m_windows.resize(id + 1, nullptr);
+
+        if (m_windows[id] != nullptr)
+            m_windows[id]->open = false;
+    }
 }
 
+template <typename T>
+inline bool ViewManager::isVisible() const
+{
+    static_assert(std::is_base_of_v<WindowView, T> || std::is_base_of_v<IPopupView, T>, 
+              "This object is not valid.");   
 
+    ViewID id = GetViewID<T>();
+    if constexpr (std::is_base_of_v<IPopupView, T>)
+    {
+        if (id >= m_popups.size())
+            return false;
+        if (m_popups[id] == nullptr)
+            return false;
+        return m_popups[id]->requestOpen;
+    } else if constexpr (std::is_base_of_v<WindowView, T>)
+    {
+        if (id >= m_windows.size())
+            return false;
+        if (m_windows[id] == nullptr)
+            return false;
+        return m_windows[id]->open;
+    }
+}
+
+template <typename T>
+inline void ViewManager::setVisible(bool value)
+{
+    static_assert(std::is_base_of_v<WindowView, T> || std::is_base_of_v<IPopupView, T>, 
+              "This object is not valid.");
+
+    if (value)
+        show<T>();
+    else
+        hide<T>();
+}

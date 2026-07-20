@@ -1,8 +1,9 @@
 #include "editorApplication.hpp"
 
-#include "manager/viewManager.hpp"
-
+#include "event/editorApplicationEvent.hpp"
+#include "gr-base/managers/eventManager.hpp"
 #include "view/imguiRenderer.hpp"
+#include "view/projectBrowser.hpp"
 #include "view/projectMenu.hpp"
 #include "view/checkupdate.hpp"
 #include "view/editor.hpp"
@@ -12,7 +13,7 @@
 
 #include <gr-render/gRender.h>
 
-EditorApplication::EditorApplication() : m_project(nullptr), config(nullptr)
+EditorApplication::EditorApplication() : m_project(nullptr), config(nullptr), m_workspace(nullptr)
 {}
 
 EditorApplication::~EditorApplication()
@@ -27,19 +28,30 @@ void EditorApplication::initialize()
 
     ImguiRenderer::Initialize();
 
-    ViewManager::Initialize();
-
     loadConfig();
+
+    EventManager::Attach<EditorApplicationEvent_onCheckProject>(
+            &EditorApplication::onCheckProject,
+            this
+        );
+    EventManager::Attach<EditorApplicationEvent_onOpenProject>(
+            &EditorApplication::onOpenProject,
+            this
+        );
+    EventManager::Attach<EditorApplicationEvent_onCloseProject>(
+            &EditorApplication::onCloseProject,
+            this
+        );
+
+    m_workspace = std::make_unique<ProjectBrowser>();
 
     cameraUBO.Create(0, sizeof(CameraBuffer));
     lightUBO.Create(1, sizeof(LightBuffer));
-
-    ViewManager::AddView<CheckUpdate>(&EditorApplication::checkProject, this);
 }
 
 void EditorApplication::shutdown()
 {
-    ViewManager::Shutdown();
+    m_workspace = nullptr;
 
     ImguiRenderer::Shutdown();
 
@@ -62,15 +74,18 @@ void EditorApplication::run()
 
 void EditorApplication::dropPath(const std::vector<std::string>& entries)
 {
+    /*
     auto view = ViewManager::GetCurrentView();
     if (view != nullptr)
         view->dropPath(entries);
+    */
 }
 
 // private
 void EditorApplication::update()
 {
-    ViewManager::Update();
+    if (m_workspace != nullptr)
+        m_workspace->Update();
 }
 
 #include <gr-base/managers/sceneManager.hpp>
@@ -83,12 +98,16 @@ void EditorApplication::renderer()
     if (scene != nullptr)
         drawScene(scene);
 
-    // gr::gRender::SetBackgroundColor(COLOR_BLUE);
-    // gr::gRender::SetRenderState(gr::GR_BACKGROUND, gr::GR_COLOR_BUFFER);
+    gr::gRender::SetRenderState(gr::GR_CULL, gr::GR_BACK);
+    gr::gRender::SetEnable(GR_DEPTH, false);
+    gr::gRender::SetEnable(GR_CULL_FACE, true);
+    gr::gRender::SetRenderState(gr::GR_BACKGROUND, gr::GR_COLOR_BUFFER);
+    gr::gRender::SetBackgroundColor(Color{0.5f, 0.5f, 0.5f, 1.0f});
     
     ImguiRenderer::Begin();
 
-    ViewManager::RendererUI();
+    if (m_workspace != nullptr)
+        m_workspace->Render();
 
     ImguiRenderer::End();
 }
@@ -194,28 +213,6 @@ public:
     }
 };
 
-void EditorApplication::checkProject()
-{
-    ViewManager::RemoveAllView();
-
-    gSection* section = config_find_section(config, "project");
-    if (section != NULL)
-    {
-        const char* path = config_get_string(section, "path");
-        if (path != NULL && gfile::exists(path))
-            m_project = ProjectMenu::Load(path);
-    }
-
-    if (m_project == nullptr)
-        return ViewManager::AddView<ProjectMenu>();
-
-    AssetResolver::Registry<ProjectAssetProvider>(Scheme::Project, m_project->path);
-
-    ViewManager::AddView<Editor>();
-
-    // ViewManager::AddView<ShaderEditor>();
-}
-
 void EditorApplication::loadConfig()
 {
     config = config_create();
@@ -241,6 +238,34 @@ void EditorApplication::saveConfig()
     }
 
     config_save(config, (gfile::get_config_directory() + "/config.ini").c_str());
+}
+
+void EditorApplication::onCheckProject(IEvent* event)
+{
+    gSection* section = config_find_section(config, "project");
+    if (section != NULL)
+    {
+        const char* path = config_get_string(section, "path");
+        if (path != NULL && gfile::exists(path))
+            m_project = ProjectMenu::Load(path);
+    }
+
+    if (m_project == nullptr)
+        return;
+
+    AssetResolver::Registry<ProjectAssetProvider>(Scheme::Project, m_project->path);
+
+    m_workspace = std::make_unique<Editor>();
+}
+
+void EditorApplication::onOpenProject(IEvent* event)
+{
+    std::cout << "Open" << std::endl;
+}
+
+void EditorApplication::onCloseProject(IEvent* event)
+{
+    std::cout << "Close" << std::endl;
 }
 
 

@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <memory>
+#include <unordered_map>
 
 class Filmbox
 {
@@ -22,23 +23,31 @@ public:
     std::unique_ptr<FbxScene> get_scene();
 
 private:
+    std::unordered_map<std::string, FbxMesh> m_meshmap;
+
+    std::unordered_map<std::string, Matrix4x4> m_boneMap;
+
+    std::unordered_map<std::string, int> m_boneIndexMap;
+
     std::unique_ptr<FbxScene> m_scene;
 
-    void loadSceneToCache(const aiScene *scene, FbxScene *fbxScene);
+    void loadSceneToCache(const aiScene *scene);
 
-    static void ProcessNode(aiNode *mNode, FbxNode& node, const aiScene *scene, FbxScene *fbxScene, std::unordered_map<std::string, Matrix4x4> &boneMap);
+    FbxNode readNode(aiNode *mNode, const aiScene *scene);
 
-    void loadMaterial(const aiScene *scene, FbxScene *fbxScene);
+    std::vector<FbxMaterial> loadMaterials(const aiScene *scene);
+
+    FbxMaterial readMaterial(const aiMaterial* material);
 
     static void ProcessTexture(const aiMaterial *iMaterial, FbxMaterial& fbxMaterial);
 
-    void loadMesh(const aiScene *scene, FbxScene *fbxScene, std::unordered_map<std::string, Matrix4x4> &boneMap, std::unordered_map<std::string, int> &boneIndex);
+    std::vector<FbxMesh> loadMeshes(const aiScene *scene);
 
-    void setupMesh(const aiMesh *mMesh, FbxMesh* fbxMesh, std::unordered_map<std::string, Matrix4x4> &boneMap, std::unordered_map<std::string, int> &boneIndex);
+    FbxMesh readMesh(const aiMesh *mMesh);
 
-    static void LoadAnimation(const aiScene *scene, FbxScene *fbxScene, std::unordered_map<std::string, int> &boneIndex);
+    // static void LoadAnimation(const aiScene *scene, FbxScene *fbxScene, std::unordered_map<std::string, int> &boneIndex);
 
-    static void AddKeys(aiNodeAnim *mNodeAnim, FbxChannel *channel);
+    // static void AddKeys(aiNodeAnim *mNodeAnim, FbxChannel *channel);
 };
 
 

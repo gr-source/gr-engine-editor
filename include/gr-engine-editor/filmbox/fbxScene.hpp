@@ -5,40 +5,18 @@
 #include "fbxMesh.hpp"
 #include "fbxNode.hpp"
 
-class FbxScene {
-public:
-    FbxScene(const std::string &name = "default");
-
-    template <typename ...Args>
-    FbxAnimation &addAnimation(Args &&...args);
-
-    const std::vector<FbxAnimation> &getAnimations() const;
-
-    const FbxNode& getRootNode() const;
-
-    const FbxNode *findNode(const std::string &name) const;
-
-    const std::string &getName() const;
+struct FbxScene
+{
+    std::vector<FbxAnimation> animations;
 
     std::vector<FbxMaterial> materials;
 
     std::vector<FbxMesh> meshes;
-    
-private:
-    std::string m_name;
 
-    std::vector<FbxAnimation> m_animation;
+    std::string name;
 
-    FbxNode m_rootNode;
-
-    const FbxNode *readNode(const FbxNode& node, const std::string &name) const;
-
-    friend class Filmbox;
+    FbxNode root;
 };
 
-template <typename... Args>
-inline FbxAnimation &FbxScene::addAnimation(Args &&...args) {
-    return m_animation.emplace_back(std::forward<Args>(args)...);
-}
 
 
