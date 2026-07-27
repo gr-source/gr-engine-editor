@@ -16,11 +16,7 @@ public:
     Filmbox();
     ~Filmbox();
 
-    void load(const std::string &path);
-
-    FbxScene *getScene() const;
-
-    std::unique_ptr<FbxScene> get_scene();
+    bool load(const std::string &path, std::string& error, FbxScene* fbxScene);
 
 private:
     std::unordered_map<std::string, FbxMesh> m_meshmap;
@@ -29,11 +25,13 @@ private:
 
     std::unordered_map<std::string, int> m_boneIndexMap;
 
-    std::unique_ptr<FbxScene> m_scene;
+    std::vector<FbxMesh> m_meshes;
 
-    void loadSceneToCache(const aiScene *scene);
+    FbxScene loadSceneToCache(const aiScene *scene);
 
     FbxNode readNode(aiNode *mNode, const aiScene *scene);
+
+    uint32_t loadMeshByNode(aiNode *mNode, const aiScene *scene);
 
     std::vector<FbxMaterial> loadMaterials(const aiScene *scene);
 
@@ -41,9 +39,9 @@ private:
 
     static void ProcessTexture(const aiMaterial *iMaterial, FbxMaterial& fbxMaterial);
 
-    std::vector<FbxMesh> loadMeshes(const aiScene *scene);
+    // std::vector<FbxMesh> loadMeshes(const aiScene *scene);
 
-    FbxMesh readMesh(const aiMesh *mMesh);
+    // FbxMesh readMesh(const aiMesh *mMesh);
 
     // static void LoadAnimation(const aiScene *scene, FbxScene *fbxScene, std::unordered_map<std::string, int> &boneIndex);
 

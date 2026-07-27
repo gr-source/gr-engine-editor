@@ -1,12 +1,10 @@
 #include "view/ipopupView.hpp"
 
-#include "imgui.h"
-
 void IPopupView::Render()
 {
-    if (!requestOpen)
+    if (!open)
         return;
 
-    DrawPopup();
+    Draw();
 }
 

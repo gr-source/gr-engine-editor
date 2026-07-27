@@ -2,6 +2,9 @@
 
 #include "view/iview.hpp"
 
+#include <vector>
+#include <string>
+
 class IWorkspace : public IView
 {
 public:
@@ -12,6 +15,8 @@ public:
     virtual void DrawWorkspace() = 0;
 
     virtual void Update() {}
+
+    virtual void dropPath(const std::vector<std::string>& entries) {}
 
     void Render() override;
 };

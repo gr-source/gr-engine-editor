@@ -24,7 +24,7 @@ void CheckUpdate::taskFinished()
 }
 
 // private
-void CheckUpdate::DrawPopup()
+void CheckUpdate::Draw()
 {
     auto vp = ImGui::GetMainViewport();
 

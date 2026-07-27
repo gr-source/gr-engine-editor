@@ -9,59 +9,57 @@
 #include <gr-math/quaternion.hpp>
 #include <gr-math/vector3.hpp>
 
-#define NORMALIZE(v) if (std::abs(v.x) > 6.0f) v.x /= 1e2f; if (std::abs(v.y) > 6.0f) v.y /= 1e2f; if (std::abs(v.z) > 6.0f) v.z /= 1e2f;
-
-#define NORM(n) n > 6.0f ? n / 1e2f : n
-
-Filmbox::Filmbox() : m_scene(nullptr)
-{
-}
+Filmbox::Filmbox()
+{}
 
 Filmbox::~Filmbox()
 {}
 
-void Filmbox::load(const std::string &path)
+bool Filmbox::load(const std::string &path, std::string &error, FbxScene* fbxScene)
 {
     Assimp::Importer importer;
 
-    auto scene = importer.ReadFile(path.c_str(), aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_PopulateArmatureData | aiProcess_JoinIdenticalVertices);
+    bool result = false;
 
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+    error = "This fbxScene is nullptr";
+
+    if (fbxScene != nullptr)
     {
-        throw std::runtime_error("fail to load scene.");
+        auto scene = importer.ReadFile(path.c_str(), aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_PopulateArmatureData | aiProcess_JoinIdenticalVertices);
+
+        if (
+                scene != nullptr &&
+                (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) != AI_SCENE_FLAGS_INCOMPLETE &&
+                scene->mRootNode != nullptr
+            )
+        {
+            *fbxScene =
+                loadSceneToCache(scene);
+
+            result = true;
+        }
     }
 
-    m_scene = std::make_unique<FbxScene>();
-    m_scene->name = scene->mName.C_Str();
-
-    loadSceneToCache(scene);
-
     importer.FreeScene();
+
+    return result;
 }
 
-FbxScene *Filmbox::getScene() const
+FbxScene Filmbox::loadSceneToCache(const aiScene *scene)
 {
-    return m_scene.get();
-}
-
-std::unique_ptr<FbxScene> Filmbox::get_scene()
-{
-    return std::move(m_scene);
-}
-
-void Filmbox::loadSceneToCache(const aiScene *scene)
-{
+    std::vector<FbxMaterial> materials;
     if (scene->HasMaterials())
     {
         Console::LogWarning("Loading material...");
-        m_scene->materials = loadMaterials(scene);
+        materials = loadMaterials(scene);
     }
 
-    if (scene->HasMeshes())
-    {
-        Console::LogWarning("Loading Mesh...");
-        m_scene->meshes = loadMeshes(scene);
-    }
+    // std::vector<FbxMesh> meshes;
+    // if (scene->HasMeshes())
+    // {
+        // Console::LogWarning("Loading Mesh...");
+        // meshes = loadMeshes(scene);
+    // }
 
     /*
     if (scene->HasAnimations())
@@ -76,12 +74,18 @@ void Filmbox::loadSceneToCache(const aiScene *scene)
     auto mRootNode = scene->mRootNode;
 
     FbxNode root;
-    root.name = "Root";
+    root.name = mRootNode->mName.C_Str();
 
     for (std::uint32_t i=0;i<mRootNode->mNumChildren;++i)
         root.addChild(readNode(mRootNode->mChildren[i], scene));
 
-    m_scene->root = root;
+    FbxScene fbxScene;
+    fbxScene.materials = materials;
+    fbxScene.meshes = m_meshes;
+    fbxScene.root = root;
+    fbxScene.name = scene->mName.C_Str();
+
+    return fbxScene;
 }
 
 FbxNode Filmbox::readNode(aiNode *mNode, const aiScene *scene)
@@ -113,13 +117,85 @@ FbxNode Filmbox::readNode(aiNode *mNode, const aiScene *scene)
             );
     }
 
-    for (auto i=0;i<mNode->mNumMeshes;++i)
-        node.meshes.push_back(mNode->mMeshes[i]);
+    node.mesh = loadMeshByNode(mNode, scene);
 
     for (auto i=0;i<mNode->mNumChildren;++i)
         node.addChild(readNode(mNode->mChildren[i], scene));
 
     return node;
+}
+
+uint32_t Filmbox::loadMeshByNode(aiNode* mNode, const aiScene* scene)
+{
+    std::vector<FbxVertex> vertices;
+    std::vector<uint32_t> indices;
+    std::vector<FbxSubmesh> submeshes;
+
+    for (uint32_t meshIndex = 0; meshIndex < mNode->mNumMeshes; ++meshIndex)
+    {
+        aiMesh* mesh = scene->mMeshes[mNode->mMeshes[meshIndex]];
+
+        bool hasPosition = mesh->HasPositions();
+        bool hasNormal   = mesh->HasNormals();
+        bool hasTexCoord = mesh->HasTextureCoords(0);
+
+        uint32_t vertexOffset = static_cast<uint32_t>(vertices.size());
+        uint32_t indexOffset  = static_cast<uint32_t>(indices.size());
+
+        // Vértices
+        for (uint32_t v = 0; v < mesh->mNumVertices; ++v)
+        {
+            auto& vertex = vertices.emplace_back();
+
+            if (hasPosition)
+            {
+                const auto& p = mesh->mVertices[v];
+                vertex.position = { p.x, p.y, p.z };
+            }
+
+            if (hasNormal)
+            {
+                const auto& n = mesh->mNormals[v];
+                vertex.normal = { n.x, n.y, n.z };
+            }
+
+            if (hasTexCoord)
+            {
+                const auto& uv = mesh->mTextureCoords[0][v];
+                vertex.texCoord = { uv.x, uv.y };
+            }
+        }
+
+        // Índices
+        uint32_t submeshIndexCount = 0;
+
+        for (uint32_t f = 0; f < mesh->mNumFaces; ++f)
+        {
+            const aiFace& face = mesh->mFaces[f];
+            assert(face.mNumIndices <= 3);
+
+            for (uint32_t k = 0; k < face.mNumIndices; ++k)
+            {
+                indices.push_back(face.mIndices[k] + vertexOffset);
+                ++submeshIndexCount;
+            }
+        }
+
+        auto& submesh = submeshes.emplace_back();
+        submesh.indexOffset = indexOffset;
+        submesh.indexCount  = submeshIndexCount;
+        submesh.materialID  = mesh->mMaterialIndex;
+    }
+
+    FbxMesh mesh;
+    mesh.name = mNode->mName.C_Str();
+    mesh.vertices = std::move(vertices);
+    mesh.indices = std::move(indices);
+    mesh.submeshes = std::move(submeshes);
+
+    m_meshes.push_back(std::move(mesh));
+
+    return static_cast<uint32_t>(m_meshes.size() - 1);
 }
 
 std::vector<FbxMaterial> Filmbox::loadMaterials(const aiScene* scene)
@@ -142,10 +218,15 @@ FbxMaterial Filmbox::readMaterial(const aiMaterial* material)
     if (material->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
         fbxMaterial.albedo = { color.r, color.g, color.b, color.a };
 
-    material->Get(AI_MATKEY_METALLIC_FACTOR, fbxMaterial.metallic);
-    material->Get(AI_MATKEY_ROUGHNESS_FACTOR, fbxMaterial.roughness);
+    float metallic = 0.0f;
+    if (material->Get(AI_MATKEY_METALLIC_FACTOR, metallic) == AI_SUCCESS)
+        fbxMaterial.metallic = metallic;
 
-    // Alguns formatos usam propriedades GLTF específicas
+    float roughness = 0.5f;
+    if (material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == AI_SUCCESS)
+        fbxMaterial.roughness = roughness;
+
+    /*
     material->Get(
         "$mat.gltf.pbrMetallicRoughness.metallicFactor",
         0,
@@ -157,12 +238,11 @@ FbxMaterial Filmbox::readMaterial(const aiMaterial* material)
         0,
         0,
         fbxMaterial.roughness);
+    */
 
     float ao = 1.0f;
     if (material->Get(AI_MATKEY_USE_AO_MAP, ao) == AI_SUCCESS)
-    {
         fbxMaterial.ao = ao;
-    }
 
     return fbxMaterial;
 }
@@ -180,6 +260,7 @@ void Filmbox::ProcessTexture(const aiMaterial *iMaterial, FbxMaterial &fbxMateri
     }
 }
 
+/*
 std::vector<FbxMesh> Filmbox::loadMeshes(const aiScene *scene)
 {
     std::vector<FbxMesh> meshes(scene->mNumMeshes);
@@ -192,7 +273,7 @@ FbxMesh Filmbox::readMesh(const aiMesh *mMesh)
 {
     FbxMesh fbxMesh;
     fbxMesh.materialID = mMesh->mMaterialIndex;
-    fbxMesh.name = mMesh->mName.C_Str();
+    fbxMesh.name = std::string(mMesh->mName.C_Str()) + "_" + std::to_string(mMesh->mMaterialIndex);
 
     bool bHasPosition = mMesh->HasPositions();
     bool bHasNormal = mMesh->HasNormals();
@@ -293,6 +374,7 @@ FbxMesh Filmbox::readMesh(const aiMesh *mMesh)
 
     return fbxMesh;
 }
+*/
 
 /*
 void Filmbox::LoadAnimation(const aiScene *scene, FbxScene *fbxScene, std::unordered_map<std::string, int> &boneIndex)

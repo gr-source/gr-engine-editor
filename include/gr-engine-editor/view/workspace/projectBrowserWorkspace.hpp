@@ -3,7 +3,7 @@
 #include "event/projectBrowserEvent.hpp"
 #include "manager/viewManager.hpp"
 
-#include "view/iworkspace.hpp"
+#include "view/workspace/iworkspace.hpp"
 
 class ProjectBrowser : public IWorkspace
 {

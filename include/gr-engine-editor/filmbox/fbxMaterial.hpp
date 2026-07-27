@@ -16,11 +16,11 @@ struct FbxMaterial
 
     Color albedo = COLOR_BLUE;
 
-    float roughness = 0.0f;
+    float roughness = 0.5f;
 
     float metallic = 0.0f;
 
-    float ao = 0.0f;
+    float ao = 1.0f;
 
     std::unordered_map<TextureType, const std::string> textures;
 

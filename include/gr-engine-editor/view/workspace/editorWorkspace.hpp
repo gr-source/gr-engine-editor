@@ -30,7 +30,8 @@
 #include "view/browserFile.hpp"
 
 #include "core/default.hpp"
-#include "view/iworkspace.hpp"
+
+#include "view/workspace/iworkspace.hpp"
 
 #include <gr-base/ecs/default.hpp>
 
@@ -118,11 +119,11 @@ typedef struct gtreefile
     std::vector<gtreefile> children;
 } gtreefile;
 
-class Editor : public IWorkspace
+class EditorWorkspace : public IWorkspace
 {
 public:
-    Editor();
-    ~Editor() override;
+    EditorWorkspace();
+    ~EditorWorkspace() override;
 
     const char *GetWorkspaceID() const override
     {
@@ -139,13 +140,18 @@ public:
 
     // void onBlur() override;
 
-    // void dropPath(const std::vector<std::string>& entries) override;
+    void dropPath(const std::vector<std::string>& entries) override;
 
     void loadScript(const std::string& dir);
 
     void LoadReources();
     
     void SetupTexture(IconType type, TextureHandle h);
+
+    inline ViewManager& GetViewManager()
+    {
+        return viewManager;
+    }
 
 private:
     std::unordered_map<std::string, std::function<void(GameObject *)>> m_guiscriptmap;
@@ -354,7 +360,7 @@ private:
 };
 
 template <typename T, typename... Args>
-inline void Editor::RenderProperty(Args&&... args)
+inline void EditorWorkspace::RenderProperty(Args&&... args)
 {
     if (m_scene == nullptr || !m_scene->has_object_selected())
         return;

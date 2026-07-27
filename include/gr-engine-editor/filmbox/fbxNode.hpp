@@ -7,14 +7,15 @@
 
 struct FbxNode
 {
+    std::vector<FbxNode> children;
+
     std::string name;
 
     Vector3 position = type_traits<Vector3>::zero;
     Quaternion rotation = type_traits<Quaternion>::identity;
     Vector3 scale = type_traits<Vector3>::one;
 
-    std::vector<FbxNode> children;
-    std::vector<uint32_t> meshes;
+    uint32_t mesh = -1;
 
     template <typename ...Args>
     void addChild(Args &&...args);

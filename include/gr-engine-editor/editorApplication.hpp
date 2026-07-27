@@ -2,8 +2,9 @@
 
 #include "core/project.hpp"
 
-#include "gr-base/core/ievent.hpp"
-#include "view/iworkspace.hpp"
+#include "event/editorApplicationEvent.hpp"
+
+#include "view/workspace/iworkspace.hpp"
 
 #include <gr-base/core/default.hpp>
 
@@ -96,7 +97,7 @@ private:
 
     void onCheckProject(IEvent* event);
 
-    void onOpenProject(IEvent* event);
+    void onOpenProject(EditorApplicationEvent_onOpenProject* event);
 
     void onCloseProject(IEvent* event);
 };

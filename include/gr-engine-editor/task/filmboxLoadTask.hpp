@@ -2,7 +2,7 @@
 
 #include "filmbox/default.hpp"
 
-#include "gr-base/core/geometry/default.hpp"
+#include "filmbox/fbxScene.hpp"
 
 #include "task/model/modelCache.hpp"
 
@@ -23,12 +23,14 @@
 
 #include <unordered_map>
 
-class FilmboxLoadTask : public IAsyncTask<int>
+class FilmboxLoadTask : public IAsyncTask<FbxScene>
 {
 public:
     FilmboxLoadTask(const std::string& file);
 
 private:
+    Handle m_dialog;
+
     std::string m_file;
 
     std::string m_shader;
@@ -39,14 +41,12 @@ private:
 
     std::vector<ModelNode> m_objectCacheList;
 
-    const FbxScene *m_scene;
-
     void onPreExecute() override;
 
-    int doInBackground() override;
+    FbxScene doInBackground() override;
 
-    void onPostExecute(Result<int> result) override;
+    void onPostExecute(Result<FbxScene> result) override;
 
-    ModelNode PackingObject(const FbxNode* node);
+    // ModelNode PackingObject(const FbxNode* node);
 };
 

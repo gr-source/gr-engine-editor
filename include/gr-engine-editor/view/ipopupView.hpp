@@ -5,13 +5,11 @@
 class IPopupView : public IView
 {
 public:
-    bool requestOpen = false;
-
-    virtual const char* GetPopupID() const = 0;
-
-    virtual void DrawPopup() = 0;
+    bool open = false;
 
     void Render() override;
+
+    virtual void Draw() = 0;
 };
 
 

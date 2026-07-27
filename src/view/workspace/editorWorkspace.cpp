@@ -1,4 +1,4 @@
-#include "view/editor.hpp"
+#include "view/workspace/editorWorkspace.hpp"
 
 #include <atomic>
 #include <cstddef>
@@ -18,8 +18,10 @@
 
 #include "core/sandbox.hpp"
 #include "editorApplication.hpp"
+
 #include "gr-base/asset/assetResolver.hpp"
 #include "gr-base/core/renderer.hpp"
+#include "gr-base/core/string.hpp"
 #include "gr-base/ecs/default.hpp"
 
 #include <gr-base/script/relationship.hpp>
@@ -48,9 +50,11 @@
 #include "manager/viewManager.hpp"
 #include "settings.h"
 
-#include "task/filmboxtask.hpp"
+#include "task/filmboxLoadTask.hpp"
+
 #include "view/engineStatusView.hpp"
-#include "view/popup/filmboximport.hpp"
+#include "view/loadingTaskPopup.hpp"
+// #include "view/popup/filmboximport.hpp"
 #include "view/sceneInspectorView.hpp"
 #include "view/spawnObject.hpp"
 // #include "view/worldManagerView.hpp"
@@ -149,7 +153,7 @@ static std::unordered_map<std::string, DragDropFlags> m_extensionNameToFlag =
 
 #include <gr-base/task/shaderbuildtask.hpp>
 
-Editor::Editor()
+EditorWorkspace::EditorWorkspace()
     : m_viewport(ImGui::GetMainViewport()),
     mImGuiIO(&ImGui::GetIO()),
     m_plugin(nullptr),
@@ -187,14 +191,14 @@ Editor::Editor()
 #define INSERT_SCRIPT(object) \
     {#object, [this](GameObject *go) \
         { \
-            RenderProperty<object>(&Editor::OnProperty##object, this); \
+            RenderProperty<object>(&EditorWorkspace::OnProperty##object, this); \
         } \
     }
 
     m_guiscriptmap = {
         {"Transform", [this](GameObject *go)
             {
-                RenderProperty<Transform>(&Editor::OnPropertyTransform, this);
+                RenderProperty<Transform>(&EditorWorkspace::OnPropertyTransform, this);
             }
         },
         INSERT_SCRIPT(Camera),
@@ -253,8 +257,8 @@ Editor::Editor()
 
     Window::SetWindowTitle(String::format("GR - %s", m_project->name.c_str()).c_str());
 
-    // EventManager::Attach("delete_file_selected", &Editor::delete_file_selected, this);
-    // EventManager::Attach("editor_update_tree_file", &Editor::updateFileTree, this, &root_tree_file);
+    // EventManager::Attach("delete_file_selected", &EditorWorkspace::delete_file_selected, this);
+    // EventManager::Attach("editor_update_tree_file", &EditorWorkspace::updateFileTree, this, &root_tree_file);
 
     TaskManager::Add<ShaderBuildTask>(
         "/home/NoirVoid/.local/share/gr-engine/assets/shader/line.glsl",
@@ -267,7 +271,7 @@ Editor::Editor()
         );
 }
 
-Editor::~Editor()
+EditorWorkspace::~EditorWorkspace()
 {
     AssetDB::Save(m_project->path + "/asset.db");
 
@@ -295,7 +299,7 @@ void* GetVTable(const SystemInfo* info)
     return vtable;
 }
 
-void Editor::loadScript(const std::string& dir)
+void EditorWorkspace::loadScript(const std::string& dir)
 {
     std::string file = dir + "/libscript.so";
     if (!gfile::exists(file))
@@ -414,19 +418,19 @@ void Editor::loadScript(const std::string& dir)
 }
 
 // ===================================== END =========================================================
-void Editor::Update()
+void EditorWorkspace::Update()
 {
     if (m_scene != nullptr)
         m_scene->Update();
 }
 
 /*
-void Editor::onRender3D()
+void EditorWorkspace::onRender3D()
 {
 }
 */
 
-void Editor::DrawWorkspace()
+void EditorWorkspace::DrawWorkspace()
 {
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
@@ -450,15 +454,15 @@ void Editor::DrawWorkspace()
 }
 
 /*
-void Editor::onFocus()
+void EditorWorkspace::onFocus()
 {
     // m_scene = Scene::GetCurrentScene();
 }
 
-void Editor::onBlur()
+void EditorWorkspace::onBlur()
 {}
-
-void Editor::dropPath(const std::vector<std::string>& entries)
+*/
+void EditorWorkspace::dropPath(const std::vector<std::string>& entries)
 {
     for (auto& file : entries)
     {
@@ -487,28 +491,31 @@ void Editor::dropPath(const std::vector<std::string>& entries)
         }
     }
 }
-*/
 
-// void Editor::drop(void *data)
+// void EditorWorkspace::drop(void *data)
 // {
 //     updateFileTree(&root_tree_file);
 // }
 
 #include <gr-base/core/renderer.hpp>
 
+#include "view/importAssetViewPopup.hpp"
 #include "view/browserFile.hpp"
 
-void Editor::initialize()
+void EditorWorkspace::initialize()
 {
+    viewManager.getOrAddView<LoadingTaskPopup>();
+    viewManager.getOrAddView<ImportAssetViewPopup>();
+
     viewManager.show<BrowserFile>();
 }
 
-void Editor::shutdown()
+void EditorWorkspace::shutdown()
 {
     // AssetDB::Shutdown();
 }
 
-void Editor::create_dock()
+void EditorWorkspace::create_dock()
 {
     if (ImGui::BeginMainMenuBar())
     {
@@ -598,7 +605,7 @@ void Editor::create_dock()
     bBuildDock = true;
 }
 
-void Editor::BuildDock(ImGuiID dockspace_id, ImGuiDockNodeFlags dockspace_flags)
+void EditorWorkspace::BuildDock(ImGuiID dockspace_id, ImGuiDockNodeFlags dockspace_flags)
 {
     ImGui::DockBuilderRemoveNode(dockspace_id);
     ImGui::DockBuilderAddNode(dockspace_id, dockspace_flags | ImGuiDockNodeFlags_DockSpace);
@@ -624,7 +631,7 @@ void Editor::BuildDock(ImGuiID dockspace_id, ImGuiDockNodeFlags dockspace_flags)
 	ImGui::DockBuilderFinish(dockspace_id);
 }
 
-void Editor::create_window_hierarchy()
+void EditorWorkspace::create_window_hierarchy()
 {
     if (ImGui::Begin("hierarchy") && m_scene != NULL)
         create_render_hierarchy(m_scene);
@@ -632,7 +639,7 @@ void Editor::create_window_hierarchy()
     ImGui::End();
 }
 
-void Editor::create_render_hierarchy(Scene* scene)
+void EditorWorkspace::create_render_hierarchy(Scene* scene)
 {
     std::string name = SceneManager::GetSceneName(m_scene);
 
@@ -671,7 +678,7 @@ void Editor::create_render_hierarchy(Scene* scene)
     }
 }
 
-void Editor::drop_gameobject(std::function<void (Entity)> func)
+void EditorWorkspace::drop_gameobject(std::function<void (Entity)> func)
 {
     if (!ImGui::BeginDragDropTarget())
         return;
@@ -687,7 +694,7 @@ void Editor::drop_gameobject(std::function<void (Entity)> func)
     ImGui::EndDragDropTarget();
 }
 
-void Editor::RenderSceneObject(Scene *scene)
+void EditorWorkspace::RenderSceneObject(Scene *scene)
 {
     if (scene->hierarchyDirty)
     {
@@ -722,7 +729,7 @@ void Editor::RenderSceneObject(Scene *scene)
     ImGui::EndChild();
 }
 
-void Editor::ShowGameObjectHierarchy(GameObject& go)
+void EditorWorkspace::ShowGameObjectHierarchy(GameObject& go)
 {
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth;
 
@@ -735,8 +742,6 @@ void Editor::ShowGameObjectHierarchy(GameObject& go)
 
     if (go.HasComponent<Relationship>() && go.GetComponent<Relationship>()->firstChild != INVALID_ENTITY)
         flags &= ~ImGuiTreeNodeFlags_Leaf;
-
-    ImGui::PushID(go.entity);
 
     auto isOpen = ImGui::TreeNodeEx(name.c_str(), flags);
 
@@ -768,7 +773,9 @@ void Editor::ShowGameObjectHierarchy(GameObject& go)
 
             while (child.IsAlive())
             {
+                ImGui::PushID(go.entity);
                 ShowGameObjectHierarchy(child);
+                ImGui::PopID();
 
                 if (!child.HasComponent<Relationship>())
                     break;
@@ -779,11 +786,9 @@ void Editor::ShowGameObjectHierarchy(GameObject& go)
 
         ImGui::TreePop();
     }
-
-    ImGui::PopID();
 }
 
-bool Editor::dragDropGameObject(Entity entity, const std::string &name)
+bool EditorWorkspace::dragDropGameObject(Entity entity, const std::string &name)
 {
     if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoDisableHover | ImGuiDragDropFlags_SourceNoHoldToOpenOthers))
     {
@@ -815,7 +820,7 @@ bool Editor::dragDropGameObject(Entity entity, const std::string &name)
     return true;
 }
 
-void Editor::PopupMenuAdd()
+void EditorWorkspace::PopupMenuAdd()
 {
     auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_SceneAddOption));
     if (!isOpen)
@@ -841,14 +846,14 @@ void Editor::PopupMenuAdd()
     ImGui::EndPopup();
 }
 
-void Editor::create_window_viewport()
+void EditorWorkspace::create_window_viewport()
 {
     if (ImGui::Begin("viewport"))
         create_render_viewport();
     ImGui::End();
 }
 
-void Editor::create_render_viewport()
+void EditorWorkspace::create_render_viewport()
 {
     if (!ImGui::BeginTabBar("##create_render_viewport_tabbar_0"))
         return;
@@ -892,7 +897,7 @@ void Editor::create_render_viewport()
         render_scene(m_scene);
 }
 
-void Editor::drop_scene_file_in_viewport()
+void EditorWorkspace::drop_scene_file_in_viewport()
 {
     auto isOpen = ImGui::BeginDragDropTarget();
     if (!isOpen)
@@ -906,7 +911,7 @@ void Editor::drop_scene_file_in_viewport()
     memcpy(files.data(), payload->Data, payload->DataSize);
 
     // for (auto file : files)
-    //     AssetsManager::LoadScene(file->path, &Editor::set_scene, this);
+    //     AssetsManager::LoadScene(file->path, &EditorWorkspace::set_scene, this);
 
     ImGui::EndDragDropTarget();
 }
@@ -1040,7 +1045,7 @@ bool gluInvertMatrix(const float m[16], float invOut[16]) {
     return true;
 }
 
-void Editor::render_scene(Scene *scene)
+void EditorWorkspace::render_scene(Scene *scene)
 {
     UpdateResizeSceneFramebuffer();
 
@@ -1154,7 +1159,7 @@ void Editor::render_scene(Scene *scene)
     }
 }
 
-void Editor::UpdateResizeSceneFramebuffer()
+void EditorWorkspace::UpdateResizeSceneFramebuffer()
 {
     GameObject obj(m_scene, m_scene->GetCamera());
     if (!obj.IsAlive())
@@ -1178,7 +1183,7 @@ void Editor::UpdateResizeSceneFramebuffer()
     }
 }
 
-void Editor::create_render_guizmo(Scene *scene, const GameObject* go)
+void EditorWorkspace::create_render_guizmo(Scene *scene, const GameObject* go)
 {
     if (ImGui::IsWindowHovered() && !mImGuiIO->KeyShift && !mImGuiIO->KeyCtrl)
     {
@@ -1268,13 +1273,13 @@ void Editor::create_render_guizmo(Scene *scene, const GameObject* go)
     }
 }
 
-void Editor::OnPlayButton()
+void EditorWorkspace::OnPlayButton()
 {
-    Threadpool::AddTask(&Editor::OnBuildScript, this);
+    Threadpool::AddTask(&EditorWorkspace::OnBuildScript, this);
 }
 
 #include "core/cmd/cmd.hpp"
-void Editor::OnBuildScript()
+void EditorWorkspace::OnBuildScript()
 {
     Console::LogInfo("[ Build ] Starting pre-build scripting...");
 
@@ -1318,10 +1323,10 @@ void Editor::OnBuildScript()
 
     Console::LogInfo("[ Build ] Script compiled sucess fully.");
 
-    MainThreadDispatcher::Add(Priority::NORMAL, &Editor::loadScript, this, builddir + "/lib");
+    MainThreadDispatcher::Add(Priority::NORMAL, &EditorWorkspace::loadScript, this, builddir + "/lib");
 }
 
-void Editor::OnPostSaveSnapshot(std::string file)
+void EditorWorkspace::OnPostSaveSnapshot(std::string file)
 {
     std::cout << "PlayGame" << std::endl;
 
@@ -1332,7 +1337,7 @@ void Editor::OnPostSaveSnapshot(std::string file)
     m_scene = nullptr;
 }
 
-void Editor::OnPostLoadSnapshot(Scene* scene)
+void EditorWorkspace::OnPostLoadSnapshot(Scene* scene)
 {
     m_scene = scene;
 
@@ -1345,7 +1350,7 @@ void Editor::OnPostLoadSnapshot(Scene* scene)
     // set_scene(scene);
 }
 
-void Editor::OnStopButton()
+void EditorWorkspace::OnStopButton()
 {
     /*
     MainThreadDispatcher::Add(Priority::HIGHT, [&]
@@ -1371,7 +1376,7 @@ void Editor::OnStopButton()
     */
 }
 
-void Editor::drop_gameobject_in_scene()
+void EditorWorkspace::drop_gameobject_in_scene()
 {
     auto isOpen = ImGui::BeginDragDropTarget();
     if (!isOpen)
@@ -1390,8 +1395,8 @@ void Editor::drop_gameobject_in_scene()
         if (info == nullptr)
             continue;
 
-        if ((info->flags & AssetFlags_AssetModel) == AssetFlags_AssetModel)
-            AssetsManager::LoadGameObjectAsync(info->path, &Editor::PostLoadGameObject, this);
+        if (info->type== AssetType_Model)
+            AssetsManager::LoadGameObjectAsync(info->uri, &EditorWorkspace::PostLoadGameObject, this);
 
         /*
         if (file->extension == HEADER_MODEL_EXTENSION)
@@ -1404,7 +1409,7 @@ void Editor::drop_gameobject_in_scene()
     ImGui::EndDragDropTarget();
 }
 
-void Editor::OpenFileDoubleClick(std::filesystem::path path) {
+void EditorWorkspace::OpenFileDoubleClick(std::filesystem::path path) {
     auto extension = path.extension().string();
 
     if (extension != ".hpp" && extension != ".cpp" && extension != ".glsl") {
@@ -1414,7 +1419,7 @@ void Editor::OpenFileDoubleClick(std::filesystem::path path) {
     system(("xdg-open '" + path.string() + "'").c_str());
 }
 
-void Editor::PopupFileAndDirmanager()
+void EditorWorkspace::PopupFileAndDirmanager()
 {
     auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_FileManager | EditorPopupFlags_DirManager));
     if (!isOpen) 
@@ -1459,7 +1464,7 @@ void Editor::PopupFileAndDirmanager()
     ImGui::EndPopup();
 }
 
-void Editor::PopupFileManager()
+void EditorWorkspace::PopupFileManager()
 {
     ImGui::SetNextWindowSize({200.0f, 100.0f});
     bool isOpenPopup = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_FileManager));
@@ -1484,7 +1489,7 @@ void Editor::PopupFileManager()
     ImGui::EndPopup();
 }
 
-void Editor::PopupCreateDirectory()
+void EditorWorkspace::PopupCreateDirectory()
 {
     auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_CreateNewDir));
     if (!isOpen)
@@ -1509,7 +1514,7 @@ void Editor::PopupCreateDirectory()
     ImGui::EndPopup();
 }
 
-void Editor::PopupCreateShader()
+void EditorWorkspace::PopupCreateShader()
 {
     /*
     auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_CreateShader));
@@ -1534,7 +1539,7 @@ void Editor::PopupCreateShader()
     */
 }
 
-void Editor::create_window_console()
+void EditorWorkspace::create_window_console()
 {
     if (ImGui::Begin("Console"))
     {
@@ -1544,11 +1549,11 @@ void Editor::create_window_console()
     ImGui::End();
 }
 
-void Editor::create_render_console()
+void EditorWorkspace::create_render_console()
 {
     auto logs = Console::GetLogs();
 
-    std::for_each(logs.begin(), logs.end(), std::bind(&Editor::RenderLog, this, std::placeholders::_1));
+    std::for_each(logs.begin(), logs.end(), std::bind(&EditorWorkspace::RenderLog, this, std::placeholders::_1));
     
     if (Console::IsChanged())
     {
@@ -1557,7 +1562,7 @@ void Editor::create_render_console()
     }
 }
 
-void Editor::RenderLog(Log &info)
+void EditorWorkspace::RenderLog(Log &info)
 {
     ImVec4 color = {1.0f, 1.0f, 1.0f, 1.0f};
     switch (info.type)
@@ -1578,7 +1583,7 @@ void Editor::RenderLog(Log &info)
     ImGui::TextColored(color, "%s", info.message.c_str());
 }
 
-void Editor::create_window_property()
+void EditorWorkspace::create_window_property()
 {
     if (ImGui::Begin("property", NULL, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysHorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar) &&
             m_scene != nullptr &&
@@ -1589,7 +1594,7 @@ void Editor::create_window_property()
     ImGui::End();
 }
 
-void Editor::create_render_property()
+void EditorWorkspace::create_render_property()
 {
     GameObject go(m_scene, m_scene->get_object_selected().back());
     if (!go.IsAlive())
@@ -1619,7 +1624,7 @@ void Editor::create_render_property()
         popupFlags |= EditorPopupFlags_AddComponent;
 }
 
-void Editor::create_call_popup()
+void EditorWorkspace::create_call_popup()
 {
     switch (popupFlags)
     {
@@ -1678,7 +1683,7 @@ void Editor::create_call_popup()
     popupFlags = 0;
 }
 
-void Editor::create_popup()
+void EditorWorkspace::create_popup()
 {
     create_popup_create_scene();
 
@@ -1715,7 +1720,7 @@ void Editor::create_popup()
     PopupMenuAdd();
 }
 
-void Editor::create_popup_create_scene()
+void EditorWorkspace::create_popup_create_scene()
 {
     auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_CreateScene));
     if (!isOpen)
@@ -1754,7 +1759,7 @@ void Editor::create_popup_create_scene()
     ImGui::EndPopup();
 }
 
-void Editor::create_popup_add_component()
+void EditorWorkspace::create_popup_add_component()
 {
     auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_AddComponent));
     if (!isOpen)
@@ -1809,7 +1814,7 @@ void Editor::create_popup_add_component()
     ImGui::EndPopup();
 }
 
-void Editor::create_popup_rename_object()
+void EditorWorkspace::create_popup_rename_object()
 {
     auto isopen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_RenameGameObject));
     if (!isopen)
@@ -1844,7 +1849,7 @@ void Editor::create_popup_rename_object()
     ImGui::EndPopup();
 }
 
-void Editor::create_popup_create_script()
+void EditorWorkspace::create_popup_create_script()
 {
     auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_CreateScript));
     if (!isOpen)
@@ -1866,7 +1871,7 @@ void Editor::create_popup_create_script()
     ImGui::EndPopup();
 }
 
-void Editor::create_popup_rename_filedir()
+void EditorWorkspace::create_popup_rename_filedir()
 {
     auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_RenameFileOrDir));
     if (!isOpen)
@@ -1896,7 +1901,7 @@ void Editor::create_popup_rename_filedir()
     ImGui::EndPopup();
 }
 
-void Editor::create_popup_info_dir()
+void EditorWorkspace::create_popup_info_dir()
 {
     auto isopen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_CurrentDirManager));
     if (!isopen)
@@ -1914,7 +1919,7 @@ void Editor::create_popup_info_dir()
     ImGui::EndPopup();
 }
 
-void Editor::create_popup_dir_manager()
+void EditorWorkspace::create_popup_dir_manager()
 {
     auto isopen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_DirManager));
     if (!isopen)
@@ -1937,7 +1942,7 @@ void Editor::create_popup_dir_manager()
     ImGui::EndPopup();
 }
 
-void Editor::create_popup_new_material()
+void EditorWorkspace::create_popup_new_material()
 {
     auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_CreateMaterial));
     if (!isOpen)
@@ -1964,7 +1969,7 @@ void Editor::create_popup_new_material()
     ImGui::EndPopup();
 }
 
-void Editor::dropScriptInAddComponent()
+void EditorWorkspace::dropScriptInAddComponent()
 {
     /*if (s_objectSelected == nullptr || !ImGui::BeginDragDropTarget())
     {
@@ -1988,7 +1993,7 @@ void Editor::dropScriptInAddComponent()
     */
 }
 
-void Editor::ShowComponentInfoUI(GameObject& go, const ComponentInfo* info)
+void EditorWorkspace::ShowComponentInfoUI(GameObject& go, const ComponentInfo* info)
 {
     char name[512] = {0};
     sprintf(name, "%s 0x%lX", info->name, info->hash);
@@ -2013,11 +2018,11 @@ void Editor::ShowComponentInfoUI(GameObject& go, const ComponentInfo* info)
     ImGui::PopID();
 }
 
-void Editor::ShowUserComponentUI(void *behavior)
+void EditorWorkspace::ShowUserComponentUI(void *behavior)
 {}
 
 /*
-void Editor::RenderField(Field &field, Component *component) {
+void EditorWorkspace::RenderField(Field &field, Component *component) {
     auto name = field.getName();
 
     ImGui::Text("%s:", name.c_str());
@@ -2070,7 +2075,7 @@ void Editor::RenderField(Field &field, Component *component) {
 }
 */
 
-void Editor::renderDropGameObject(GameObject **ref)
+void EditorWorkspace::renderDropGameObject(GameObject **ref)
 {
     /*
     if (*ref) {
@@ -2090,14 +2095,14 @@ void Editor::renderDropGameObject(GameObject **ref)
     
     // auto path = std::string((char*)data->Data, data->DataSize);
 
-    // AssetsManager::LoadGameObject(path, &Editor::OutputGameObject, ref);
+    // AssetsManager::LoadGameObject(path, &EditorWorkspace::OutputGameObject, ref);
 
     ImGui::EndDragDropTarget();
     */
 }
 
 /* ********** Propriedades ********** */
-void Editor::OnPropertyTransform(GameObject& go, Transform *transform)
+void EditorWorkspace::OnPropertyTransform(GameObject& go, Transform *transform)
 {
     static std::vector<const char*> textItemsToVector = {"X:", "Y:", "Z:"};
 
@@ -2123,7 +2128,7 @@ void Editor::OnPropertyTransform(GameObject& go, Transform *transform)
         m_scene->MarkChildrenDirty(go.entity);
 }
 
-void Editor::OnPropertyCamera(GameObject& go, Camera *camera)
+void EditorWorkspace::OnPropertyCamera(GameObject& go, Camera *camera)
 {
     auto avail = ImGui::GetContentRegionAvail();
 
@@ -2186,7 +2191,7 @@ void Editor::OnPropertyCamera(GameObject& go, Camera *camera)
     }
 }
 
-void Editor::OnPropertyMeshFilter(GameObject& go, MeshFilter *meshFilter)
+void EditorWorkspace::OnPropertyMeshFilter(GameObject& go, MeshFilter *meshFilter)
 {
     auto mesh = AssetsManager::GetMesh(meshFilter->mesh);
     if (mesh == nullptr)
@@ -2196,9 +2201,16 @@ void Editor::OnPropertyMeshFilter(GameObject& go, MeshFilter *meshFilter)
     ImGui::Text("Vertices: %ld", mesh->numVertices);
     ImGui::Text("Indices: %ld", mesh->numIndices);
     ImGui::Text("Sub: %ld", mesh->numSubmeshes);
+
+    for (uint32_t i=0;i<mesh->numSubmeshes;i++)
+    {
+        auto& submesh = mesh->submeshes[i];
+
+        ImGui::Text("Submesh %u | Count %lu | Offset %lu", i, submesh.indexCount, submesh.indexOffset);
+    }
 }
 
-void Editor::OnPropertyMeshRender(GameObject& go, MeshRender *meshRender)
+void EditorWorkspace::OnPropertyMeshRender(GameObject& go, MeshRender *meshRender)
 {
     auto avail = ImGui::GetContentRegionAvail();
     
@@ -2215,7 +2227,7 @@ void Editor::OnPropertyMeshRender(GameObject& go, MeshRender *meshRender)
     ImGui::Unindent();
 }
 
-void Editor::OnPropertyLight(GameObject& go, Light *light)
+void EditorWorkspace::OnPropertyLight(GameObject& go, Light *light)
 {
     int elem = static_cast<int>(light->type);
     
@@ -2262,7 +2274,7 @@ void Editor::OnPropertyLight(GameObject& go, Light *light)
 }
 
 /*
-bool Editor::render_material(MaterialID id)
+bool EditorWorkspace::render_material(MaterialID id)
 {
     auto name = AssetsManager::GetMaterialName(id);
 
@@ -2304,7 +2316,7 @@ bool Editor::render_material(MaterialID id)
 }
 */
 
-void Editor::render_shader_property(const std::string &name, Material *material)
+void EditorWorkspace::render_shader_property(const std::string &name, Material *material)
 {
     auto isopen = ImGui::TreeNode(name.c_str());
     if (!isopen)
@@ -2315,7 +2327,7 @@ void Editor::render_shader_property(const std::string &name, Material *material)
     ImGui::TreePop();
 }
 
-void Editor::RenderShaderUniform(Material *material, gr::Shader *shader)
+void EditorWorkspace::RenderShaderUniform(Material *material, gr::Shader *shader)
 {
     auto shaderUniforms = shader->GetUniforms();
 
@@ -2410,7 +2422,7 @@ void Editor::RenderShaderUniform(Material *material, gr::Shader *shader)
     }
 }
 
-void Editor::dropShaderInMaterial(Material *material) {
+void EditorWorkspace::dropShaderInMaterial(Material *material) {
     if (!ImGui::BeginDragDropTarget())
     {
         return;
@@ -2435,7 +2447,7 @@ void Editor::dropShaderInMaterial(Material *material) {
     ImGui::EndDragDropTarget();
 }
 
-void Editor::LoadReources()
+void EditorWorkspace::LoadReources()
 {
     std::string internal_assets_path = gfile::get_data_directory() + "/assets";
 
@@ -2457,9 +2469,10 @@ void Editor::LoadReources()
         } \
     } while (0)
 
+    // #define LOAD_ICON(n, t) ICON_BUILD(n)
     #define LOAD_ICON(n, t) ICON_LOAD(n, t)
 
-        // AssetsManager::LoadTexture(internal_assets_path + path, &Editor::SetupTexture, this, icon_type)
+        // AssetsManager::LoadTexture(internal_assets_path + path, &EditorWorkspace::SetupTexture, this, icon_type)
 
     LOAD_ICON("icon/icons8-file-30.png",                    IconType::ICON_FILE);
     LOAD_ICON("icon/icons8-folder-50.png",                  IconType::ICON_FOLDER);
@@ -2483,7 +2496,7 @@ void Editor::LoadReources()
     #undef LOAD_ICON
 }
 
-void Editor::SetupTexture(IconType type, TextureHandle h)
+void EditorWorkspace::SetupTexture(IconType type, TextureHandle h)
 {
     iconsUI[type] = h;
 
@@ -2493,7 +2506,7 @@ void Editor::SetupTexture(IconType type, TextureHandle h)
     }
 }
 
-void Editor::PostLoadGameObject(Entity prefabID)
+void EditorWorkspace::PostLoadGameObject(Entity prefabID)
 {
     if (m_scene == nullptr)
         return;
@@ -2502,7 +2515,7 @@ void Editor::PostLoadGameObject(Entity prefabID)
     m_scene->select(prefabID);
 }
 
-void Editor::CreateShaderTemplate(const std::string &path, const std::string &name)
+void EditorWorkspace::CreateShaderTemplate(const std::string &path, const std::string &name)
 {
     std::ofstream os(path + "/" + name + ".glsl");
     os << "Sample" << std::endl;
@@ -2512,7 +2525,7 @@ void Editor::CreateShaderTemplate(const std::string &path, const std::string &na
 // PopupMenu
 
 // TODO: Precisa adicionar um suport para renoemar o marterial
-void Editor::RenameMaterial() {
+void EditorWorkspace::RenameMaterial() {
     /*
     auto isOpen = ImGui::BeginPopupModal("##popup_rename_material");
     if (!isOpen || !m_materialToRename) {
@@ -2543,7 +2556,7 @@ void Editor::RenameMaterial() {
 }
 
 /*
-GameObject *Editor::CreatePrimitive(int type) {
+GameObject *EditorWorkspace::CreatePrimitive(int type) {
     auto go = GameObject::Create("Cube");
 
     auto mesh = AssetsManager::FindMesh("Cube");
@@ -2617,7 +2630,7 @@ GameObject *Editor::CreatePrimitive(int type) {
 
 #include "plugin/pluginManager.hpp"
 
-void Editor::PluginManager()
+void EditorWorkspace::PluginManager()
 {
     ImVec2 winSize(200, 300);
 
@@ -2659,7 +2672,7 @@ void Editor::PluginManager()
     ImGui::EndPopup();
 }
 
-void Editor::PopupPluginLoad()
+void EditorWorkspace::PopupPluginLoad()
 {
     /*
     ImVec2 winSize(200, 300);
@@ -2712,7 +2725,7 @@ void Editor::PopupPluginLoad()
     */
 }
 
-void Editor::PluginEditor() {
+void EditorWorkspace::PluginEditor() {
     if (!m_plugin) { return; }
 
     ImVec2 winSize(200, 300);
@@ -2747,14 +2760,14 @@ void Editor::PluginEditor() {
     ImGui::EndPopup();
 }
 
-void Editor::set_scene(Scene *scene)
+void EditorWorkspace::set_scene(Scene *scene)
 {
     // m_scene = scene;
 
     // scene->SetCamera(m_cameraID);
 }
 
-void Editor::OutputGameObject(GameObject **ref, GameObject *go)
+void EditorWorkspace::OutputGameObject(GameObject **ref, GameObject *go)
 {
     // if ((*ref) != nullptr)
         // GameObject::Destroy((*ref)->GetCacheID());
@@ -2762,7 +2775,7 @@ void Editor::OutputGameObject(GameObject **ref, GameObject *go)
     // *ref = go;
 }
 
-void Editor::generateConfig(const std::string &file)
+void EditorWorkspace::generateConfig(const std::string &file)
 {
     /*
     auto scenes = SceneManager::GetScenes();
@@ -2807,7 +2820,7 @@ void Editor::generateConfig(const std::string &file)
     */
 }
 
-void Editor::updateFileTree(gtreefile *tree_file)
+void EditorWorkspace::updateFileTree(gtreefile *tree_file)
 {
     if (!tree_file->bdirectory)
         return;
@@ -2869,31 +2882,31 @@ void Editor::updateFileTree(gtreefile *tree_file)
     }
 }
 
-void Editor::select_file(gtreefile *file)
+void EditorWorkspace::select_file(gtreefile *file)
 {
     auto &&[it, added] = g_tree_file_selected_map.emplace(file);
     if (added)
         g_tree_file_selected.push_back(file);
 }
 
-void Editor::unselect_file(gtreefile *file)
+void EditorWorkspace::unselect_file(gtreefile *file)
 {
     g_tree_file_selected.erase(std::remove(g_tree_file_selected.begin(), g_tree_file_selected.end(), file), g_tree_file_selected.end());
     g_tree_file_selected_map.erase(file);
 }
 
-bool Editor::selected_file(gtreefile *file) const
+bool EditorWorkspace::selected_file(gtreefile *file) const
 {
     return g_tree_file_selected_map.find(file) != g_tree_file_selected_map.end();
 }
 
-void Editor::unselect_all_file()
+void EditorWorkspace::unselect_all_file()
 {
     g_tree_file_selected.clear();
     g_tree_file_selected_map.clear();
 }
 
-void Editor::delete_file_selected()
+void EditorWorkspace::delete_file_selected()
 {
     for (auto &selected : g_tree_file_selected)
         gfile::remove(selected->path);
@@ -2903,7 +2916,7 @@ void Editor::delete_file_selected()
     updateFileTree(&root_tree_file);
 }
 
-void Editor::RebuildHierarchyVector()
+void EditorWorkspace::RebuildHierarchyVector()
 {
     uiList.clear();
 

@@ -1,4 +1,5 @@
-#include "view/iworkspace.hpp"
+#include "view/workspace/iworkspace.hpp"
+
 #include "imgui.h"
 
 IWorkspace::IWorkspace()

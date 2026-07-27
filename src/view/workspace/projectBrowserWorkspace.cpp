@@ -1,4 +1,4 @@
-#include "view/projectBrowser.hpp"
+#include "view/workspace/projectBrowserWorkspace.hpp"
 
 #include "event/editorApplicationEvent.hpp"
 #include "gr-base/managers/eventManager.hpp"

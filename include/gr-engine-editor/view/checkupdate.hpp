@@ -18,12 +18,7 @@ public:
 private:
     std::vector<std::string> m_files;
 
-    const char* GetPopupID() const override
-    {
-        return "Check Update";
-    }
-
-    void DrawPopup() override;
+    void Draw() override;
 };
 
 

@@ -7,15 +7,22 @@
 #include <vector>
 #include <memory>
 
+struct FbxSubmesh
+{
+    uint32_t indexCount;
+    uint32_t indexOffset;
+    uint32_t materialID;
+};
+
 struct FbxMesh
 {
     std::vector<FbxVertex> vertices;
 
     std::vector<uint32_t> indices;
 
-    std::vector<FbxBone> bones;
+    std::vector<FbxSubmesh> submeshes;
 
-    uint32_t materialID;
+    std::vector<FbxBone> bones;
 
     std::string name;
 

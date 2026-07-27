@@ -2,11 +2,14 @@
 
 #include "event/editorApplicationEvent.hpp"
 #include "gr-base/managers/eventManager.hpp"
+
+#include "view/workspace/projectBrowserWorkspace.hpp"
+#include "view/workspace/editorWorkspace.hpp"
+
 #include "view/imguiRenderer.hpp"
-#include "view/projectBrowser.hpp"
+
 #include "view/projectMenu.hpp"
 #include "view/checkupdate.hpp"
-#include "view/editor.hpp"
 
 #include <cassert>
 #include <gr-base/core/file/file.hpp>
@@ -74,11 +77,8 @@ void EditorApplication::run()
 
 void EditorApplication::dropPath(const std::vector<std::string>& entries)
 {
-    /*
-    auto view = ViewManager::GetCurrentView();
-    if (view != nullptr)
-        view->dropPath(entries);
-    */
+    if (m_workspace != nullptr)
+        m_workspace->dropPath(entries);
 }
 
 // private
@@ -255,12 +255,12 @@ void EditorApplication::onCheckProject(IEvent* event)
 
     AssetResolver::Registry<ProjectAssetProvider>(Scheme::Project, m_project->path);
 
-    m_workspace = std::make_unique<Editor>();
+    m_workspace = std::make_unique<EditorWorkspace>();
 }
 
-void EditorApplication::onOpenProject(IEvent* event)
+void EditorApplication::onOpenProject(EditorApplicationEvent_onOpenProject* event)
 {
-    std::cout << "Open" << std::endl;
+    std::cout << "Open: " << event->dir << std::endl;
 }
 
 void EditorApplication::onCloseProject(IEvent* event)

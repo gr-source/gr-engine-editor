@@ -274,7 +274,7 @@ void BrowserFile::onAssetCreated(IEvent* data)
     if (info == nullptr)
         return;
 
-    URI uri = URI::parse(info->path);
+    URI uri = URI::parse(info->uri);
     if (uri.scheme != Scheme::Project)
         return;
 
@@ -289,7 +289,7 @@ void BrowserFile::onAssetRemove(IEvent* data)
     if (info == nullptr)
         return;
 
-    URI uri = URI::parse(info->path);
+    URI uri = URI::parse(info->uri);
 
     std::string path = "/" + uri.path;
 
@@ -314,7 +314,6 @@ void BrowserFile::onAssetRemove(IEvent* data)
     m_hashmap.erase(hash);
 }
 
-#include <filesystem>
 std::vector<BrowserFile::EntryInfo> BrowserFile::splitPath(const std::string& path)
 {
     std::vector<EntryInfo> entries;
@@ -345,7 +344,7 @@ std::vector<BrowserFile::EntryInfo> BrowserFile::splitPath(const std::string& pa
 
 void BrowserFile::create_hierarchy(AssetInfo* info)
 {
-    URI uri = URI::parse(info->path);
+    URI uri = URI::parse(info->uri);
 
     std::string path = "/" + uri.path;
 
@@ -403,7 +402,7 @@ void BrowserFile::create_render_popup_asset_info()
         {
             if (auto* info = AssetDB::GetAsset(id))
             {
-                ImGui::BulletText("%s - %d", info->path, info->id);
+                ImGui::BulletText("%s - %d", info->uri, info->id);
             }
         }
 
@@ -421,7 +420,7 @@ void BrowserFile::create_render_popup_asset_info()
             if (info == nullptr)
                 continue;
 
-            AssetDB::Unregistry(info->hash);
+            // AssetDB::Unregistry(info->hash);
         }
 
         m_selected_assets.clear();
@@ -449,7 +448,7 @@ void BrowserFile::create_render_popup_asset_info()
             if (info == nullptr)
                 continue;
 
-            str += info->path;
+            str += info->uri;
             str += '\n';
         }
 

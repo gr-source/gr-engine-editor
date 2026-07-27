@@ -1,10 +1,16 @@
-#include "task/filmboxtask.hpp"
+#include "task/filmboxLoadTask.hpp"
 
 #include <gr-base/core/scene.hpp>
 
 #include <gr-base/externals/hash.hpp>
 
+#include "event/importAssetViewPopupEvent.hpp"
+
 #include "filmbox/filmbox.hpp"
+
+#include "gr-base/managers/eventManager.hpp"
+
+#include "view/loadingTaskPopup.hpp"
 
 #include <gr-base/core/file/memoryStream.hpp>
 #include <gr-base/core/file/file.hpp>
@@ -21,31 +27,47 @@
 
 FilmboxLoadTask::FilmboxLoadTask(const std::string& file) :
     m_file(file),
-    m_scene(nullptr),
-    m_shader("engine://shader/simple_model")
+    m_shader("engine://shader/simple_model"),
+    m_dialog(HANDLE_INVALID)
 {}
 
 void FilmboxLoadTask::onPreExecute()
 {
-    /*
-    std::string filename = gfile::get_file_name(m_file);
+    auto filename = gfile::get_file_name(m_file);
 
-    Console::LogInfo("[ FilmboxTask ] Loading: %s", filename.c_str());
+    m_dialog =
+        LoadingTaskPopup::Create(
+            "Filmbox Task",
+            String::format("Loading file '%s'", filename.c_str())
+        );
+
+    /*
+    m_dialog =
+        m_workspace->CreateTaskView(
+            "Filmbox Task",
+            String::format("Loading file '%s'", filename.c_str())
+        );
     */
 }
 
-int FilmboxLoadTask::doInBackground()
+FbxScene FilmboxLoadTask::doInBackground()
 {
     Filmbox filmbox;
-    try
-    {
-        filmbox.load(m_file);
-    }
-    catch (const std::exception &e)
-    {
-        return 1;
-    }
 
+    FbxScene fbxScene;
+    
+    std::string error;
+    if (!filmbox.load(m_file, error, &fbxScene))
+        throw std::runtime_error(error);
+
+    if (fbxScene.name.empty())
+        fbxScene.name = gfile::get_file_name(m_file);
+
+    fbxScene.root.name = gfile::get_file_name(m_file);
+
+    return fbxScene;
+
+    /*
     m_scene = filmbox.getScene();
 
     for (auto& fbxMaterial : m_scene->materials)
@@ -104,15 +126,30 @@ int FilmboxLoadTask::doInBackground()
         m_objectCacheList.push_back(PackingObject(&fbxNode));
 
     return 0;
+    */
 }
 
-void FilmboxLoadTask::onPostExecute(Result<int> result)
+void FilmboxLoadTask::onPostExecute(Result<FbxScene> result)
 {
-    /*
-    if (result.value != 0)
-        return Console::LogError("[FilmboxLoadTask] fail in to load '%s' error code: %s", m_file.c_str(), result.error.c_str());
+    LoadingTaskPopup::Destroy(m_dialog);
 
-    FilmboxImport* view = ViewManager::GetView<FilmboxImport>();
+    if (!result.success)
+        return Console::LogError("[FilmboxLoadTask] fail in to load '%s' error= '%s'.", m_file.c_str(), result.error.c_str());
+
+    ImportAssetViewPopup_onAddFbxScene event;
+    event.fbxScene = result.value;
+
+    EventManager::Notify<ImportAssetViewPopup_onAddFbxScene>(&event);
+
+    /*
+    auto& viewManager = m_workspace->GetViewManager();
+
+    auto view = viewManager.getOrAddView<ImportAssetViewPopup>();
+    view->AddFbxScene(result.value);
+    */
+
+    /*
+    FilmboxImport* view = viewManager.getOrAddView<FilmboxImport>();
     view->visible = true;
 
     auto scene = Scene::GetCurrent();
@@ -131,6 +168,7 @@ void FilmboxLoadTask::onPostExecute(Result<int> result)
     */
 }
 
+/*
 ModelNode FilmboxLoadTask::PackingObject(const FbxNode* fbxNode)
 {
     ModelNode node;
@@ -145,24 +183,20 @@ ModelNode FilmboxLoadTask::PackingObject(const FbxNode* fbxNode)
 
     for (auto& meshID : fbxNode->meshes)
     {
-        auto& fbxMesh = m_scene->meshes[meshID];
-        const auto& meshName = fbxMesh.name;
+        // auto& fbxMesh = m_scene->meshes[meshID];
+        // const auto& meshName = fbxMesh.name;
 
         {
-            /*
             auto it = m_meshCacheList.find(meshName);
             if (it != m_meshCacheList.end())
                 asset.mesh = it->second.hash;
-            */
         }
 
-        auto& fbxMaterial = m_scene->materials[fbxMesh.materialID];
+        // auto& fbxMaterial = m_scene->materials[fbxMesh.materialID];
         {
-            /*
             auto it = m_materialCacheList.find(fbxMaterial.name);
             if (it != m_materialCacheList.end())
                 asset.materials.push_back(it->second.hash);
-            */
         }
     }
 
@@ -170,7 +204,6 @@ ModelNode FilmboxLoadTask::PackingObject(const FbxNode* fbxNode)
 
     // if (asset.mesh != INVALID_HASH64)
     // {
-        /*
         MeshRef meshRef;
         meshRef.hash = asset.mesh;
 
@@ -182,14 +215,13 @@ ModelNode FilmboxLoadTask::PackingObject(const FbxNode* fbxNode)
 
         asset.AddComponent(meshRef);
         asset.AddComponent(materialRef);
-        */
     // }
 
     for (auto& child : fbxNode->children)
         node.children.push_back(PackingObject(&child));
 
     return node;
-}
+}*/
 
 
 

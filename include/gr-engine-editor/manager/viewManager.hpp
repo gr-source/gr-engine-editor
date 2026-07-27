@@ -30,6 +30,9 @@ public:
     template <typename T>
     void setVisible(bool value);
 
+    template <typename T>
+    T* getOrAddView();
+
     void clear();
 
 private:
@@ -66,7 +69,7 @@ inline void ViewManager::show()
         if (m_popups[id] == nullptr)
             m_popups[id] = std::make_shared<T>();
 
-        m_popups[id]->requestOpen = true;
+        m_popups[id]->open = true;
     } else if constexpr (std::is_base_of_v<WindowView, T>)
     {
         if (id >= m_windows.size())
@@ -92,7 +95,7 @@ inline void ViewManager::hide()
             m_popups.resize(id + 1, nullptr);
 
         if (m_popups[id] != nullptr)
-            m_popups[id]->requestOpen = false;
+            m_popups[id]->open = false;
 
     } else if constexpr (std::is_base_of_v<WindowView, T>)
     {
@@ -117,7 +120,7 @@ inline bool ViewManager::isVisible() const
             return false;
         if (m_popups[id] == nullptr)
             return false;
-        return m_popups[id]->requestOpen;
+        return m_popups[id]->open;
     } else if constexpr (std::is_base_of_v<WindowView, T>)
     {
         if (id >= m_windows.size())
@@ -125,6 +128,34 @@ inline bool ViewManager::isVisible() const
         if (m_windows[id] == nullptr)
             return false;
         return m_windows[id]->open;
+    }
+}
+
+template <typename T>
+inline T* ViewManager::getOrAddView()
+{
+    static_assert(std::is_base_of_v<WindowView, T> || std::is_base_of_v<IPopupView, T>, 
+              "This object is not valid.");
+
+    ViewID id = GetViewID<T>();
+    if constexpr (std::is_base_of_v<IPopupView, T>)
+    {
+        if (id >= m_popups.size())
+            m_popups.resize(id + 1, nullptr);
+
+        if (m_popups[id] == nullptr)
+            m_popups[id] = std::make_shared<T>();
+
+        return static_cast<T*>(m_popups[id].get());
+    } else if constexpr (std::is_base_of_v<WindowView, T>)
+    {
+        if (id >= m_windows.size())
+            m_windows.resize(id + 1, nullptr);
+
+        if (m_windows[id] == nullptr)
+            m_windows[id] = std::make_shared<T>();
+
+        return static_cast<T*>(m_windows[id].get());
     }
 }
 
