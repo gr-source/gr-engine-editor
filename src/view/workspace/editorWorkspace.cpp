@@ -2705,6 +2705,8 @@ void EditorWorkspace::RebuildHierarchyVector()
 PhysicsTask::PhysicsTask()
 {}
 
+#include "gr-base/physics/physicsScene.hpp"
+
 int PhysicsTask::doInBackground()
 {
     gtimer time(60.0f);
@@ -2713,7 +2715,7 @@ int PhysicsTask::doInBackground()
     {
         time.begin_frame();
 
-        // PhysicsScene::Update(time.get_delta());
+        PhysicsScene::Update(time.get_delta());
 
         time.end_frame();
     }
