@@ -14,6 +14,7 @@
 #include "gr-base/managers/assetsManager.hpp"
 
 #include "gr-base/managers/eventManager.hpp"
+#include "gr-base/task/assetSaveTask.hpp"
 #include "gr-base/task/modelsavetask.hpp"
 #include "view/imguiWidget.hpp"
 
@@ -123,7 +124,21 @@ void BrowserFile::drop_source_in_directories()
     {
         URI uri = URI::parse("project://model/" + gameobject.GetName());
 
-        TaskManager::Add<ModelSaveTask>(uri, gameobject);
+
+        AssetID id = AssetDB::FindByHash(engine::hash::fnv1_str(uri.toString()));
+        if (id == INVALID_ASSET)
+            id = AssetDB::CreateID();
+
+        AssetSaveInfo info;
+        info.type = AssetType_Model;
+        info.id = id;
+        info.uri = uri;
+
+        info.asset = std::make_shared<ModelAsset>(ModelSaveTask::ConvertToAssetModel(gameobject));
+
+        TaskManager::Add<AssetSaveTask>(info);
+
+        // TaskManager::Add<ModelSaveTask>(uri, gameobject);
     }
 
     ImGui::EndDragDropTarget();
