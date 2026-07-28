@@ -110,6 +110,10 @@ constexpr Hash64 kBuiltinSystems[] = {
     engine::type_traits::hash<CameraEditorSystem>,
 };
 
+constexpr Hash64 kBuiltinComponents[] = {
+    engine::type_traits::hash<CameraEditor>,
+};
+
 #define GET_N_ARRAY(c) sizeof(c) / sizeof(c[0])
 
 enum class DragDropFlags : uint32_t {
@@ -285,7 +289,7 @@ EditorWorkspace::~EditorWorkspace()
     shutdown();
 }
 
-void* GetVTable(const SystemInfo* info)
+void* GetVTable(const TypeInfo* info)
 {
     ISystem* system = (ISystem*)malloc(info->stride);
 
@@ -305,21 +309,29 @@ void EditorWorkspace::loadScript(const std::string& dir)
     if (!gfile::exists(file))
         return;
 
-    Sandbox sandbox(file);
-    if (!sandbox.Run())
-        return;
-
-    sandbox.ClosePipes();
-
     //
     // Monta mapa dos sistemas disponíveis no novo módulo
     //
     std::unordered_map<Hash64, const SystemInfo*> newSystems;
 
+    std::vector<ComponentInfo> components;
+    std::vector<SystemInfo> systems;
+
+    {
+        Sandbox sandbox(file);
+        if (!sandbox.Run())
+            return;
+
+        components = sandbox.components;
+        systems = sandbox.systems;
+
+        sandbox.ClosePipes();
+    }
+
     for (auto hash : kBuiltinSystems)
         newSystems.emplace(hash, nullptr);
 
-    for (const auto& info : sandbox.systems)
+    for (const auto& info : systems)
         newSystems.emplace(info.hash, &info);
 
     //
@@ -387,6 +399,8 @@ void EditorWorkspace::loadScript(const std::string& dir)
         }
     }
 
+    HotReloadPass componentPass = CheckComponentInfo(components);
+
     //
     // Hot reload da DLL
     //
@@ -441,6 +455,147 @@ void EditorWorkspace::loadScript(const std::string& dir)
         {
             if (!scene->GetSystem(id))
                 scene->AddSystemByID(id);
+        }
+    }
+
+    ReloadComponentPass(componentPass);
+}
+
+EditorWorkspace::HotReloadPass EditorWorkspace::CheckComponentInfo(std::vector<ComponentInfo>& components)
+{
+    std::unordered_map<Hash64, const ComponentInfo*> newComponents;
+
+    for (auto hash : kBuiltinComponents)
+        newComponents.emplace(hash, nullptr);
+
+    for (auto& info : components)
+        newComponents.emplace(info.hash, &info);
+
+    // std::unordered_map<TypeID, void*> previousVTables;
+    std::unordered_set<TypeID> componentsToRecreate;
+    std::unordered_set<TypeID> componentsToRemove;
+
+    for (size_t i=0;i<ComponentRegistry::GetComponentCount();i++)
+    {
+        auto current = ComponentRegistry::GetComponents()[i];
+
+        auto it = newComponents.find(current.hash);
+        if (it == newComponents.end())
+        {
+            Console::LogWarning("[ Script ] Removed component: %s", current.name);
+            componentsToRemove.insert(current.index);
+            continue;
+        }
+
+        const ComponentInfo* updated = it->second;
+
+        if (updated != nullptr)
+        {
+            if (current.stride != updated->stride)
+            {
+                componentsToRecreate.insert(current.index);
+
+                std::cout
+                    << "Reinstantiate: " << current.name
+                    << " | Stride: "
+                    << current.stride
+                    << " -> "
+                    << updated->stride
+                    << std::endl;
+            }
+            else
+            {
+                // previousVTables.emplace(current.index, GetVTable(&current));
+            }
+        }
+
+        newComponents.erase(it);
+    }
+
+    for (auto&& [hash, info] : newComponents)
+    {
+        if (info)
+            Console::LogInfo("[ Script ] Added system: %s", info->name);
+    }
+
+    Signature requiredRemoveMask = 0;
+    for (TypeID typeID : componentsToRemove)
+        requiredRemoveMask |= (1ULL << typeID);
+
+    Signature requiredAddMask = 0;
+    for (TypeID typeID : componentsToRecreate)
+        requiredAddMask |= (1ULL << typeID);
+
+    requiredRemoveMask |= requiredAddMask;
+
+    std::unordered_map<Scene*, std::vector<std::tuple<Signature, std::vector<Entity>>>> recreatePerScene;
+
+    for (auto& scene : SceneManager::GetScenes())
+    {
+        auto world = scene->world;
+
+        std::vector<std::tuple<Signature, std::vector<Entity>>> archetypes;
+        std::vector<std::tuple<Signature, std::vector<Entity>>> addArchetypes;
+
+        for (size_t i=0;i<world->GetArchetypeCount();i++)
+        {
+            auto& arche = world->GetRawArchetype()[i];
+
+            Signature common = (arche.mask & requiredRemoveMask);
+            if (common)
+            {
+                std::vector<Entity> entities;
+                for (size_t j=0;j<arche.chunkCount;j++)
+                {
+                    Chunk* chunk = arche.chunks[j];
+
+                    for (size_t k=0;k<chunk->count;k++)
+                        entities.push_back(chunk->entities[k]);
+                }
+
+                if (!entities.empty())
+                {
+                    archetypes.emplace_back(common, entities);
+
+                    Signature newMask = common & requiredAddMask;
+                    if (newMask)
+                        addArchetypes.emplace_back(newMask, entities);
+                }
+            }
+        }
+
+        for (auto&& [mask, entities] : archetypes)
+        {
+            for (auto& entity : entities)
+                world->DelComponentByMask(entity, mask);
+        }
+
+
+        if (!addArchetypes.empty())
+            recreatePerScene.emplace(scene, addArchetypes);
+    }
+
+    HotReloadPass pass;
+    // pass.previousVTables = previousVTables;
+    pass.recreatePerScene = recreatePerScene;
+
+    return pass;
+}
+
+
+void EditorWorkspace::ReloadComponentPass(const EditorWorkspace::HotReloadPass& pass)
+{
+    for (auto&& [scene, archetypes] : pass.recreatePerScene)
+    {
+        auto world = scene->world;
+
+        for (auto&& [mask, entities] : archetypes)
+        {
+            for (auto& entity : entities)
+            {
+                std::cout << "Add: " << entity << ": " << mask << std::endl;
+                world->AddComponentByMask(entity, mask);
+            }
         }
     }
 }
@@ -1869,7 +2024,10 @@ void EditorWorkspace::ShowComponentInfoUI(GameObject& go, const ComponentInfo* i
             ShowUserComponentUI(go.GetComponentByID(info->index));
     }
 
-    // if (!bVisible)
+    if (!bVisible)
+    {
+        go.world->DelComponentByID(go.entity, info->index);
+    }
         // go->DelComponent(info->index);
 
     ImGui::PopID();

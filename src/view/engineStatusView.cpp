@@ -76,7 +76,7 @@ void EngineStatusView::renderer(Scene* scene)
 
         auto world = scene->GetWorldDynamic();
 
-        ImGui::Text("Archetypes: %u", world->GetArchetypeCount());
+        ImGui::Text("Archetypes: %zu", world->GetArchetypeCount());
 
         auto array = world->GetRawArchetype();
 

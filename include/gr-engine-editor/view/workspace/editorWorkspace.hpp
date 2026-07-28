@@ -121,6 +121,10 @@ typedef struct gtreefile
 
 class EditorWorkspace : public IWorkspace
 {
+    struct HotReloadPass
+    {
+        std::unordered_map<Scene*, std::vector<std::tuple<Signature, std::vector<Entity>>>> recreatePerScene;
+    };
 public:
     EditorWorkspace();
     ~EditorWorkspace() override;
@@ -143,6 +147,10 @@ public:
     void dropPath(const std::vector<std::string>& entries) override;
 
     void loadScript(const std::string& dir);
+
+    HotReloadPass CheckComponentInfo(std::vector<ComponentInfo>& components);
+
+    void ReloadComponentPass(const HotReloadPass& pass);
 
     void LoadReources();
     
