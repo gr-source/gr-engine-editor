@@ -1,6 +1,7 @@
 #include "editorApplication.hpp"
 
 #include "event/editorApplicationEvent.hpp"
+#include "gr-base/core/clock.hpp"
 #include "gr-base/managers/eventManager.hpp"
 
 #include "view/workspace/projectBrowserWorkspace.hpp"
@@ -265,7 +266,9 @@ void EditorApplication::onOpenProject(EditorApplicationEvent_onOpenProject* even
 
 void EditorApplication::onCloseProject(IEvent* event)
 {
-    std::cout << "Close" << std::endl;
+    m_workspace = nullptr; // = std::make_unique<ProjectBrowser>();
+
+    m_project = nullptr;
 }
 
 

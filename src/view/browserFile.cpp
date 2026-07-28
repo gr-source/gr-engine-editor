@@ -17,6 +17,8 @@
 #include "gr-base/task/modelsavetask.hpp"
 #include "view/imguiWidget.hpp"
 
+#include <gr-render/texture.h>
+
 #include <algorithm>
 
 BrowserFile::BrowserFile() :

@@ -1,5 +1,6 @@
 #pragma once
 
+/*
 #include <gr-render/gRender.h>
 
 #include <gr-base/script/default.hpp>
@@ -21,7 +22,7 @@ private:
 
     static void CreateMesh();
 };
-
+*/
 
 
 

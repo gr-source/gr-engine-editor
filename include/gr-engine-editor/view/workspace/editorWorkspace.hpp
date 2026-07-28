@@ -21,7 +21,7 @@
 #include "manager/viewManager.hpp"
 #include "plugin/default.hpp"
 
-#include <gr-render/gTexture.h>
+#include <gr-render/default.hpp>
 
 #include <gr-base/script/default.hpp>
 #include <string>
@@ -112,7 +112,7 @@ typedef struct gtreefile
 
     std::string extension;
 
-    AssetPtr<gr::Texture> texture;
+    AssetPtr<gr::texture> texture;
 
     bool bdirectory;
 
@@ -156,7 +156,7 @@ public:
 private:
     std::unordered_map<std::string, std::function<void(GameObject *)>> m_guiscriptmap;
 
-    std::unordered_map<IconType, AssetPtr<gr::Texture>> iconsUI;
+    std::unordered_map<IconType, AssetPtr<gr::texture>> iconsUI;
 
     std::vector<gtreefile *> g_tree_file_selected;
 
@@ -178,7 +178,7 @@ private:
 
     ImGuiViewport *m_viewport;
 
-    AssetPtr<gr::Texture> s_texturePlayGame;
+    AssetPtr<gr::texture> s_texturePlayGame;
 
     uint32_t popupFlags;
 
@@ -253,22 +253,6 @@ private:
 
     void drop_gameobject_in_scene();
 
-    void OpenFileDoubleClick(std::filesystem::path path);
-
-    void PopupFileAndDirmanager();
-
-    void PopupFileManager();
-
-    void PopupCreateDirectory();
-
-    void PopupCreateShader();
-
-    void create_window_console();
-
-    void create_render_console();
-
-    void RenderLog(Log &info);
-
     void create_window_property();
 
     void create_render_property();
@@ -323,17 +307,6 @@ private:
 
     // Loader    
     void PostLoadGameObject(Entity entity);
-
-    void CreateShaderTemplate(const std::string &path, const std::string &name);
-
-    // PopupMenu
-    void RenameMaterial();
-
-    void PluginManager();
-
-    void PopupPluginLoad();
-
-    void PluginEditor();
 
     void set_scene(Scene *scene);
 

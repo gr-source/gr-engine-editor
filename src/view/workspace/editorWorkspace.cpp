@@ -19,6 +19,7 @@
 #include "core/sandbox.hpp"
 #include "editorApplication.hpp"
 
+#include "event/editorApplicationEvent.hpp"
 #include "gr-base/asset/assetResolver.hpp"
 #include "gr-base/core/renderer.hpp"
 #include "gr-base/core/string.hpp"
@@ -52,6 +53,7 @@
 
 #include "task/filmboxLoadTask.hpp"
 
+#include "view/editor/consoleWindowView.hpp"
 #include "view/engineStatusView.hpp"
 #include "view/loadingTaskPopup.hpp"
 // #include "view/popup/filmboximport.hpp"
@@ -90,10 +92,7 @@
 
 #include "core/project.hpp"
 
-#include <gr-ini/config.h>
-#include <gr-math/gmath.hpp>
-#include <gr-math/matrix4x4.hpp>
-#include <gr-render/gTexture.h>
+#include <gr-render/texture.h>
 
 #include <gr-base/core/rendertarget.hpp>
 
@@ -442,10 +441,6 @@ void EditorWorkspace::DrawWorkspace()
 
     create_window_hierarchy();
 
-    // create_window_browser();
-
-    create_window_console();
-
     create_window_property();
 
     create_call_popup();
@@ -507,6 +502,7 @@ void EditorWorkspace::initialize()
     viewManager.getOrAddView<LoadingTaskPopup>();
     viewManager.getOrAddView<ImportAssetViewPopup>();
 
+    viewManager.show<ConsoleWindowView>();
     viewManager.show<BrowserFile>();
 }
 
@@ -521,7 +517,9 @@ void EditorWorkspace::create_dock()
     {
         if (ImGui::BeginMenu("Project"))
         {
-            // if (ImGui::MenuItem("Close"))
+            if (ImGui::MenuItem("Close"))
+                EventManager::NotifyAsync<EditorApplicationEvent_onCloseProject>(nullptr);
+
                 // MainThreadDispatcher::Add(Priority::LOW, &Application::init_project, &Application::GetInstance(), "");
             ImGui::EndMenu();
         }
@@ -587,6 +585,12 @@ void EditorWorkspace::create_dock()
                 bool visible = viewManager.isVisible<EngineStatusView>();
                 if (ImGui::MenuItem("Status", nullptr, &visible))
                     viewManager.setVisible<EngineStatusView>(visible);
+            }
+
+            {
+                bool visible = viewManager.isVisible<ConsoleWindowView>();
+                if (ImGui::MenuItem("Console", nullptr, &visible))
+                    viewManager.setVisible<ConsoleWindowView>(visible);
             }
 
             ImGui::EndMenu();
@@ -1281,6 +1285,7 @@ void EditorWorkspace::OnPlayButton()
 #include "core/cmd/cmd.hpp"
 void EditorWorkspace::OnBuildScript()
 {
+    /*
     Console::LogInfo("[ Build ] Starting pre-build scripting...");
 
     auto builddir = m_project->path + "/.build";
@@ -1324,6 +1329,7 @@ void EditorWorkspace::OnBuildScript()
     Console::LogInfo("[ Build ] Script compiled sucess fully.");
 
     MainThreadDispatcher::Add(Priority::NORMAL, &EditorWorkspace::loadScript, this, builddir + "/lib");
+    */
 }
 
 void EditorWorkspace::OnPostSaveSnapshot(std::string file)
@@ -1407,180 +1413,6 @@ void EditorWorkspace::drop_gameobject_in_scene()
     unselect_all_file();
 
     ImGui::EndDragDropTarget();
-}
-
-void EditorWorkspace::OpenFileDoubleClick(std::filesystem::path path) {
-    auto extension = path.extension().string();
-
-    if (extension != ".hpp" && extension != ".cpp" && extension != ".glsl") {
-        return;
-    }
-
-    system(("xdg-open '" + path.string() + "'").c_str());
-}
-
-void EditorWorkspace::PopupFileAndDirmanager()
-{
-    auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_FileManager | EditorPopupFlags_DirManager));
-    if (!isOpen) 
-    {
-        return;
-    }
-
-    if (g_tree_file_selected.size() > 1)
-    {
-        if (ImGui::BeginListBox("list_items"))
-        {
-            for (auto &tree_file : g_tree_file_selected)
-            {
-                ImGui::Text("%s", tree_file->name.c_str());
-            }
-            ImGui::EndListBox();
-        }
-    } else {
-        ImGui::Text("%s", g_tree_file_selected.back()->name.c_str());
-    }
-
-    static const char *item_list[] {"Delete"};
-
-    int i = 0;
-    if (ImGui::ListBox("##DirManager", &i, item_list, GET_N_ARRAY(item_list)))
-    {
-        switch (i)
-        {
-        case 0:
-            for (auto &tree_file : g_tree_file_selected)
-                gfile::remove(tree_file->path);
-
-            g_tree_file_selected.clear();
-            break;
-        default:
-            break;
-        }
-        updateFileTree(&root_tree_file);
-        
-        ImGui::CloseCurrentPopup();
-    }
-    ImGui::EndPopup();
-}
-
-void EditorWorkspace::PopupFileManager()
-{
-    ImGui::SetNextWindowSize({200.0f, 100.0f});
-    bool isOpenPopup = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_FileManager));
-    if (!isOpenPopup)
-    {
-        return;
-    }
-
-    if (ImguiWidget::ButtonWithComment("Remove", "delete"))
-    {
-        for (auto &file : g_tree_file_selected)
-        {
-            gfile::remove(file->path);
-        }
-
-        unselect_all_file();
-
-        // FIXME: Muito lento
-        updateFileTree(&root_tree_file);
-    }
-
-    ImGui::EndPopup();
-}
-
-void EditorWorkspace::PopupCreateDirectory()
-{
-    auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_CreateNewDir));
-    if (!isOpen)
-    {
-        return;
-    }
-
-    ImGui::Text("Input directory name:");
-    if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
-        ImGui::SetKeyboardFocusHere(0);
-
-    char name[256] = {0};
-    if (ImGui::InputText("##popup_create_directoty_inputtext", name, 256, ImGuiInputTextFlags_EnterReturnsTrue))
-    {
-        gfile::create_directories(g_treefile_dir_selected->path + "/" + std::string(name));
-
-        updateFileTree(g_treefile_dir_selected);
-
-        ImGui::CloseCurrentPopup();
-    }
-
-    ImGui::EndPopup();
-}
-
-void EditorWorkspace::PopupCreateShader()
-{
-    /*
-    auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_CreateShader));
-    if (!isOpen)
-    {
-        return;
-    }
-    ImGui::SeparatorText("Create Shader");
-
-    auto path = mDirSelectedList.back();
-
-    char name[256] = {0};
-    if (ImGui::InputText("##input_text_popup_create_shader_name", name, 256, ImGuiInputTextFlags_EnterReturnsTrue))
-    {
-        CreateShaderTemplate(path.string(), name);
-
-        mDirSelectedList.clear();
-
-        ImGui::CloseCurrentPopup();
-    }
-    ImGui::EndPopup();
-    */
-}
-
-void EditorWorkspace::create_window_console()
-{
-    if (ImGui::Begin("Console"))
-    {
-        create_render_console();
-    }
-    
-    ImGui::End();
-}
-
-void EditorWorkspace::create_render_console()
-{
-    auto logs = Console::GetLogs();
-
-    std::for_each(logs.begin(), logs.end(), std::bind(&EditorWorkspace::RenderLog, this, std::placeholders::_1));
-    
-    if (Console::IsChanged())
-    {
-        ImGui::SetScrollHereY(1.0f);
-        Console::StopChange();
-    }
-}
-
-void EditorWorkspace::RenderLog(Log &info)
-{
-    ImVec4 color = {1.0f, 1.0f, 1.0f, 1.0f};
-    switch (info.type)
-    {
-        case Log::LogType::INFO:
-            color = {0.1f, 0.8f, 0.1f, 1.0f};
-            break;
-        case Log::LogType::WARNING:
-            color = {0.8f, 0.8f, 0.1f, 1.0f};
-            break;
-        case Log::LogType::ERROR:
-            color = {0.8f, 0.1f, 0.1f, 1.0f};
-            break;
-        default:
-            break;
-    }
-
-    ImGui::TextColored(color, "%s", info.message.c_str());
 }
 
 void EditorWorkspace::create_window_property()
@@ -1700,22 +1532,6 @@ void EditorWorkspace::create_popup()
     create_popup_dir_manager();
 
     create_popup_new_material();
-
-    PluginManager();
-
-    PopupPluginLoad();
-
-    PluginEditor();
-
-    RenameMaterial();
-
-    PopupFileAndDirmanager();
-
-    PopupFileManager();
-
-    PopupCreateDirectory();
-
-    PopupCreateShader();
 
     PopupMenuAdd();
 }
@@ -2513,251 +2329,6 @@ void EditorWorkspace::PostLoadGameObject(Entity prefabID)
 
     m_scene->deselect_all();
     m_scene->select(prefabID);
-}
-
-void EditorWorkspace::CreateShaderTemplate(const std::string &path, const std::string &name)
-{
-    std::ofstream os(path + "/" + name + ".glsl");
-    os << "Sample" << std::endl;
-    os.close();
-}
-
-// PopupMenu
-
-// TODO: Precisa adicionar um suport para renoemar o marterial
-void EditorWorkspace::RenameMaterial() {
-    /*
-    auto isOpen = ImGui::BeginPopupModal("##popup_rename_material");
-    if (!isOpen || !m_materialToRename) {
-        return;
-    }
-
-    ImGui::Text("Rename");
-    if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
-        ImGui::SetKeyboardFocusHere(0);
-
-    auto name = AssetsManager::GetRefMaterialToName(m_materialToRename);
-    if (name.size() < 256) {
-        name.resize(256, '\0');
-    }
-
-    if (ImGui::InputText("##popup_rename_file", name.data(), name.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
-        name.erase(std::remove(name.begin(), name.end(), '\0'), name.end());
-
-        // m_materialToRename->setName(name);
-
-        m_materialToRename = nullptr;
-
-        ImGui::CloseCurrentPopup();
-    }
-
-    ImGui::EndPopup();
-    */
-}
-
-/*
-GameObject *EditorWorkspace::CreatePrimitive(int type) {
-    auto go = GameObject::Create("Cube");
-
-    auto mesh = AssetsManager::FindMesh("Cube");
-    if (!mesh) {
-        mesh = AssetsManager::CreateMesh("Cube");
-
-        std::vector<int> indices = {
-            0, 1, 5,  5, 1, 6,
-            1, 2, 6,  6, 2, 7,
-            2, 3, 7,  7, 3, 8,
-            3, 4, 8,  8, 4, 9,
-            10, 11, 0,  0, 11, 1,
-            5, 6, 12, 12, 6, 13
-        };
-
-        std::vector<Vertex3D> vertices = {
-            Vertex3D(Vector3{-1, -1, -1}, Vector3{0, 0, 0}, Vector2{0, 0}, 0),
-            Vertex3D(Vector3{ 1, -1, -1}, Vector3{0, 0, 0}, Vector2{1, 0}, 0),
-
-            Vertex3D(Vector3{ 1,  1, -1}, Vector3{0, 0, 0}, Vector2{2, 0}, 0),
-            Vertex3D(Vector3{-1,  1, -1}, Vector3{0, 0, 0}, Vector2{3, 0}, 0),
-
-            Vertex3D(Vector3{-1, -1, -1}, Vector3{0, 0, 0}, Vector2{4, 0}, 0),
-            Vertex3D(Vector3{-1, -1,  1}, Vector3{0, 0, 0}, Vector2{0, 1}, 0),
-
-            Vertex3D(Vector3{ 1, -1,  1}, Vector3{0, 0, 0}, Vector2{1, 1}, 0),
-            Vertex3D(Vector3{ 1,  1,  1}, Vector3{0, 0, 0}, Vector2{2, 1}, 0),
-
-            Vertex3D(Vector3{-1,  1,  1}, Vector3{0, 0, 0}, Vector2{3, 1}, 0),
-            Vertex3D(Vector3{-1, -1,  1}, Vector3{0, 0, 0}, Vector2{4, 1}, 0),
-
-            Vertex3D(Vector3{-1,  1, -1}, Vector3{0, 0, 0}, Vector2{0, -1}, 0),
-            Vertex3D(Vector3{ 1,  1, -1}, Vector3{0, 0, 0}, Vector2{1, -1}, 0),
-
-            Vertex3D(Vector3{-1,  1,  1}, Vector3{0, 0, 0}, Vector2{0,  2}, 0),
-            Vertex3D(Vector3{ 1,  1,  1}, Vector3{0, 0, 0}, Vector2{1,  2}, 0)
-        };
-
-        for (std::size_t i=0;i<indices.size();i+=3) {
-            auto A = vertices[indices[i] - 1].position;
-            auto B = vertices[indices[i + 1] - 1].position;
-            auto C = vertices[indices[i + 2] - 1].position;
-
-            auto AB = B - A;
-            auto AC = C - A;
-            auto ABxAC = Math::cross(AB, AC);
-         
-            vertices[indices[i] - 1].normal = Math::normalize(vertices[indices[i] - 1].normal + ABxAC);
-            vertices[indices[i + 1] - 1].normal = Math::normalize(vertices[indices[i + 1] - 1].normal + ABxAC);
-            vertices[indices[i + 2] - 1].normal = Math::normalize(vertices[indices[i + 2] - 1].normal + ABxAC);
-        }
-
-        mesh->setIndices(indices);
-        mesh->setVertices(vertices);
-        
-    }
-
-    auto mf = go->addComponent<MeshFilter>();
-    mf->Init();
-    mf->setMesh(mesh);
-
-    auto mr = go->addComponent<MeshRender>();
-    mr->Init();
-
-    mr->addMaterial("DefaultMaterial");
-    // mr->build();
-
-    return GameObject::Instantiate(go);
-}
-*/
-
-#include "plugin/pluginManager.hpp"
-
-void EditorWorkspace::PluginManager()
-{
-    ImVec2 winSize(200, 300);
-
-    auto &resolution = Screen::GetResolution();
-    
-    ImGui::SetNextWindowPos(ImVec2{resolution.x / 2.0f, resolution.y / 2.0f} - (winSize / 2.0f), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(winSize, ImGuiCond_Always);
-    auto isOpen = ImGui::BeginPopup("##popup_plugin_manager");
-    if (!isOpen) { return; }
-
-    auto avail = ImGui::GetContentRegionAvail();
-
-    for (auto plugin : PluginManager::getPluginList()) {
-        auto info = plugin->getPluginInfo();
-
-        char buff[512];
-        sprintf(buff, "%s\n%s", info.name.c_str(), info.description.c_str());
-
-        if (ImGui::Button(buff, ImVec2{avail.x, 0.0f})) {
-            m_plugin = plugin;
-            
-            popupFlags |= EditorPopupFlags_PluginEditor;
-
-            ImGui::CloseCurrentPopup();
-        }
-
-        ImGui::Separator();
-    }
-
-    auto calcTexsize = ImGui::CalcTextSize("Install");
-
-    ImGui::SetCursorPosY(avail.y - calcTexsize.y);
-    if (ImGui::Button("Install", ImVec2{avail.x, 0.0f})) {
-        popupFlags |= EditorPopupFlags_LoadPlugin;
-
-        ImGui::CloseCurrentPopup();
-    }
-
-    ImGui::EndPopup();
-}
-
-void EditorWorkspace::PopupPluginLoad()
-{
-    /*
-    ImVec2 winSize(200, 300);
-
-    auto &resolution = Screen::GetResolution();
-    
-    ImGui::SetNextWindowPos(ImVec2{resolution.x / 2.0f, resolution.y / 2.0f} - (winSize / 2.0f), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(winSize, ImGuiCond_Always);
-    auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_LoadPlugin));
-    if (!isOpen) { return; }
-
-    auto avail = ImGui::GetContentRegionAvail();
-
-    static auto home_dir = File::getHomeDirectory();
-
-    for (auto entry : std::filesystem::directory_iterator(home_dir)) {
-        auto path = entry.path();
-        if (path.filename().string()[0] == '.' || !std::filesystem::exists(path)) { continue; }
-
-        if (ImGui::Button(path.filename().c_str(), ImVec2{avail.x, 0.0f})) {
-            if (std::filesystem::is_directory(path)) {
-                home_dir = path;
-                continue;
-            }
-            
-            if (path.extension() == ".gp") {
-                popupFlags &= ~EditorPopupFlags_LoadPlugin;
-
-                ImGui::CloseCurrentPopup();
-
-                PluginManager::Load(path.string());
-                
-                return ImGui::EndPopup();
-            }
-        }
-    }
-
-    if (ImGui::IsKeyReleased(ImGuiKey_Escape)) {
-        if (home_dir == File::getHomeDirectory()) {
-            popupFlags &= ~EditorPopupFlags_LoadPlugin;
-
-            ImGui::CloseCurrentPopup();
-
-            return ImGui::EndPopup();
-        }
-        home_dir = std::filesystem::path(home_dir).parent_path();
-    }
-
-    ImGui::EndPopup();
-    */
-}
-
-void EditorWorkspace::PluginEditor() {
-    if (!m_plugin) { return; }
-
-    ImVec2 winSize(200, 300);
-
-    auto &resolution = Screen::GetResolution();
-    
-    ImGui::SetNextWindowPos(ImVec2{resolution.x / 2.0f, resolution.y / 2.0f} - (winSize / 2.0f), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(winSize, ImGuiCond_Always);
-
-    auto isOpen = ImGui::BeginPopup("##popup_plugin_editor");
-    if (!isOpen) { return; }
-
-    auto avail = ImGui::GetContentRegionAvail();
-
-    auto info = m_plugin->getPluginInfo();
-
-    ImGui::SeparatorText(info.name.c_str());
-
-    ImGui::Text("%s", info.description.c_str());
-
-    ImGui::Spacing();
-
-    auto textSize = ImGui::CalcTextSize("Remove");
-    ImGui::SetCursorPosY(avail.y - textSize.y);
-
-    if (ImGui::Button("Remove", ImVec2{avail.x, 0.0f})) {
-        PluginManager::Remove(m_plugin);
-        
-        m_plugin = nullptr;
-    }
-
-    ImGui::EndPopup();
 }
 
 void EditorWorkspace::set_scene(Scene *scene)

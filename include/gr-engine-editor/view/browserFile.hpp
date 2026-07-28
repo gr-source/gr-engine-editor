@@ -56,7 +56,7 @@ private:
 
     FileInfo* m_selected_dir;
 
-    AssetPtr<gr::Texture> m_fileTexture;
+    AssetPtr<gr::texture> m_fileTexture;
 
     std::unordered_set<AssetID> m_selected_assets;
 

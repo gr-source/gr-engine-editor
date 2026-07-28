@@ -5,9 +5,7 @@
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
 
-#include <gr-math/matrix4x4.hpp>
-#include <gr-math/quaternion.hpp>
-#include <gr-math/vector3.hpp>
+#include <cassert>
 
 Filmbox::Filmbox()
 {}

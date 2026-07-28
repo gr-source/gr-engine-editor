@@ -7,7 +7,7 @@ class WindowView : public IView
 public:
     bool open = false;
 
-    virtual const char* GetTitle() const = 0;
+    virtual const char* GetTitle() const { return  "NN" ; }
 
     virtual void Draw() = 0;
 

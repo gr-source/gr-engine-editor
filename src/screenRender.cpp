@@ -1,4 +1,5 @@
 #include "screenRender.hpp"
+/*
 
 #include <gr-base/core/geometry/vertex2D.hpp>
 
@@ -27,7 +28,6 @@ u32 ScreenRender::m_vbo = 0;
 void ScreenRender::Initialize() {
     if (!m_shader)
     {
-        /*
         ShaderParams shaderParams;
         shaderParams.name = "screen";
         shaderParams.base = gfile::get_data_directory("/assets/shader/screen.glsl");
@@ -36,7 +36,6 @@ void ScreenRender::Initialize() {
         AssetsManager::LoadShaderAsync(shaderParams,
             [](gr::Shader *shader) { ScreenRender::m_shader = shader; }
         );
-        */
     }
     CreateMesh();
 }
@@ -51,7 +50,6 @@ void ScreenRender::Shutdown() {
 #include <gr-render/gl.h>
 void ScreenRender::Render(Camera *camera)
 {
-    /*
     auto rendertarget = camera->getRenderTarget();
 
     if (!m_shader) {
@@ -88,7 +86,6 @@ void ScreenRender::Render(Camera *camera)
     m_vertexArray->unbind();
     // texture->unbind();
     // m_shader->unbind();
-    */
 }
 
 void ScreenRender::CreateMesh() {
@@ -129,3 +126,5 @@ void ScreenRender::CreateMesh() {
 
     m_vertexArray->unbind();
 }
+*/
+
