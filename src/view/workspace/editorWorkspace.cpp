@@ -2143,20 +2143,18 @@ void EditorWorkspace::render_shader_property(const std::string &name, Material *
     ImGui::TreePop();
 }
 
-void EditorWorkspace::RenderShaderUniform(Material *material, gr::Shader *shader)
+void EditorWorkspace::RenderShaderUniform(Material *material, gr::shader *shader)
 {
-    auto shaderUniforms = shader->GetUniforms();
-
-    for (UniformID id=0;id<shader->GetUniformCount();id++)
+    for (UniformID id=0;id<shader->count;id++)
     {
-        gr::ShaderUniform& uniform = shaderUniforms[id];
+        auto& uniform = shader->uniforms[id];
         if (strstr(uniform.name, "u_mat") != nullptr)
             continue;
 
         switch (uniform.type)
         {
-        case UniformType::MAT3:
-        case UniformType::MAT4:
+        case gr::UniformType::MAT3:
+        case gr::UniformType::MAT4:
             continue;
         default:
             break;
@@ -2166,7 +2164,7 @@ void EditorWorkspace::RenderShaderUniform(Material *material, gr::Shader *shader
 
         switch (uniform.type)
         {
-            case UniformType::VEC3:
+            case gr::UniformType::VEC3:
             {
                 auto value = material->Get<Vector3>(uniform.name);
                 if (value == nullptr)
@@ -2176,7 +2174,7 @@ void EditorWorkspace::RenderShaderUniform(Material *material, gr::Shader *shader
                     ImGui::DragFloat3(("##" + std::string(uniform.name)).c_str(), (float *)value);
                 break;
             }
-            case UniformType::FLOAT:
+            case gr::UniformType::FLOAT:
             {
                 auto value = material->Get<float>(uniform.name);
                 if (value == nullptr)

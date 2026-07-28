@@ -299,7 +299,7 @@ private:
 
     void render_shader_property(const std::string &name, Material *material);
 
-    void RenderShaderUniform(Material *material, gr::Shader *shader);
+    void RenderShaderUniform(Material *material, gr::shader *shader);
 
     void dropShaderInMaterial(Material *material);
 
