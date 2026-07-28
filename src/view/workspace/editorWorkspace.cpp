@@ -1412,7 +1412,7 @@ void EditorWorkspace::create_render_guizmo(Scene *scene, const GameObject* go)
         bool changed = ImGuizmo::Manipulate(&viewmatrix[0][0], &projection[0][0], m_guizmoOperation, m_guizmoManipulate, &manipulatedWorld[0][0]);
         if (changed)
         {
-            scene->MarkChanged<Transform>(entity);
+            // scene->MarkChanged<Transform>(entity);
 
             Matrix4x4 localMatrix = manipulatedWorld;
 
@@ -1444,7 +1444,9 @@ void EditorWorkspace::create_render_guizmo(Scene *scene, const GameObject* go)
                     transform->position
                 );
 
-            m_scene->MarkChildrenDirty(entity);
+            transform->dirty = true;
+
+            // m_scene->MarkChildrenDirty(entity);
         }
 
         /*
@@ -2139,8 +2141,10 @@ void EditorWorkspace::OnPropertyTransform(GameObject& go, Transform *transform)
         dirty = true;
     }
 
-    if (dirty)
-        m_scene->MarkChildrenDirty(go.entity);
+    transform->dirty = dirty;
+
+    // if (dirty)
+        // m_scene->MarkChildrenDirty(go.entity);
 }
 
 void EditorWorkspace::OnPropertyCamera(GameObject& go, Camera *camera)

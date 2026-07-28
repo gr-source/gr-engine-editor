@@ -28,7 +28,7 @@ void SpawnObject::renderer(Scene* scene)
 
     if (ImGui::Button("Spawn"))
     {
-        // AssetsManager::LoadGameObjectFromFile("/home/NoirVoid/gr-engine/MySecondProject/assets/model/BirchTree_1.mdl", &SpawnObject::SetPrefab, this);
+        AssetsManager::LoadGameObjectAsync("project://model/Cubo", &SpawnObject::SetPrefab, this);
     }
 
     ImGui::SameLine();
@@ -70,6 +70,8 @@ void SpawnObject::SetPrefab(Entity prefabID)
 
             auto transform = gameObject.GetOrAddComponent<Transform>();
             transform->position = {(float)targetX * 5.5f, 0.0f, (float)targetZ * 4.5f};
+
+            gameObject.AddComponentByName("CubeMovement");
 
             scene->MarkChanged<Transform>(gameObject.entity);
 
