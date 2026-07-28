@@ -293,7 +293,7 @@ private:
 
     void renderDropGameObject(GameObject **ref);
 
-    void OnPropertyTransform(GameObject& go, Transform *transform);
+    void OnPropertyTransform(GameObject& go, TransformLocal *transform);
 
     void OnPropertyCamera(GameObject& go, Camera *camera);
     

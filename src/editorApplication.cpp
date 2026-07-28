@@ -133,8 +133,8 @@ void EditorApplication::drawScene(Scene* scene)
     if (!go.IsAlive())
         return;
 
-    Transform* transform =
-        go.GetComponent<Transform>();
+    TransformLocal* transform =
+        go.GetComponent<TransformLocal>();
 
     Camera* camera =
         go.GetComponent<Camera>();
@@ -149,10 +149,10 @@ void EditorApplication::drawScene(Scene* scene)
 
     LightBuffer lightBuffer{0};
 
-    world->Query<Transform, Light>([&](
+    world->Query<TransformLocal, Light>([&](
                 size_t count,
                 Entity*,
-                Transform* transforms,
+                TransformLocal* transforms,
                 Light* lights)
     {
         for (size_t i=0;i<count;i++)

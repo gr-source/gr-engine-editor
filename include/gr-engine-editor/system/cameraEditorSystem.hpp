@@ -20,9 +20,9 @@ public:
 
     void Update(Scene* scene) override;
 
-    void UpdateCursor(Transform* transform);
+    void UpdateCursor(TransformLocal* transform);
 
-    void ProcessMouse(const Vector2 &delta, Transform *transform);
+    void ProcessMouse(const Vector2 &delta, TransformLocal *transform);
 };
 
 template <>
