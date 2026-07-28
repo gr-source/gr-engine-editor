@@ -292,7 +292,7 @@ void* GetVTable(const SystemInfo* info)
     ((void (*)(ISystem*, const ISystem*))(info->constructor))(system, nullptr);
     void* vtable = *(void**)system;
 
-    ((void (*)(ISystem*))(info->constructor))(system);
+    ((void (*)(ISystem*))(info->destructor))(system);
 
     free(system);
     return vtable;
@@ -300,7 +300,8 @@ void* GetVTable(const SystemInfo* info)
 
 void EditorWorkspace::loadScript(const std::string& dir)
 {
-    std::string file = dir + "/libscript.so";
+    const std::string file = dir + "/libscript.so";
+
     if (!gfile::exists(file))
         return;
 
@@ -308,111 +309,139 @@ void EditorWorkspace::loadScript(const std::string& dir)
     if (!sandbox.Run())
         return;
 
-    std::unordered_map<Hash64, const SystemInfo*> newSystemMap;
-    for (auto& systems : kBuiltinSystems)
-        newSystemMap.emplace(systems, nullptr);
+    sandbox.ClosePipes();
 
-    for (auto& info : sandbox.systems)
-        newSystemMap.emplace(info.hash, &info);
+    //
+    // Monta mapa dos sistemas disponíveis no novo módulo
+    //
+    std::unordered_map<Hash64, const SystemInfo*> newSystems;
 
-    std::unordered_map<TypeID, void*> systemAliveMap;
-    std::unordered_set<TypeID> systemReload;
+    for (auto hash : kBuiltinSystems)
+        newSystems.emplace(hash, nullptr);
 
-    for (size_t i=0;i<SystemRegistry::GetCount();i++)
+    for (const auto& info : sandbox.systems)
+        newSystems.emplace(info.hash, &info);
+
+    //
+    // Descobre o que mudou
+    //
+    std::unordered_map<TypeID, void*> previousVTables;
+    std::unordered_set<TypeID> systemsToRecreate;
+    std::unordered_set<TypeID> systemsToRemove;
+
+    for (size_t i = 0; i < SystemRegistry::GetCount(); ++i)
     {
-        auto& info = SystemRegistry::GetSystems()[i];
+        auto& current = SystemRegistry::GetSystems()[i];
 
-        void* vtable = nullptr;
+        auto it = newSystems.find(current.hash);
 
-        bool alive = newSystemMap.find(info.hash) != newSystemMap.end();
-        if (alive)
+        if (it == newSystems.end())
         {
-            auto new_info = newSystemMap[info.hash];
-
-            vtable = GetVTable(&info);
-            if (new_info != nullptr && info.stride != new_info->stride)
-            {
-                systemReload.emplace(info.index);
-
-                std::cout << "REINSTANTIATE: " << info.name << std::endl;
-
-                vtable = nullptr;
-            }
-        } else
-        {
-            Console::LogWarning("[ Script ] Removed system: %s", info.name);
+            Console::LogWarning("[ Script ] Removed system: %s", current.name);
+            systemsToRemove.insert(current.index);
+            continue;
         }
 
-        systemAliveMap.emplace(info.index, vtable);
+        const SystemInfo* updated = it->second;
 
-        newSystemMap.erase(info.hash);
+        if (updated != nullptr)
+        {
+            if (current.stride != updated->stride)
+            {
+                systemsToRecreate.insert(current.index);
+
+                std::cout
+                    << "Reinstantiate: " << current.name
+                    << " | Stride: "
+                    << current.stride
+                    << " -> "
+                    << updated->stride
+                    << std::endl;
+            }
+            else
+            {
+                previousVTables.emplace(current.index, GetVTable(&current));
+            }
+        }
+
+        newSystems.erase(it);
     }
 
-    // Reinserção dos novos systemas
-    std::unordered_map<Scene*, std::vector<TypeID>> systemsToInstantiate;
-    for (auto& systemID : systemReload)
+    //
+    // Remove sistemas antigos e salva quais precisarão ser recriados
+    //
+    std::unordered_map<Scene*, std::vector<TypeID>> recreatePerScene;
+
+    for (Scene* scene : SceneManager::GetScenes())
     {
-        for (auto& scene : SceneManager::GetScenes())
+        for (TypeID id : systemsToRemove)
+            scene->DelSystemByID(id);
+
+        for (TypeID id : systemsToRecreate)
         {
-            auto system = scene->GetSystem(systemID);
-            if (system == nullptr)
+            if (!scene->GetSystem(id))
                 continue;
 
-            systemsToInstantiate[scene].push_back(systemID);
+            recreatePerScene[scene].push_back(id);
+            scene->DelSystemByID(id);
         }
     }
 
-    // Remo das cenas os systemas que não existe na nova build
-    for (auto &&[id, vtable] : systemAliveMap)
-    {
-        if (vtable == nullptr)
-        {
-            for (auto& scene : SceneManager::GetScenes())
-                scene->DelSystemByID(id);
-        }
-    }
-
-    // liberar o modulo da memoria
+    //
+    // Hot reload da DLL
+    //
     ModuleLoader::Unload("script");
 
-    // Verica se ainda é valido na memoria
     if (ModuleLoader::CheckModuleHasInMemory("libscript.so"))
-        return Console::LogError("[ Script ] Fatal error data not unloaded.");
-
-    // Recarrega o modulo com novos dados
-    ModuleLoader::Load("script", file);
-
-    // Apenas para log, imprime novos modulos se houver
-    for (auto &&[hash, info] : newSystemMap)
-        Console::LogInfo("[ Script ] Added system: %s", info->name);
-
-    // Faz checagem de vtable
-    for (auto &&[systemID, oldVTable] : systemAliveMap)
     {
-        if (oldVTable != nullptr)
-        {
-            auto info = SystemRegistry::GetSystemByID(systemID);
-
-            void* newVTable = GetVTable(info);
-            if (oldVTable != newVTable)
-            {
-                for (auto& scene : SceneManager::GetScenes())
-                {
-                    ISystem* system = scene->GetSystem(systemID);
-
-                    void** vtable = (void**)(system);
-                    *vtable = newVTable;
-                }
-
-                Console::LogWarning("[ Script ] VTable realocated for system: %s", info->name);
-            }
-        }
+        Console::LogError("[ Script ] Fatal error: module still loaded.");
+        return;
     }
 
-    for (auto&& [scene, systemIDs] : systemsToInstantiate)
+    ModuleLoader::Load("script", file);
+
+    //
+    // Loga novos sistemas
+    //
+    for (auto&& [hash, info] : newSystems)
     {
-        for (auto& systemID : systemIDs)
-            scene->AddSystemByID(systemID);
+        if (info)
+            Console::LogInfo("[ Script ] Added system: %s", info->name);
+    }
+
+    //
+    // Atualiza VTables quando necessário
+    //
+    for (auto&& [id, oldVTable] : previousVTables)
+    {
+        auto* info = SystemRegistry::GetSystemByID(id);
+        void* newVTable = GetVTable(info);
+
+        if (oldVTable == newVTable)
+            continue;
+
+        for (Scene* scene : SceneManager::GetScenes())
+        {
+            if (ISystem* system = scene->GetSystem(id))
+                *(void**)system = newVTable;
+        }
+
+        Console::LogWarning(
+            "[ Script ] VTable relocated for system: %s",
+            info->name
+        );
+    }
+
+    //
+    // Recria sistemas removidos por mudança de layout
+    //
+    for (auto&& [scene, ids] : recreatePerScene)
+    {
+        for (TypeID id : ids)
+        {
+            if (!scene->GetSystem(id))
+                scene->AddSystemByID(id);
+        }
     }
 }
 
@@ -1283,29 +1312,42 @@ void EditorWorkspace::OnPlayButton()
 }
 
 #include "core/cmd/cmd.hpp"
+
 void EditorWorkspace::OnBuildScript()
 {
-    /*
-    Console::LogInfo("[ Build ] Starting pre-build scripting...");
+    Console::LogInfo("[Build] Starting script build...");
 
-    auto builddir = m_project->path + "/.build";
+    std::string dir = m_project->path;
+    if (!gfile::exists(dir))
+        return Console::LogError("[Build] Project directory not found: %s", dir.c_str());
+
+    auto builddir = dir + "/.build";
     if (!gfile::exists(builddir))
     {
         if (!gfile::create_directory(builddir))
-            return Console::LogError("[ Build ] fail to create directory: %s", builddir.c_str());
+            return Console::LogError("[Build] Failed to create build directory: %s", builddir.c_str());
 
-        auto templatedir = gfile::get_data_directory() + "/assets/script";
+        std::string scriptSkeletonDir = gfile::get_data_directory() + "/assets/script";
+        if (!gfile::exists(scriptSkeletonDir))
+            return Console::LogError(
+                "[Build] Script project files not found: %s",
+                scriptSkeletonDir.c_str());
 
-        gfile::copy(templatedir.c_str(), builddir.c_str());
+        if (!gfile::copy(scriptSkeletonDir.c_str(), builddir.c_str()))
+            return Console::LogError(
+                "[Build] Failed to initialize build directory from script project files.");
     }
 
     auto cmakebuild = builddir + "/build";
     if (!gfile::exists(cmakebuild))
     {
         if (!gfile::create_directory(cmakebuild))
-            return Console::LogError("[ Build ] fail to create directory: %s", cmakebuild.c_str());
+            return Console::LogError("[Build] Failed to create CMake build directory: %s", cmakebuild.c_str());
 
-        std::string cmd = "cd " + cmakebuild + " && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..";
+        std::string cmd =
+            "cd " +
+            cmakebuild +
+            " && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..";
 
         bool retVal = Command::exec(cmd, [](std::string line)
         {
@@ -1313,7 +1355,7 @@ void EditorWorkspace::OnBuildScript()
         });
 
         if (!retVal)
-            return Console::LogError("[ Build ] Falied in to configure build");
+            return Console::LogError("[Build] CMake configuration failed.");
     }
 
     std::string cmd = "cmake --build " + cmakebuild;
@@ -1324,12 +1366,11 @@ void EditorWorkspace::OnBuildScript()
     });
 
     if (!retVal)
-        return Console::LogError("[ Build ] Falied in to build script");
+        return Console::LogError("[Build] Script compilation failed.");
 
-    Console::LogInfo("[ Build ] Script compiled sucess fully.");
+    Console::LogInfo("[Build] Script compiled successfully.");
 
-    MainThreadDispatcher::Add(Priority::NORMAL, &EditorWorkspace::loadScript, this, builddir + "/lib");
-    */
+    MainThreadDispatcher::Queue(&EditorWorkspace::loadScript, this, builddir + "/lib");
 }
 
 void EditorWorkspace::OnPostSaveSnapshot(std::string file)
