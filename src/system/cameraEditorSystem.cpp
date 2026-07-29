@@ -54,7 +54,7 @@ void CameraEditorSystem::Update(Scene *scene)
         transform->position += (Math::normalize(diretion) * m_movementSpeed * (float)Clock::deltaTime);
         transformDirty->version++;
 
-        // scene->MarkChanged<Transform>(go.entity);
+        scene->MarkChanged<Transform>(go.entity);
     }
 
     if (Input::IsMousePress(MOUSE_BUTTON_MIDDLE))
