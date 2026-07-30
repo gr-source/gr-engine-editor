@@ -133,8 +133,8 @@ void EditorApplication::drawScene(Scene* scene)
     if (!go.IsAlive())
         return;
 
-    TransformLocal* transform =
-        go.GetComponent<TransformLocal>();
+    Transform* transform =
+        go.GetComponent<Transform>();
 
     Camera* camera =
         go.GetComponent<Camera>();
@@ -149,10 +149,10 @@ void EditorApplication::drawScene(Scene* scene)
 
     LightBuffer lightBuffer{0};
 
-    world->Query<TransformLocal, Light>([&](
+    world->Query<Transform, Light>([&](
                 size_t count,
                 Entity*,
-                TransformLocal* transforms,
+                Transform* transforms,
                 Light* lights)
     {
         for (size_t i=0;i<count;i++)
@@ -234,7 +234,10 @@ void EditorApplication::saveConfig()
 
     if (m_project != nullptr)
     {
-        auto section = config_create_section(config, "project");
+        auto section =
+            config_find_section(config, "project");
+        if (section == nullptr)
+            section = config_create_section(config, "project");
         config_set_string(section, "path", (m_project->path + "/metadata.ini").c_str());
     }
 

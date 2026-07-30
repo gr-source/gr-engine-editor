@@ -54,6 +54,7 @@ void BrowserFile::Draw()
 {
     if (ImGui::Begin("Browser File"))
         renderer();
+
     ImGui::End();
 }
 
@@ -117,13 +118,13 @@ void BrowserFile::drop_source_in_directories()
     if (!payload || payload->DataSize <= 0 || scene == nullptr)
         return ImGui::EndDragDropTarget();
 
-    auto entity = *reinterpret_cast<Entity*>(payload->Data);
+    Entity entity =
+        *static_cast<Entity*>(payload->Data);
 
     GameObject gameobject(scene, entity);
     if (gameobject.IsAlive())
     {
         URI uri = URI::parse("project://model/" + gameobject.GetName());
-
 
         AssetID id = AssetDB::FindByHash(engine::hash::fnv1_str(uri.toString()));
         if (id == INVALID_ASSET)

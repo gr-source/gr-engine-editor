@@ -199,9 +199,9 @@ EditorWorkspace::EditorWorkspace()
     }
 
     m_guiscriptmap = {
-        {"TransformLocal", [this](GameObject *go)
+        {"Transform", [this](GameObject *go)
             {
-                RenderProperty<TransformLocal>(&EditorWorkspace::OnPropertyTransform, this);
+                RenderProperty<Transform>(&EditorWorkspace::OnPropertyTransform, this);
             }
         },
         INSERT_SCRIPT(Camera),
@@ -893,6 +893,9 @@ void EditorWorkspace::RenderSceneObject(Scene *scene)
 
     ImGui::BeginChild("SceneObjectsScroll");
 
+    if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+        popupFlags |= EditorPopupFlags_SceneAddOption;
+
     ImGuiListClipper clipper;
     clipper.Begin((int)uiList.size());
 
@@ -904,9 +907,6 @@ void EditorWorkspace::RenderSceneObject(Scene *scene)
             ShowGameObjectHierarchy(go);
         }
     }
-
-    if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-        popupFlags |= EditorPopupFlags_SceneAddOption;
 
     if (ImGui::IsKeyReleased(ImGuiKey_F2) && ImGui::IsWindowHovered() && scene->has_object_selected())
         popupFlags |= EditorPopupFlags_RenameGameObject;
@@ -1405,27 +1405,23 @@ void EditorWorkspace::create_render_guizmo(Scene *scene, const GameObject* go)
             continue;
 
         ImGuizmo::SetID(entity);
+        auto transform = entitySelected.GetComponent<Transform>();
 
-        auto transformDirty = entitySelected.GetComponent<TransformDirty>();
-        auto transformLocal = entitySelected.GetComponent<TransformLocal>();
-        auto transformWorld = entitySelected.GetComponent<TransformWorld>();
-
-        auto manipulatedWorld = transformWorld->worldMatrix;
+        auto manipulatedWorld = transform->worldMatrix;
 
         bool changed = ImGuizmo::Manipulate(&viewmatrix[0][0], &projection[0][0], m_guizmoOperation, m_guizmoManipulate, &manipulatedWorld[0][0]);
         if (changed)
         {
-            // transformLocal->dirty = true;
             // scene->MarkChanged<Transform>(entity);
 
             Matrix4x4 localMatrix = manipulatedWorld;
 
-            Relationship* rel = scene->world->GetComponent<Relationship>(entity);
+            Relationship* rel = scene->GetWorldDynamic()->GetComponent<Relationship>(entity);
 
             if (rel != nullptr && rel->parent != INVALID_ENTITY)
             {
                 auto* parentTransform =
-                    scene->world->GetComponent<TransformWorld>(rel->parent);
+                    scene->GetWorldDynamic()->GetComponent<Transform>(rel->parent);
 
                 if (parentTransform != nullptr)
                 {
@@ -1443,12 +1439,14 @@ void EditorWorkspace::create_render_guizmo(Scene *scene, const GameObject* go)
 
             Math::mat4_decompose(
                     localMatrix,
-                    transformLocal->scale,
-                    transformLocal->rotation,
-                    transformLocal->position
+                    transform->scale,
+                    transform->rotation,
+                    transform->position
                 );
-            transformDirty->version++;
-            // m_scene->MarkChildrenDirty(entity);
+
+            // transform->dirty = true;
+
+            m_scene->MarkChildrenDirty(entity);
         }
 
         /*
@@ -1736,6 +1734,8 @@ void EditorWorkspace::create_popup()
     PopupMenuAdd();
 }
 
+#include <gr-base/system/physicsSystem.hpp>
+
 void EditorWorkspace::create_popup_create_scene()
 {
     auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_CreateScene));
@@ -1760,6 +1760,7 @@ void EditorWorkspace::create_popup_create_scene()
         m_scene->AddSystem<CameraSystem>();
 
         m_scene->AddSystem<RenderSystem>();
+        m_scene->AddSystem<PhysicsSystem>();
 
         Entity camera = m_scene->create("MainCamera");
         {
@@ -2121,7 +2122,7 @@ void EditorWorkspace::renderDropGameObject(GameObject **ref)
 }
 
 /* ********** Propriedades ********** */
-void EditorWorkspace::OnPropertyTransform(GameObject& go, TransformLocal *transform)
+void EditorWorkspace::OnPropertyTransform(GameObject& go, Transform *transform)
 {
     static std::vector<const char*> textItemsToVector = {"X:", "Y:", "Z:"};
 
@@ -2143,14 +2144,10 @@ void EditorWorkspace::OnPropertyTransform(GameObject& go, TransformLocal *transf
         dirty = true;
     }
 
-    if (dirty)
-    {
-        auto transformDirty = go.GetComponent<TransformDirty>();
-        transformDirty->version++;
-    }
+    // transform->dirty = dirty;
 
-    // if (dirty)
-        // m_scene->MarkChildrenDirty(go.entity);
+    if (dirty)
+        m_scene->MarkChildrenDirty(go.entity);
 }
 
 void EditorWorkspace::OnPropertyCamera(GameObject& go, Camera *camera)

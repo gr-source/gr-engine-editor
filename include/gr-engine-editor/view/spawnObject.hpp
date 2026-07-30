@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gr-base/asset/assetDB.hpp"
 #include "gr-base/core/default.hpp"
 
 #include "view/windowView.hpp"
@@ -29,6 +30,8 @@ public:
     void Draw() override;
 
 private:
+    AssetInfo* m_info;
+
     void renderer(Scene* scene);
 
     void SetPrefab(Entity prefabID);

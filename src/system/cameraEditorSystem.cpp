@@ -21,8 +21,7 @@ void CameraEditorSystem::Update(Scene *scene)
     if (!go.IsAlive())
         return;
 
-    auto transformDirty = go.GetComponent<TransformDirty>();
-    auto transform = go.GetComponent<TransformLocal>();
+    auto transform = go.GetComponent<Transform>();
 
     Vector3 diretion = type_traits<Vector3>::zero;
 
@@ -52,7 +51,6 @@ void CameraEditorSystem::Update(Scene *scene)
     if (Math::magnitudeSqrt(diretion) > 0.0f)
     {
         transform->position += (Math::normalize(diretion) * m_movementSpeed * (float)Clock::deltaTime);
-        transformDirty->version++;
 
         scene->MarkChanged<Transform>(go.entity);
     }
@@ -61,17 +59,17 @@ void CameraEditorSystem::Update(Scene *scene)
     {
         ProcessMouse(Input::GetMouseDelta(), transform);
 
-        transformDirty->version++;
+        scene->MarkChanged<Transform>(go.entity);
     }
 }
 
-void CameraEditorSystem::UpdateCursor(TransformLocal *transform)
+void CameraEditorSystem::UpdateCursor(Transform *transform)
 {
 
 
 }
 
-void CameraEditorSystem::ProcessMouse(const Vector2 &delta, TransformLocal *transform)
+void CameraEditorSystem::ProcessMouse(const Vector2 &delta, Transform *transform)
 {
     elapsed += delta * m_mouseSensitivity;
 
