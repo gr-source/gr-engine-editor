@@ -18,7 +18,7 @@ public:
 
     Vector2 elapsed;
 
-    void Update(Scene* scene) override;
+    void Update() override;
 
     void UpdateCursor(Transform* transform);
 

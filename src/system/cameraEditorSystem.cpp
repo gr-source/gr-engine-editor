@@ -15,7 +15,7 @@ CameraEditorSystem::CameraEditorSystem() :
     elapsed(type_traits<Vector2>::zero)
 {}
 
-void CameraEditorSystem::Update(Scene *scene)
+void CameraEditorSystem::Update()
 {
     GameObject go(scene, scene->GetCamera());
     if (!go.IsAlive())

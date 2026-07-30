@@ -44,7 +44,7 @@ void SceneInspectorView::renderer(Scene* scene)
 
 void SceneInspectorView::ShowSystemInfo(Scene* scene, const SystemInfo* info, ISystem* system)
 {
-    system->OnGUI(scene);
+    system->OnGUI();
 }
 
 void SceneInspectorView::AddSystemPopup(Scene* scene)
