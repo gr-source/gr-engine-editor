@@ -25,11 +25,11 @@ void SceneInspectorView::renderer(Scene* scene)
         auto info = SystemRegistry::GetSystemByID(systemID);
         assert(info != nullptr);
 
-        auto system = scene->GetSystem(systemID);
+        auto system = scene->GetSystemByID(systemID);
 
         bool valid = system != nullptr;
         if (ImGui::CollapsingHeader(info->name, &valid))
-            ShowSystemInfo(info, system);
+            ShowSystemInfo(scene, info, system);
 
         if (!valid)
             scene->DelSystemByID(systemID);
@@ -42,9 +42,9 @@ void SceneInspectorView::renderer(Scene* scene)
 }
 // private
 
-void SceneInspectorView::ShowSystemInfo(const SystemInfo* info, ISystem* system)
+void SceneInspectorView::ShowSystemInfo(Scene* scene, const SystemInfo* info, ISystem* system)
 {
-    system->OnGUI();
+    system->OnGUI(scene);
 }
 
 void SceneInspectorView::AddSystemPopup(Scene* scene)
@@ -58,7 +58,7 @@ void SceneInspectorView::AddSystemPopup(Scene* scene)
         {
             auto& info = infos[i];
 
-            if (scene->GetSystem(info.index))
+            if (scene->GetSystemByID(info.index))
                 continue;
 
             if (ImGui::MenuItem(info.name))

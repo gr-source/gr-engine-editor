@@ -14,13 +14,13 @@ if(NOT GR_ENGINE_CORE)
     return()
 endif()
 
+message(STATUS "GR_ENGINE_CORE configurada com sucesso: ${GR_ENGINE_CORE}")
+
 find_package(Bullet QUIET)
 if(NOT Bullet_FOUND)
     message(FATAL_ERROR "Please install libbullet-dev")
     return()
 endif()
-
-message(STATUS "GR_ENGINE_CORE configurada com sucesso: ${GR_ENGINE_CORE}")
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 

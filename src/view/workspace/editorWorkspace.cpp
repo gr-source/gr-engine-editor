@@ -391,7 +391,7 @@ void EditorWorkspace::loadScript(const std::string& dir)
 
         for (TypeID id : systemsToRecreate)
         {
-            if (!scene->GetSystem(id))
+            if (!scene->GetSystemByID(id))
                 continue;
 
             recreatePerScene[scene].push_back(id);
@@ -436,7 +436,7 @@ void EditorWorkspace::loadScript(const std::string& dir)
 
         for (Scene* scene : SceneManager::GetScenes())
         {
-            if (ISystem* system = scene->GetSystem(id))
+            if (ISystem* system = scene->GetSystemByID(id))
                 *(void**)system = newVTable;
         }
 
@@ -453,7 +453,7 @@ void EditorWorkspace::loadScript(const std::string& dir)
     {
         for (TypeID id : ids)
         {
-            if (!scene->GetSystem(id))
+            if (!scene->GetSystemByID(id))
                 scene->AddSystemByID(id);
         }
     }

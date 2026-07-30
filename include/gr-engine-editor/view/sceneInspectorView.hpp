@@ -19,7 +19,7 @@ public:
 private:
     void renderer(Scene* scene);
 
-    void ShowSystemInfo(const SystemInfo* info, ISystem* system);
+    void ShowSystemInfo(Scene* scene, const SystemInfo* info, ISystem* system);
 
     void AddSystemPopup(Scene* scene);
 };
