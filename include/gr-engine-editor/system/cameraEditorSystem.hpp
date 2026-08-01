@@ -12,15 +12,14 @@ public:
     CameraEditorSystem();
 
 public:
-    float m_mouseSensitivity;
+    float sensitivity = 0.1f;
 
-    float m_movementSpeed;
+    float m_movementSpeed = 30.0f;
 
-    Vector2 elapsed;
+    float yaw = 0.0f;
+    float pitch = 0.0f;
 
     void Update() override;
-
-    void UpdateCursor(Transform* transform);
 
     void ProcessMouse(const Vector2 &delta, Transform *transform);
 };

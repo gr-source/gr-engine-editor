@@ -189,7 +189,7 @@ void EditorApplication::drawScene(Scene* scene)
         camera->rendertarget
     );
 
-    Frustum::CalculateFrustum(cameraData->viewProjection);
+    Frustum::CalculateFrustum(cameraData->projection * cameraData->view);
 
     Renderer::BeginFrame();
 

@@ -9,10 +9,7 @@
 #include <algorithm>
 #include <gr-base/core/scene.hpp>
 
-CameraEditorSystem::CameraEditorSystem() :
-    m_mouseSensitivity(0.1f),
-    m_movementSpeed(30.0f),
-    elapsed(type_traits<Vector2>::zero)
+CameraEditorSystem::CameraEditorSystem()
 {}
 
 void CameraEditorSystem::Update()
@@ -25,32 +22,39 @@ void CameraEditorSystem::Update()
 
     Vector3 diretion = type_traits<Vector3>::zero;
 
-    Vector3 forward = transform->rotation * type_traits<Vector3>::forward;
-    Vector3 right = transform->rotation * type_traits<Vector3>::right;
+    Vector3 forward = Math::normalize(transform->rotation * type_traits<Vector3>::forward);
+    Vector3 right = Math::normalize(transform->rotation * type_traits<Vector3>::right);
+    Vector3 up = Math::normalize(transform->rotation * type_traits<Vector3>::up);
 
     if (Input::IsKeyPress(KEY_W))
         diretion += forward;
     if (Input::IsKeyPress(KEY_S))
         diretion -= forward;
 
-    if (Input::IsKeyPress(KEY_A))
-        diretion += right;
     if (Input::IsKeyPress(KEY_D))
+        diretion += right;
+    if (Input::IsKeyPress(KEY_A))
         diretion -= right;
 
-    auto position = transform->position;
-    if (Input::IsKeyPress(KEY_UP))
-        diretion.y += 1.0f;
-    if (Input::IsKeyPress(KEY_DOWN))
-        diretion.y -= 1.0f;
+    if (Input::IsKeyPress(KEY_E))
+        diretion += up;
+    if (Input::IsKeyPress(KEY_Q))
+        diretion -= up;
 
     auto dt = Input::GetMouseScroll();
     if (Math::magnitudeSqrt(dt) > 0.0f)
+    {
         m_movementSpeed += dt.y;
+        if (m_movementSpeed < 0.0f)
+            m_movementSpeed = 1.0f;
+    }
 
     if (Math::magnitudeSqrt(diretion) > 0.0f)
     {
-        transform->position += (Math::normalize(diretion) * m_movementSpeed * (float)Clock::deltaTime);
+        diretion = Math::normalize(diretion);
+
+        transform->position +=
+            diretion * m_movementSpeed * (float)Clock::deltaTime;
 
         scene->MarkChanged<Transform>(go.entity);
     }
@@ -63,23 +67,36 @@ void CameraEditorSystem::Update()
     }
 }
 
-void CameraEditorSystem::UpdateCursor(Transform *transform)
+void CameraEditorSystem::ProcessMouse(
+    const Vector2& delta,
+    Transform* transform)
 {
+    float yawDelta =
+        -delta.x * sensitivity;
+
+    float pitchDelta =
+        -delta.y * sensitivity;
+
+    Quaternion yawRotation =
+        Math::angleAxis(
+            Math::rad(yawDelta),
+            type_traits<Vector3>::up
+        );
 
 
+    Quaternion pitchRotation =
+        Math::angleAxis(
+            Math::rad(pitchDelta),
+            type_traits<Vector3>::right
+        );
+
+
+    transform->rotation =
+        Math::normalize(
+            yawRotation *
+            transform->rotation *
+            pitchRotation
+        );
 }
 
-void CameraEditorSystem::ProcessMouse(const Vector2 &delta, Transform *transform)
-{
-    elapsed += delta * m_mouseSensitivity;
-
-    elapsed.y = std::clamp(elapsed.y, -89.0f, 89.0f);
-    elapsed.x = std::fmod(elapsed.x, 360.0f);
-
-    auto rotation = Math::euler({Math::rad(elapsed.y), Math::rad(-elapsed.x), 0.0f});
-
-    rotation = Math::slerp(transform->rotation, rotation, 12.0f * Clock::deltaTime);
-
-    transform->rotation = Math::normalize(rotation);
-}
 

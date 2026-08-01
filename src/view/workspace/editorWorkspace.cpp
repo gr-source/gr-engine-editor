@@ -1410,7 +1410,7 @@ void EditorWorkspace::create_render_guizmo(Scene *scene, const GameObject* go)
         auto manipulatedWorld = transform->worldMatrix;
 
         bool changed = ImGuizmo::Manipulate(&viewmatrix[0][0], &projection[0][0], m_guizmoOperation, m_guizmoManipulate, &manipulatedWorld[0][0]);
-        if (changed)
+        if (changed && false)
         {
             // scene->MarkChanged<Transform>(entity);
 
