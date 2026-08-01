@@ -2121,11 +2121,25 @@ void EditorWorkspace::renderDropGameObject(GameObject **ref)
     */
 }
 
+template<typename T>
+void PrintMatrix(const mat4<T>& m)
+{
+    for (int row = 0; row < 4; row++)
+    {
+        for (int col = 0; col < 4; col++)
+        {
+            std::cout
+                << m[col][row]
+                << "\t";
+        }
+
+        std::cout << '\n';
+    }
+}
+
 /* ********** Propriedades ********** */
 void EditorWorkspace::OnPropertyTransform(GameObject& go, Transform *transform)
 {
-    static std::vector<const char*> textItemsToVector = {"X:", "Y:", "Z:"};
-
     bool dirty = false;
 
     ImGui::Text("Position");
@@ -2138,16 +2152,29 @@ void EditorWorkspace::OnPropertyTransform(GameObject& go, Transform *transform)
     ImGui::Text("Rotation");
     if (ImGui::DragFloat3("##engine_ui_transform_rotation", (float*)&euler))
     {
-        euler.y = std::clamp(euler.y, -89.0f, 89.0f);
+        transform->rotation =
+            Math::normalize(Math::euler(Vector3{Math::rad(euler.x), Math::rad(euler.y), Math::rad(euler.z)}));
 
-        transform->rotation = Math::normalize(Math::euler(Vector3{Math::rad(euler.x), Math::rad(euler.y), Math::rad(euler.z)}));
         dirty = true;
     }
 
+    if (ImGui::Button("Local"))
+    {
+        std::cout << "[ ===== Local(" << go.GetName() << ") ===== ]" << std::endl;
+
+        PrintMatrix(transform->localMatrix);
+    }
+
+    if (ImGui::Button("World"))
+    {
+        std::cout << "[ ===== World(" << go.GetName() << ") ===== ]" << std::endl;
+
+        PrintMatrix(transform->worldMatrix);
+    }
     // transform->dirty = dirty;
 
     if (dirty)
-        m_scene->MarkChildrenDirty(go.entity);
+        m_scene->MarkChanged<Transform>(go.entity);
 }
 
 void EditorWorkspace::OnPropertyCamera(GameObject& go, Camera *camera)
