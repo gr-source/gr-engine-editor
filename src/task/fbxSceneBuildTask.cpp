@@ -15,6 +15,7 @@
 #include "view/loadingTaskPopup.hpp"
 
 #include "gr-base/task/assetSaveTask.hpp"
+#include <stdexcept>
 
 FbxSceneBuildTask::FbxSceneBuildTask(const FbxScene& scene) : m_fbxScene(scene)
 {}
@@ -44,10 +45,6 @@ ModelAsset FbxSceneBuildTask::doInBackground()
         asset.Set("metallic", fbxMaterial.metallic);
         asset.Set("roughness", fbxMaterial.roughness);
         asset.Set("ambientocclusion", fbxMaterial.ao);
-
-        std::cout << "metallic: " << fbxMaterial.metallic << std::endl;
-        std::cout << "roughness: " << fbxMaterial.roughness << std::endl;
-        std::cout << "ambientocclusion: " << fbxMaterial.ao << std::endl;
 
         std::string uri = "project://material/" + m_fbxScene.name + "/" + fbxMaterial.name;
 

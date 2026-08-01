@@ -92,6 +92,7 @@
 
 #include "core/project.hpp"
 
+#include <gr-math/gmath.hpp>
 #include <gr-render/texture.h>
 
 #include <gr-base/core/rendertarget.hpp>
@@ -1104,7 +1105,8 @@ void EditorWorkspace::drop_scene_file_in_viewport()
     ImGui::EndDragDropTarget();
 }
 
-bool gluInvertMatrix(const float m[16], float invOut[16]) {
+bool gluInvertMatrix(const float m[16], float invOut[16])
+{
     float inv[16], det;
     int i;
 
@@ -1371,96 +1373,199 @@ void EditorWorkspace::UpdateResizeSceneFramebuffer()
     }
 }
 
+/*
+template <typename T>
+inline constexpr void decompose(
+        const mat4<T>& mat,
+        vector3<T>& position,
+        quaternion<T>& rotation,
+        vector3<T>& scale) noexcept
+{
+    auto col0 = mat[0];
+    auto col1 = mat[1];
+    auto col2 = mat[2];
+    auto col3 = mat[3];
+
+    auto p = mat[3];
+
+    position =
+        { p.x, p.y, p.z };
+
+    scale =
+    {
+        Math::magnitude(col0),
+        Math::magnitude(col1),
+        Math::magnitude(col2)
+    };
+
+    col0 /= scale.x;
+    col1 /= scale.y;
+    col2 /= scale.z;
+
+    rotation = Math::normalize<Quaternion>(Math::Mat4ToQuat(mat));
+}
+*/
+
+template <typename T>
+inline constexpr void decompose2(
+    const mat4<T>& mat,
+    vector3<T>& position,
+    quaternion<T>& rotation,
+    vector3<T>& scale) noexcept
+{
+    // Translation
+    position.x = mat[3][0];
+    position.y = mat[3][1];
+    position.z = mat[3][2];
+
+    // Extract basis vectors
+    Vector4 xAxis = mat[0];
+    Vector4 yAxis = mat[1];
+    Vector4 zAxis = mat[2];
+
+    // Scale
+    scale.x = Math::magnitude(xAxis);
+    scale.y = Math::magnitude(yAxis);
+    scale.z = Math::magnitude(zAxis);
+
+    // Avoid division by zero
+    if (scale.x != T(0))
+        xAxis /= scale.x;
+    if (scale.y != T(0))
+        yAxis /= scale.y;
+    if (scale.z != T(0))
+        zAxis /= scale.z;
+
+    // Math::Mat4ToQuat
+    const T m00 = xAxis.x;
+    const T m01 = xAxis.y;
+    const T m02 = xAxis.z;
+
+    const T m10 = yAxis.x;
+    const T m11 = yAxis.y;
+    const T m12 = yAxis.z;
+
+    const T m20 = zAxis.x;
+    const T m21 = zAxis.y;
+    const T m22 = zAxis.z;
+
+    const T trace = m00 + m11 + m22;
+
+    // W
+    if (trace > T(0))
+    {
+        T s = sqrt(trace + T(1)) * T(2);
+
+        rotation.w = T(0.25) * s;
+        rotation.x = (m12 - m21) / s;
+        rotation.y = (m20 - m02) / s;
+        rotation.z = (m01 - m10) / s;
+    }
+    else if (m00 > m11 && m00 > m22) // X
+    {
+        T s = sqrt(T(1) + m00 - m11 - m22) * T(2);
+
+        rotation.w = (m12 - m21) / s;
+        rotation.x = T(0.25) * s;
+        rotation.y = (m01 + m10) / s;
+        rotation.z = (m02 + m20) / s;
+    }
+    else if (m11 > m22) // Y
+    {
+        T s = sqrt(T(1) + m11 - m00 - m22) * T(2);
+
+        rotation.w = (m20 - m02) / s;
+        rotation.x = (m01 + m10) / s;
+        rotation.y = T(0.25) * s;
+        rotation.z = (m12 + m21) / s;
+    }
+    else // Z
+    {
+        T s = sqrt(T(1) + m22 - m00 - m11) * T(2);
+
+        rotation.w = (m01 - m10) / s;
+        rotation.x = (m02 + m20) / s;
+        rotation.y = (m12 + m21) / s;
+        rotation.z = T(0.25) * s;
+    }
+
+    rotation = Math::normalize(rotation);
+}
+
 void EditorWorkspace::create_render_guizmo(Scene *scene, const GameObject* go)
 {
     if (ImGui::IsWindowHovered() && !mImGuiIO->KeyShift && !mImGuiIO->KeyCtrl)
     {
         if (ImGui::IsKeyReleased(ImGuiKey_G))
-        {
             m_guizmoOperation = ImGuizmo::TRANSLATE;
-        }
     
         if (ImGui::IsKeyReleased(ImGuiKey_R))
-        {
             m_guizmoOperation = ImGuizmo::ROTATE;
-        }
     
         if (ImGui::IsKeyReleased(ImGuiKey_S))
-        {
             m_guizmoOperation = ImGuizmo::SCALE;
-        }
     }
 
     auto camera = go->GetComponent<CameraData>();
 
-    auto viewmatrix = camera->view;
-    auto projection = camera->projection;
-
-    // static bool IsMoving = false;
-    // static std::unordered_set<Transform *> nodeup;
     for (auto entity : scene->get_object_selected())
     {
-        GameObject entitySelected(scene, entity);
-        if (!entitySelected.IsAlive())
+        GameObject gameObject(scene, entity);
+        if (!gameObject.IsAlive())
             continue;
 
-        ImGuizmo::SetID(entity);
-        auto transform = entitySelected.GetComponent<Transform>();
-
-        auto manipulatedWorld = transform->worldMatrix;
-
-        bool changed = ImGuizmo::Manipulate(&viewmatrix[0][0], &projection[0][0], m_guizmoOperation, m_guizmoManipulate, &manipulatedWorld[0][0]);
-        if (changed && false)
-        {
-            // scene->MarkChanged<Transform>(entity);
-
-            Matrix4x4 localMatrix = manipulatedWorld;
-
-            Relationship* rel = scene->GetWorldDynamic()->GetComponent<Relationship>(entity);
-
-            if (rel != nullptr && rel->parent != INVALID_ENTITY)
-            {
-                auto* parentTransform =
-                    scene->GetWorldDynamic()->GetComponent<Transform>(rel->parent);
-
-                if (parentTransform != nullptr)
-                {
-                    Matrix4x4 invParent =
-                        type_traits<Matrix4x4>::identity;
-
-                    if (gluInvertMatrix(
-                            &parentTransform->worldMatrix[0][0],
-                            &invParent[0][0]))
-                    {
-                        localMatrix = invParent * manipulatedWorld;
-                    }
-                }
-            }
-
-            Math::mat4_decompose(
-                    localMatrix,
-                    transform->scale,
-                    transform->rotation,
-                    transform->position
-                );
-
-            // transform->dirty = true;
-
-            m_scene->MarkChildrenDirty(entity);
-        }
-
-        /*
-        static bool isDragging = false;
-        if (ImGuizmo::IsUsing() && !isDragging) 
-        {
-            isDragging = true;
-        }
-        if (isDragging && !ImGuizmo::IsUsing()) 
-        {
-            isDragging = false;
-        }
-        */
+        create_guizmo_manipulate(gameObject, camera->projection, camera->view);
     }
+}
+
+
+void EditorWorkspace::create_guizmo_manipulate(const GameObject& gameObject, const Matrix4x4& projection, const Matrix4x4& view)
+{
+    ImGuizmo::SetID(gameObject.entity);
+    auto transform = gameObject.GetComponent<Transform>();
+
+    auto manipulatedWorld = transform->worldMatrix;
+
+    bool changed =
+        ImGuizmo::Manipulate(
+                &view[0][0],
+                &projection[0][0],
+                m_guizmoOperation,
+                m_guizmoManipulate,
+                &manipulatedWorld[0][0]
+            );
+    if (!changed)
+        return;
+
+    Matrix4x4 localMatrix = manipulatedWorld;
+
+    if (gameObject.HasComponent<Relationship>())
+    {
+        auto rel = gameObject.GetComponent<Relationship>();
+        if (rel->parent != INVALID_ENTITY)
+        {
+            const GameObject parent(gameObject.scene, rel->parent);
+            if (parent.HasComponent<Transform>())
+            {
+                auto transform = parent.GetComponent<Transform>();
+
+                Matrix4x4 invMatrix = type_traits<Matrix4x4>::identity;
+                if (gluInvertMatrix(&transform->worldMatrix[0][0], &invMatrix[0][0]))
+                    localMatrix = invMatrix * manipulatedWorld;
+            }
+        }
+    }
+
+    // auto childLocalMatrix = parentMatrix * manipulatedWorld;
+
+    Math::decompose(
+            localMatrix,
+            transform->position,
+            transform->rotation,
+            transform->scale
+        );
+
+    m_scene->MarkChanged<Transform>(gameObject.entity);
 }
 
 void EditorWorkspace::OnPlayButton()

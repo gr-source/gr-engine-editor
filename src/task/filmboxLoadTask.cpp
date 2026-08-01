@@ -24,6 +24,7 @@
 #include <gr-base/script/transform.hpp>
 
 #include <gr-base/managers/assetsManager.hpp>
+#include <stdexcept>
 
 FilmboxLoadTask::FilmboxLoadTask(const std::string& file) :
     m_file(file),

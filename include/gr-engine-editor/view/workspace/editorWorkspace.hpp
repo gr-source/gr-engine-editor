@@ -249,6 +249,8 @@ private:
 
     void create_render_guizmo(Scene *scene, const GameObject* go);
 
+    void create_guizmo_manipulate(const GameObject& gameObject, const Matrix4x4& projection, const Matrix4x4& view);
+
     void OnPlayButton();
 
     void OnBuildScript();

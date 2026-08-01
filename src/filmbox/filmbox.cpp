@@ -107,11 +107,11 @@ FbxNode Filmbox::readNode(aiNode *mNode, const aiScene *scene)
     
     if (m_boneMap.find(name.C_Str()) != m_boneMap.end())
     {
-        Math::mat4_decompose(
+        Math::decompose(
                 m_boneMap[name.C_Str()],
-                node.scale,
+                node.position,
                 node.rotation,
-                node.position
+                node.scale
             );
     }
 

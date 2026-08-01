@@ -280,8 +280,6 @@ void BrowserFile::onAssetLoadedDB(IEvent* data)
     {
         Console::LogError("[ BrowserFile ] %s", e.what());
     }
-
-    std::cout << "Loaded DB" << std::endl;
 }
 
 void BrowserFile::onAssetCreated(IEvent* data)
