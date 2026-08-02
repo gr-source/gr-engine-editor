@@ -35,13 +35,13 @@ target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
     ${GR_ENGINE_CORE}/imgui
 )
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(${PROJECT_NAME} PRIVATE
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_options(
         -fsanitize=address,undefined
         -fno-omit-frame-pointer
     )
 
-    target_link_options(${PROJECT_NAME} PRIVATE
+    add_link_options(
         -fsanitize=address,undefined
     )
 endif()

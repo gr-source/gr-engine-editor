@@ -92,6 +92,8 @@ void EditorApplication::dropPath(const std::vector<std::string>& entries)
 // private
 void EditorApplication::beginFrame()
 {
+    // std::cout << "[ ===== BeginFrame ===== ]\n";
+
     auto scene = Scene::GetCurrent();
     if (scene != nullptr)
         scene->BeginFrame();
@@ -99,6 +101,8 @@ void EditorApplication::beginFrame()
 
 void EditorApplication::endFrame()
 {
+    // std::cout << "[ ===== EndFrame ===== ]\n";
+
     auto scene = Scene::GetCurrent();
     if (scene != nullptr)
         scene->EndFrame();
