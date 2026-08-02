@@ -2263,6 +2263,9 @@ void EditorWorkspace::OnPropertyTransform(GameObject& go, TransformLocal *transf
     dirty |= ImGui::DragFloat3("##engine_ui_transform_scale", transform->scale.data);
 
     auto euler = Math::eulerAngles(transform->rotation);
+    euler.x = Math::degree(euler.x);
+    euler.y = Math::degree(euler.y);
+    euler.z = Math::degree(euler.z);
 
     ImGui::Text("Rotation");
     if (ImGui::DragFloat3("##engine_ui_transform_rotation", &euler[0]))
