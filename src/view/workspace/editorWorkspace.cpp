@@ -2254,29 +2254,15 @@ void EditorWorkspace::OnPropertyTransform(GameObject& go, Transform *transform)
     dirty |= ImGui::DragFloat3("##engine_ui_transform_scale", transform->scale.data);
 
     auto euler = Math::eulerAngles(transform->rotation);
+
     ImGui::Text("Rotation");
-    if (ImGui::DragFloat3("##engine_ui_transform_rotation", (float*)&euler))
+    if (ImGui::DragFloat3("##engine_ui_transform_rotation", &euler[0]))
     {
         transform->rotation =
             Math::normalize(Math::euler(Vector3{Math::rad(euler.x), Math::rad(euler.y), Math::rad(euler.z)}));
 
         dirty = true;
     }
-
-    if (ImGui::Button("Local"))
-    {
-        std::cout << "[ ===== Local(" << go.GetName() << ") ===== ]" << std::endl;
-
-        PrintMatrix(transform->localMatrix);
-    }
-
-    if (ImGui::Button("World"))
-    {
-        std::cout << "[ ===== World(" << go.GetName() << ") ===== ]" << std::endl;
-
-        PrintMatrix(transform->worldMatrix);
-    }
-    // transform->dirty = dirty;
 
     if (dirty)
         m_scene->MarkChanged<Transform>(go.entity);
