@@ -22,10 +22,10 @@ extern "C"
 
 #include <gr-math/gmath.hpp>
 
-struct LightData
+struct __attribute__((aligned(16))) LightData
 {
-    Vector3 position;
-    Vector3 direction;
+    Vector4 position;
+    Vector4 direction;
 
     Color color;
 
@@ -34,16 +34,16 @@ struct LightData
                            // z = quadratic
                            // w = tipo
 
-    Vector3 spot;       // x = cos(innerCone)
+    Vector4 spot;       // x = cos(innerCone)
                            // y = cos(outerCone)
                            // z,w = reservados
 };
 
-typedef struct CameraBuffer
+typedef struct __attribute__((aligned(16))) CameraBuffer
 {
     Matrix4x4 projection;
     Matrix4x4 view;
-    Vector3 position;
+    Vector4 position;
 } CameraBuffer;
 
 #define MAX_NUM_LIGHT 10

@@ -122,7 +122,7 @@ void EditorApplication::renderer()
     gr::gRender::SetEnable(GR_DEPTH, false);
     gr::gRender::SetEnable(GR_CULL_FACE, true);
     gr::gRender::SetRenderState(gr::GR_BACKGROUND, gr::GR_COLOR_BUFFER);
-    gr::gRender::SetBackgroundColor(Color{0.5f, 0.5f, 0.5f, 1.0f});
+    gr::gRender::SetBackgroundColor(Color{0.5f, 0.5f, 0.5f, 1.0f}.data);
     
     ImguiRenderer::Begin();
 
@@ -164,7 +164,7 @@ void EditorApplication::drawScene(Scene* scene)
     CameraBuffer cameraBuffer;
     cameraBuffer.projection = cameraData->projection;
     cameraBuffer.view = cameraData->view;
-    cameraBuffer.position = transform->position;
+    *(Vector3*)(&cameraBuffer.position[0]) = transform->position;
 
     LightBuffer lightBuffer{0};
 
@@ -183,8 +183,8 @@ void EditorApplication::drawScene(Scene* scene)
             auto& light = lights[i];
 
             LightData& data = lightBuffer.lights[lightBuffer.numLights++];
-            data.position = transform.position;
-            data.direction = transform.rotation * type_traits<Vector3>::forward;
+            *(Vector3*)(&data.position[0]) = transform.position;
+            *(Vector3*)(&data.direction[0]) = transform.rotation * type_traits<Vector3>::forward;
 
             data.color = light.color;
             data.params = {
