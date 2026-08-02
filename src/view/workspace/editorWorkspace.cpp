@@ -23,6 +23,7 @@
 #include "gr-base/asset/assetResolver.hpp"
 #include "gr-base/core/renderer.hpp"
 #include "gr-base/core/string.hpp"
+#include "gr-base/ecs/componentRegistry.hpp"
 #include "gr-base/ecs/default.hpp"
 
 #include <gr-base/script/relationship.hpp>
@@ -220,8 +221,17 @@ EditorWorkspace::EditorWorkspace()
     
     m_viewport = ImGui::GetMainViewport();
 
-    SystemRegistry::Register<CameraEditorSystem>();
-    ComponentRegistry::Register<CameraEditor>(false);
+#define REGISTER_SYSTEM(K, ...) \
+    do{ \
+        SystemRegistry::Register<K __VA_OPT__(,) __VA_ARGS__>(); \
+        GetSystemID<K>::id = \
+            TypeId<IdCategory::SYSTEM>::GetID<K>(); \
+    } while (0)
+
+    REGISTER_SYSTEM(CameraEditorSystem);
+
+#undef REGISTER_SYSTEM
+    // ComponentRegistry::Register<CameraEditor>(false);
 
     initialize();
 

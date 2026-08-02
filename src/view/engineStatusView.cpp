@@ -18,7 +18,7 @@ void EngineStatusView::Draw()
 {
     Scene* scene = Scene::GetCurrent();
 
-    if (ImGui::Begin("Status") && scene != nullptr)
+    if (ImGui::Begin("Status"))
         renderer(scene);
     ImGui::End();
 }
@@ -70,7 +70,7 @@ void EngineStatusView::renderer(Scene* scene)
         }
     }
 
-    if (ImGui::CollapsingHeader("ECS"))
+    if (ImGui::CollapsingHeader("ECS") && scene != nullptr)
     {
         ImGui::Text("Entities: %ld", scene->GetEntityCount());
 
