@@ -228,7 +228,7 @@ ModelAsset FbxSceneBuildTask::readNode(const FbxNode* fbxNode)
     for (auto& child : fbxNode->children)
         children.push_back(readNode(&child));
 
-    Transform transform;
+    TransformLocal transform;
     transform.position = fbxNode->position;
     transform.rotation = fbxNode->rotation;
     transform.scale = fbxNode->scale;
@@ -240,7 +240,7 @@ ModelAsset FbxSceneBuildTask::readNode(const FbxNode* fbxNode)
     asset.materials = materials;
     asset.mesh = mesh;
 
-    asset.AddComponent<Transform>(transform);
+    asset.AddComponent<TransformLocal>(transform);
 
     return asset;
 }

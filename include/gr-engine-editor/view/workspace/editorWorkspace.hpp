@@ -212,6 +212,8 @@ private:
 
     std::vector<Entity> uiList;
 
+    std::vector<Entity> entitiesMarker;
+
     ViewManager viewManager;
 
     void initialize();
@@ -295,7 +297,7 @@ private:
 
     void renderDropGameObject(GameObject **ref);
 
-    void OnPropertyTransform(GameObject& go, Transform *transform);
+    void OnPropertyTransform(GameObject& go, TransformLocal *transform);
 
     void OnPropertyCamera(GameObject& go, Camera *camera);
     
@@ -354,13 +356,4 @@ inline void EditorWorkspace::RenderProperty(Args&&... args)
 
     std::invoke(std::bind(std::forward<Args>(args)..., go, go.GetComponent<T>()));
 }
-
-class PhysicsTask : public IAsyncTask<int>
-{
-public:
-    PhysicsTask();
-
-private:
-    int doInBackground() override;
-};
 

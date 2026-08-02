@@ -2,6 +2,7 @@
 
 #include "event/editorApplicationEvent.hpp"
 #include "gr-base/core/clock.hpp"
+#include "gr-base/core/scene.hpp"
 #include "gr-base/managers/eventManager.hpp"
 
 #include "view/workspace/projectBrowserWorkspace.hpp"
@@ -67,13 +68,19 @@ void EditorApplication::shutdown()
     saveConfig();
 }
 
+#include <gr-base/managers/sceneManager.hpp>
+
 void EditorApplication::run()
 {
+    beginFrame();
+
     runtime.process();
 
     update();
 
     renderer();
+
+    endFrame();
 }
 
 void EditorApplication::dropPath(const std::vector<std::string>& entries)
@@ -83,19 +90,31 @@ void EditorApplication::dropPath(const std::vector<std::string>& entries)
 }
 
 // private
+void EditorApplication::beginFrame()
+{
+    auto scene = Scene::GetCurrent();
+    if (scene != nullptr)
+        scene->BeginFrame();
+}
+
+void EditorApplication::endFrame()
+{
+    auto scene = Scene::GetCurrent();
+    if (scene != nullptr)
+        scene->EndFrame();
+}
+
 void EditorApplication::update()
 {
     if (m_workspace != nullptr)
         m_workspace->Update();
 }
 
-#include <gr-base/managers/sceneManager.hpp>
-
 #include <gr-base/core/renderer.hpp>
 
 void EditorApplication::renderer()
 {
-    auto scene = SceneManager::GetCurrent();
+    auto scene = Scene::GetCurrent();
     if (scene != nullptr)
         drawScene(scene);
 
@@ -133,8 +152,8 @@ void EditorApplication::drawScene(Scene* scene)
     if (!go.IsAlive())
         return;
 
-    Transform* transform =
-        go.GetComponent<Transform>();
+    TransformLocal* transform =
+        go.GetComponent<TransformLocal>();
 
     Camera* camera =
         go.GetComponent<Camera>();
@@ -149,10 +168,10 @@ void EditorApplication::drawScene(Scene* scene)
 
     LightBuffer lightBuffer{0};
 
-    world->Query<Transform, Light>([&](
+    world->Query<TransformLocal, Light>([&](
                 size_t count,
                 Entity*,
-                Transform* transforms,
+                TransformLocal* transforms,
                 Light* lights)
     {
         for (size_t i=0;i<count;i++)

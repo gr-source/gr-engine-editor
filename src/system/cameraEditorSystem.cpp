@@ -18,7 +18,7 @@ void CameraEditorSystem::Update()
     if (!go.IsAlive())
         return;
 
-    auto transform = go.GetComponent<Transform>();
+    auto transform = go.GetComponent<TransformLocal>();
 
     Vector3 diretion = type_traits<Vector3>::zero;
 
@@ -56,20 +56,20 @@ void CameraEditorSystem::Update()
         transform->position +=
             diretion * m_movementSpeed * (float)Clock::deltaTime;
 
-        scene->MarkChanged<Transform>(go.entity);
+        scene->MarkChanged<TransformWorld>(go.entity);
     }
 
     if (Input::IsMousePress(MOUSE_BUTTON_MIDDLE))
     {
         ProcessMouse(Input::GetMouseDelta(), transform);
 
-        scene->MarkChanged<Transform>(go.entity);
+        scene->MarkChanged<TransformWorld>(go.entity);
     }
 }
 
 void CameraEditorSystem::ProcessMouse(
     const Vector2& delta,
-    Transform* transform)
+    TransformLocal* transform)
 {
     float yawDelta =
         -delta.x * sensitivity;

@@ -201,9 +201,9 @@ EditorWorkspace::EditorWorkspace()
     }
 
     m_guiscriptmap = {
-        {"Transform", [this](GameObject *go)
+        {"TransformLocal", [this](GameObject *go)
             {
-                RenderProperty<Transform>(&EditorWorkspace::OnPropertyTransform, this);
+                RenderProperty<TransformLocal>(&EditorWorkspace::OnPropertyTransform, this);
             }
         },
         INSERT_SCRIPT(Camera),
@@ -1532,9 +1532,10 @@ void EditorWorkspace::create_render_guizmo(Scene *scene, const GameObject* go)
 void EditorWorkspace::create_guizmo_manipulate(const GameObject& gameObject, const Matrix4x4& projection, const Matrix4x4& view)
 {
     ImGuizmo::SetID(gameObject.entity);
-    auto transform = gameObject.GetComponent<Transform>();
+    auto transform = gameObject.GetComponent<TransformWorld>();
+    auto transformLocal = gameObject.GetComponent<TransformLocal>();
 
-    auto manipulatedWorld = transform->worldMatrix;
+    auto manipulatedWorld = transform->world;
 
     bool changed =
         ImGuizmo::Manipulate(
@@ -1555,12 +1556,12 @@ void EditorWorkspace::create_guizmo_manipulate(const GameObject& gameObject, con
         if (rel->parent != INVALID_ENTITY)
         {
             const GameObject parent(gameObject.scene, rel->parent);
-            if (parent.HasComponent<Transform>())
+            if (parent.HasComponent<TransformWorld>())
             {
-                auto transform = parent.GetComponent<Transform>();
+                auto transform = parent.GetComponent<TransformWorld>();
 
                 Matrix4x4 invMatrix = type_traits<Matrix4x4>::identity;
-                if (gluInvertMatrix(&transform->worldMatrix[0][0], &invMatrix[0][0]))
+                if (gluInvertMatrix(&transform->world[0][0], &invMatrix[0][0]))
                     localMatrix = invMatrix * manipulatedWorld;
             }
         }
@@ -1570,12 +1571,12 @@ void EditorWorkspace::create_guizmo_manipulate(const GameObject& gameObject, con
 
     Math::decompose(
             localMatrix,
-            transform->position,
-            transform->rotation,
-            transform->scale
+            transformLocal->position,
+            transformLocal->rotation,
+            transformLocal->scale
         );
 
-    m_scene->MarkChanged<Transform>(gameObject.entity);
+    m_scene->MarkChanged<TransformWorld>(gameObject.entity);
 }
 
 void EditorWorkspace::OnPlayButton()
@@ -1661,8 +1662,6 @@ void EditorWorkspace::OnPostLoadSnapshot(Scene* scene)
     m_scene = scene;
 
     Settings::bGameRunning = true;
-
-    TaskManager::Add<PhysicsTask>();
 
     // ComponentStorage::Start();
 
@@ -2253,7 +2252,7 @@ void PrintMatrix(const mat4<T>& m)
 }
 
 /* ********** Propriedades ********** */
-void EditorWorkspace::OnPropertyTransform(GameObject& go, Transform *transform)
+void EditorWorkspace::OnPropertyTransform(GameObject& go, TransformLocal *transform)
 {
     bool dirty = false;
 
@@ -2275,7 +2274,7 @@ void EditorWorkspace::OnPropertyTransform(GameObject& go, Transform *transform)
     }
 
     if (dirty)
-        m_scene->MarkChanged<Transform>(go.entity);
+        m_scene->MarkChanged<TransformWorld>(go.entity);
 }
 
 void EditorWorkspace::OnPropertyCamera(GameObject& go, Camera *camera)
@@ -2837,25 +2836,5 @@ void EditorWorkspace::RebuildHierarchyVector()
     }
 }
 
-PhysicsTask::PhysicsTask()
-{}
-
-#include "gr-base/physics/physicsScene.hpp"
-
-int PhysicsTask::doInBackground()
-{
-    gtimer time(60.0f);
-
-    while (Settings::bGameRunning)
-    {
-        time.begin_frame();
-
-        PhysicsScene::Update(time.get_delta());
-
-        time.end_frame();
-    }
-
-    return 0;
-}
 
 

@@ -85,6 +85,10 @@ private:
     engine::renderer::UniformBuffer cameraUBO;
     engine::renderer::UniformBuffer lightUBO;
 
+    void beginFrame();
+
+    void endFrame();
+
     void update();
 
     void renderer();

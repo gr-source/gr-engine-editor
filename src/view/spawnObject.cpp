@@ -98,12 +98,12 @@ void SpawnObject::SetPrefab(Entity prefabID)
             auto name = gameObject.GetOrAddComponent<Name>();
             name->value = strdup(str.c_str());
 
-            auto transform = gameObject.GetOrAddComponent<Transform>();
+            auto transform = gameObject.GetComponent<TransformLocal>();
             transform->position = {(float)targetX * 5.5f, 0.0f, (float)targetZ * 4.5f};
 
             gameObject.AddComponentByName("CubeMovement");
 
-            scene->MarkChanged<Transform>(gameObject.entity);
+            scene->MarkChanged<TransformWorld>(gameObject.entity);
 
             m_instances.push_back(gameObject.entity);
         }
