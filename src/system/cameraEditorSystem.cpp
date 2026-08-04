@@ -14,7 +14,7 @@ CameraEditorSystem::CameraEditorSystem()
 
 void CameraEditorSystem::Update()
 {
-    GameObject go(scene, scene->GetCamera());
+    GameObject go(scene, scene->GetMainCamera());
     if (!go.IsAlive())
         return;
 
@@ -42,14 +42,14 @@ void CameraEditorSystem::Update()
         diretion -= up;
 
     auto dt = Input::GetMouseScroll();
-    if (Math::magnitudeSqrt(dt) > 0.0f)
+    if (Math::lengthSq(dt) > 0.0f)
     {
         m_movementSpeed += dt.y;
         if (m_movementSpeed < 0.0f)
             m_movementSpeed = 1.0f;
     }
 
-    if (Math::magnitudeSqrt(diretion) > 0.0f)
+    if (Math::lengthSq(diretion) > 0.0f)
     {
         diretion = Math::normalize(diretion);
 

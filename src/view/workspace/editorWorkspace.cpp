@@ -20,7 +20,6 @@
 #include "editorApplication.hpp"
 
 #include "event/editorApplicationEvent.hpp"
-#include "gr-base/asset/assetResolver.hpp"
 #include "gr-base/core/renderer.hpp"
 #include "gr-base/core/string.hpp"
 #include "gr-base/ecs/componentRegistry.hpp"
@@ -30,9 +29,7 @@
 #include <gr-base/script/name.hpp>
 
 #include "gr-base/ecs/systemRegistry.hpp"
-#include "gr-base/task/modelsavetask.hpp"
 #include "Global.h"
-#include "core/time.hpp"
 
 #include "script/cameraEditor.hpp"
 
@@ -56,13 +53,10 @@
 
 #include "view/editor/consoleWindowView.hpp"
 #include "view/engineStatusView.hpp"
+#include "view/imguiRenderer.hpp"
 #include "view/loadingTaskPopup.hpp"
-// #include "view/popup/filmboximport.hpp"
 #include "view/sceneInspectorView.hpp"
 #include "view/spawnObject.hpp"
-// #include "view/worldManagerView.hpp"
-#include "view/imguiWidget.hpp"
-
 
 #include <gr-base/core/window.hpp>
 
@@ -76,10 +70,6 @@
 #include <gr-base/core/console.hpp>
 #include <gr-base/core/display.hpp>
 #include <gr-base/core/scene.hpp>
-
-#include "plugin/pluginManager.hpp"
-
-#include "core/screen.hpp"
 
 #include <gr-base/script/meshFilter.hpp>
 #include <gr-base/script/meshRender.hpp>
@@ -170,8 +160,6 @@ EditorWorkspace::EditorWorkspace()
 
     s_texturePlayGame = HANDLE_INVALID;
 
-    g_treefile_dir_selected = nullptr;
-    
     popupFlags = 0;
 
     FPSColor = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -261,13 +249,6 @@ EditorWorkspace::EditorWorkspace()
     {
         Console::LogError("Fatal error in script: %s", e.what());
     }
-
-    root_tree_file.path = m_project->path + "/assets";
-    root_tree_file.name = "Assets";
-    root_tree_file.parent = nullptr;
-    root_tree_file.bdirectory = true;
-
-    updateFileTree(&root_tree_file);
 
     Window::SetWindowTitle(String::format("GR - %s", m_project->name.c_str()).c_str());
 
@@ -895,11 +876,10 @@ void EditorWorkspace::drop_gameobject(std::function<void (Entity)> func)
 
 void EditorWorkspace::RenderSceneObject(Scene *scene)
 {
-    if (scene->hierarchyDirty)
+    if (scene->CanSyncHierarchyUI())
     {
-        RebuildHierarchyVector();
-
-        scene->hierarchyDirty = false;
+        uiEntityList.clear();
+        scene->GetRootEntities(uiEntityList);
     }
 
     ImGui::BeginChild("SceneObjectsScroll");
@@ -908,13 +888,13 @@ void EditorWorkspace::RenderSceneObject(Scene *scene)
         popupFlags |= EditorPopupFlags_SceneAddOption;
 
     ImGuiListClipper clipper;
-    clipper.Begin((int)uiList.size());
+    clipper.Begin((int)uiEntityList.size());
 
     while (clipper.Step())
     {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
         {
-            GameObject go(scene, uiList[i]);
+            GameObject go(scene, uiEntityList[i]);
             ShowGameObjectHierarchy(go);
         }
     }
@@ -1034,7 +1014,7 @@ void EditorWorkspace::PopupMenuAdd()
         switch (id)
         {
         case 0:
-            PostLoadGameObject(m_scene->create("Empty "));
+            m_scene->create("Empty");
             break;
         default:
             break;
@@ -1115,136 +1095,6 @@ void EditorWorkspace::drop_scene_file_in_viewport()
     ImGui::EndDragDropTarget();
 }
 
-bool gluInvertMatrix(const float m[16], float invOut[16])
-{
-    float inv[16], det;
-    int i;
-
-    inv[0] = m[5]  * m[10] * m[15] - 
-             m[5]  * m[11] * m[14] - 
-             m[9]  * m[6]  * m[15] + 
-             m[9]  * m[7]  * m[14] +
-             m[13] * m[6]  * m[11] - 
-             m[13] * m[7]  * m[10];
-
-    inv[4] = -m[4]  * m[10] * m[15] + 
-              m[4]  * m[11] * m[14] + 
-              m[8]  * m[6]  * m[15] - 
-              m[8]  * m[7]  * m[14] - 
-              m[12] * m[6]  * m[11] + 
-              m[12] * m[7]  * m[10];
-
-    inv[8] = m[4]  * m[9] * m[15] - 
-             m[4]  * m[11] * m[13] - 
-             m[8]  * m[5] * m[15] + 
-             m[8]  * m[7] * m[13] + 
-             m[12] * m[5] * m[11] - 
-             m[12] * m[7] * m[9];
-
-    inv[12] = -m[4]  * m[9] * m[14] + 
-               m[4]  * m[10] * m[13] +
-               m[8]  * m[5] * m[14] - 
-               m[8]  * m[6] * m[13] - 
-               m[12] * m[5] * m[10] + 
-               m[12] * m[6] * m[9];
-
-    inv[1] = -m[1]  * m[10] * m[15] + 
-              m[1]  * m[11] * m[14] + 
-              m[9]  * m[2] * m[15] - 
-              m[9]  * m[3] * m[14] - 
-              m[13] * m[2] * m[11] + 
-              m[13] * m[3] * m[10];
-
-    inv[5] = m[0]  * m[10] * m[15] - 
-             m[0]  * m[11] * m[14] - 
-             m[8]  * m[2] * m[15] + 
-             m[8]  * m[3] * m[14] + 
-             m[12] * m[2] * m[11] - 
-             m[12] * m[3] * m[10];
-
-    inv[9] = -m[0]  * m[9] * m[15] + 
-              m[0]  * m[11] * m[13] + 
-              m[8]  * m[1] * m[15] - 
-              m[8]  * m[3] * m[13] - 
-              m[12] * m[1] * m[11] + 
-              m[12] * m[3] * m[9];
-
-    inv[13] = m[0]  * m[9] * m[14] - 
-              m[0]  * m[10] * m[13] - 
-              m[8]  * m[1] * m[14] + 
-              m[8]  * m[2] * m[13] + 
-              m[12] * m[1] * m[10] - 
-              m[12] * m[2] * m[9];
-
-    inv[2] = m[1]  * m[6] * m[15] - 
-             m[1]  * m[7] * m[14] - 
-             m[5]  * m[2] * m[15] + 
-             m[5]  * m[3] * m[14] + 
-             m[13] * m[2] * m[7] - 
-             m[13] * m[3] * m[6];
-
-    inv[6] = -m[0]  * m[6] * m[15] + 
-              m[0]  * m[7] * m[14] + 
-              m[4]  * m[2] * m[15] - 
-              m[4]  * m[3] * m[14] - 
-              m[12] * m[2] * m[7] + 
-              m[12] * m[3] * m[6];
-
-    inv[10] = m[0]  * m[5] * m[15] - 
-              m[0]  * m[7] * m[13] - 
-              m[4]  * m[1] * m[15] + 
-              m[4]  * m[3] * m[13] + 
-              m[12] * m[1] * m[7] - 
-              m[12] * m[3] * m[5];
-
-    inv[14] = -m[0]  * m[5] * m[14] + 
-               m[0]  * m[6] * m[13] + 
-               m[4]  * m[1] * m[14] - 
-               m[4]  * m[2] * m[13] - 
-               m[12] * m[1] * m[6] + 
-               m[12] * m[2] * m[5];
-
-    inv[3] = -m[1] * m[6] * m[11] + 
-              m[1] * m[7] * m[10] + 
-              m[5] * m[2] * m[11] - 
-              m[5] * m[3] * m[10] - 
-              m[9] * m[2] * m[7] + 
-              m[9] * m[3] * m[6];
-
-    inv[7] = m[0] * m[6] * m[11] - 
-             m[0] * m[7] * m[10] - 
-             m[4] * m[2] * m[11] + 
-             m[4] * m[3] * m[10] + 
-             m[8] * m[2] * m[7] - 
-             m[8] * m[3] * m[6];
-
-    inv[11] = -m[0] * m[5] * m[11] + 
-               m[0] * m[7] * m[9] + 
-               m[4] * m[1] * m[11] - 
-               m[4] * m[3] * m[9] - 
-               m[8] * m[1] * m[7] + 
-               m[8] * m[3] * m[5];
-
-    inv[15] = m[0] * m[5] * m[10] - 
-              m[0] * m[6] * m[9] - 
-              m[4] * m[1] * m[10] + 
-              m[4] * m[2] * m[9] + 
-              m[8] * m[1] * m[6] - 
-              m[8] * m[2] * m[5];
-
-    det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
-
-    if (det == 0)
-        return false;
-
-    det = 1.0 / det;
-
-    for (i = 0; i < 16; i++)
-        invOut[i] = inv[i] * det;
-
-    return true;
-}
-
 void EditorWorkspace::render_scene(Scene *scene)
 {
     UpdateResizeSceneFramebuffer();
@@ -1283,7 +1133,7 @@ void EditorWorkspace::render_scene(Scene *scene)
     ImGuizmo::SetDrawlist();
     ImGuizmo::SetRect(windowPos.x + cursorPos.x, windowPos.y + cursorPos.y, regionAvail.x, regionAvail.y);
 
-    GameObject obj(m_scene, m_scene->GetCamera());
+    GameObject obj(m_scene, m_scene->GetCurrentCamera());
     if (obj.IsAlive())
     {
         regionAvail = ImGui::GetContentRegionAvail();
@@ -1361,7 +1211,7 @@ void EditorWorkspace::render_scene(Scene *scene)
 
 void EditorWorkspace::UpdateResizeSceneFramebuffer()
 {
-    GameObject obj(m_scene, m_scene->GetCamera());
+    GameObject obj(m_scene, m_scene->GetCurrentCamera());
     if (!obj.IsAlive())
         return;
 
@@ -1381,125 +1231,6 @@ void EditorWorkspace::UpdateResizeSceneFramebuffer()
             rendertarget->resize(static_cast<int>(regionAvail.x), static_cast<int>(regionAvail.y));
         }
     }
-}
-
-/*
-template <typename T>
-inline constexpr void decompose(
-        const mat4<T>& mat,
-        vector3<T>& position,
-        quaternion<T>& rotation,
-        vector3<T>& scale) noexcept
-{
-    auto col0 = mat[0];
-    auto col1 = mat[1];
-    auto col2 = mat[2];
-    auto col3 = mat[3];
-
-    auto p = mat[3];
-
-    position =
-        { p.x, p.y, p.z };
-
-    scale =
-    {
-        Math::magnitude(col0),
-        Math::magnitude(col1),
-        Math::magnitude(col2)
-    };
-
-    col0 /= scale.x;
-    col1 /= scale.y;
-    col2 /= scale.z;
-
-    rotation = Math::normalize<Quaternion>(Math::Mat4ToQuat(mat));
-}
-*/
-
-template <typename T>
-inline constexpr void decompose2(
-    const mat4<T>& mat,
-    vector3<T>& position,
-    quaternion<T>& rotation,
-    vector3<T>& scale) noexcept
-{
-    // Translation
-    position.x = mat[3][0];
-    position.y = mat[3][1];
-    position.z = mat[3][2];
-
-    // Extract basis vectors
-    Vector4 xAxis = mat[0];
-    Vector4 yAxis = mat[1];
-    Vector4 zAxis = mat[2];
-
-    // Scale
-    scale.x = Math::magnitude(xAxis);
-    scale.y = Math::magnitude(yAxis);
-    scale.z = Math::magnitude(zAxis);
-
-    // Avoid division by zero
-    if (scale.x != T(0))
-        xAxis /= scale.x;
-    if (scale.y != T(0))
-        yAxis /= scale.y;
-    if (scale.z != T(0))
-        zAxis /= scale.z;
-
-    // Math::Mat4ToQuat
-    const T m00 = xAxis.x;
-    const T m01 = xAxis.y;
-    const T m02 = xAxis.z;
-
-    const T m10 = yAxis.x;
-    const T m11 = yAxis.y;
-    const T m12 = yAxis.z;
-
-    const T m20 = zAxis.x;
-    const T m21 = zAxis.y;
-    const T m22 = zAxis.z;
-
-    const T trace = m00 + m11 + m22;
-
-    // W
-    if (trace > T(0))
-    {
-        T s = sqrt(trace + T(1)) * T(2);
-
-        rotation.w = T(0.25) * s;
-        rotation.x = (m12 - m21) / s;
-        rotation.y = (m20 - m02) / s;
-        rotation.z = (m01 - m10) / s;
-    }
-    else if (m00 > m11 && m00 > m22) // X
-    {
-        T s = sqrt(T(1) + m00 - m11 - m22) * T(2);
-
-        rotation.w = (m12 - m21) / s;
-        rotation.x = T(0.25) * s;
-        rotation.y = (m01 + m10) / s;
-        rotation.z = (m02 + m20) / s;
-    }
-    else if (m11 > m22) // Y
-    {
-        T s = sqrt(T(1) + m11 - m00 - m22) * T(2);
-
-        rotation.w = (m20 - m02) / s;
-        rotation.x = (m01 + m10) / s;
-        rotation.y = T(0.25) * s;
-        rotation.z = (m12 + m21) / s;
-    }
-    else // Z
-    {
-        T s = sqrt(T(1) + m22 - m00 - m11) * T(2);
-
-        rotation.w = (m01 - m10) / s;
-        rotation.x = (m02 + m20) / s;
-        rotation.y = (m12 + m21) / s;
-        rotation.z = T(0.25) * s;
-    }
-
-    rotation = Math::normalize(rotation);
 }
 
 void EditorWorkspace::create_render_guizmo(Scene *scene, const GameObject* go)
@@ -1560,9 +1291,8 @@ void EditorWorkspace::create_guizmo_manipulate(const GameObject& gameObject, con
             {
                 auto transform = parent.GetComponent<TransformWorld>();
 
-                Matrix4x4 invMatrix = type_traits<Matrix4x4>::identity;
-                if (gluInvertMatrix(&transform->world[0][0], &invMatrix[0][0]))
-                    localMatrix = invMatrix * manipulatedWorld;
+                localMatrix =
+                    Math::inverse(transform->world) * manipulatedWorld;
             }
         }
     }
@@ -1704,25 +1434,21 @@ void EditorWorkspace::drop_gameobject_in_scene()
     if (payload == nullptr)
         return ImGui::EndDragDropTarget();
 
-    std::vector<AssetID> assets(payload->DataSize / sizeof(AssetID), INVALID_ASSET);
-    memcpy(assets.data(), payload->Data, payload->DataSize);
+    size_t count =
+        payload->DataSize / sizeof(AssetID);
 
-    for (auto &assetID : assets)
+    AssetID* assets
+        = (AssetID*)payload->Data;
+
+    for (size_t i=0;i<count;i++)
     {
-        auto info = AssetDB::GetAsset(assetID);
+        auto info = AssetDB::GetAsset(assets[i]);
         if (info == nullptr)
             continue;
 
-        if (info->type== AssetType_Model)
-            AssetsManager::LoadGameObjectAsync(info->uri, &EditorWorkspace::PostLoadGameObject, this);
-
-        /*
-        if (file->extension == HEADER_MODEL_EXTENSION)
-
-        */
+        if (info->type == AssetType_Model)
+            AssetsManager::LoadGameObjectAsync(info->uri, &Scene::select, m_scene);
     }
-
-    unselect_all_file();
 
     ImGui::EndDragDropTarget();
 }
@@ -1748,17 +1474,6 @@ void EditorWorkspace::create_render_property()
 
     ImGui::SeparatorText(objName.c_str());
 
-    bool isStatic = false; // go->GetIsStatic();
-    if (ImGui::Checkbox("static", &isStatic))
-    {
-        // go->SetIsStatic(isStatic);
-
-        // RenderManager::SwitchTo(go->getCacheID(), isStatic);
-    }
-
-    if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("Definir como Estático");
-
     for (auto typeID : m_scene->GetWorldDynamic()->GetAllComponentType(go.entity))
         ShowComponentInfoUI(go, ComponentRegistry::GetComponentByID(typeID));
 
@@ -1772,53 +1487,14 @@ void EditorWorkspace::create_call_popup()
 {
     switch (popupFlags)
     {
-    case EditorPopupFlags_LoadPlugin:
-        ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_LoadPlugin));
-        break;
     case EditorPopupFlags_AddComponent:
         ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_AddComponent));
-        break;
-    case EditorPopupFlags_PluginEditor:
-        ImGui::OpenPopup("##popup_plugin_editor");
-        break;
-    case EditorPopupFlags_CreateMaterial:
-        ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_CreateMaterial));
-        break;
-        /*
-    case EditorPopupFlags_FileManager | EditorPopupFlags_DirManager:
-        ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_FileManager | EditorPopupFlags_DirManager));
-        popupFlags &= ~(EditorPopupFlags_FileManager | EditorPopupFlags_DirManager);
-        break;
-        */
-    case EditorPopupFlags_FileManager:
-        ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_FileManager));
-        break;
-    case EditorPopupFlags_CurrentDirManager:
-        ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_CurrentDirManager));
-        break;
-    case EditorPopupFlags_RenameFileOrDir:
-        ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_RenameFileOrDir));
-        break;
-    case EditorPopupFlags_CreateNewDir:
-        ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_CreateNewDir));
-        break;
-    case EditorPopupFlags_CreateScript:
-        ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_CreateScript));
-        break;
-    case EditorPopupFlags_CreateShader:
-        ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_CreateShader));
-        break;
-    case EditorPopupFlags_RenameGameObject:
-        ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_RenameGameObject));
         break;
     case EditorPopupFlags_SceneAddOption:
         ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_SceneAddOption));
         break;
     case EditorPopupFlags_CreateScene:
         ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_CreateScene));
-        break;
-    case EditorPopupFlags_DirManager:
-        ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_DirManager));
         break;
     default:
         break;
@@ -1834,16 +1510,6 @@ void EditorWorkspace::create_popup()
     create_popup_add_component();
 
     create_popup_rename_object();
-
-    create_popup_create_script();
-
-    create_popup_rename_filedir();
-
-    create_popup_info_dir();
-
-    create_popup_dir_manager();
-
-    create_popup_new_material();
 
     PopupMenuAdd();
 }
@@ -1883,7 +1549,7 @@ void EditorWorkspace::create_popup_create_scene()
             go.GetOrAddComponent<Camera>()->rendertarget = m_backbuffer.get();
         }
 
-        m_scene->SetCamera(camera);
+        m_scene->SetMainCamera(camera);
 
         ImGui::CloseCurrentPopup();
     }
@@ -1977,126 +1643,6 @@ void EditorWorkspace::create_popup_rename_object()
         ImGui::CloseCurrentPopup();
     }
 
-    ImGui::EndPopup();
-}
-
-void EditorWorkspace::create_popup_create_script()
-{
-    auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_CreateScript));
-    if (!isOpen)
-    {
-        return;
-    }
-
-    auto &file_tree = g_tree_file_selected.back();
-
-    ImGui::Text("Input your script name");
-
-    char name[256] = {0};
-    if (ImGui::InputText("##input_text_popup_create_script_name", name, 256, ImGuiInputTextFlags_EnterReturnsTrue))
-    {
-        updateFileTree(file_tree);
-
-        ImGui::CloseCurrentPopup();
-    }
-    ImGui::EndPopup();
-}
-
-void EditorWorkspace::create_popup_rename_filedir()
-{
-    auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_RenameFileOrDir));
-    if (!isOpen)
-    {
-        return;
-    }
-
-    auto &tree_file = g_tree_file_selected.back();
-
-    ImGui::Text("Rename:");
-    if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-        ImGui::SetKeyboardFocusHere(0);
-
-    auto filename = tree_file->name;
-    char name[256] = {0};
-    strcpy(name, filename.c_str());
-
-    if (ImGui::InputText("##popup_rename_file", name, GET_N_ARRAY(name), ImGuiInputTextFlags_EnterReturnsTrue))
-    {
-        // File::rename(tree_file->path, tree_file->parent->path + "/" + name);
-
-        updateFileTree(tree_file->parent);
-        
-        ImGui::CloseCurrentPopup();
-    }
-
-    ImGui::EndPopup();
-}
-
-void EditorWorkspace::create_popup_info_dir()
-{
-    auto isopen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_CurrentDirManager));
-    if (!isopen)
-        return;
-
-    if (ImGui::Selectable("Create directory"))
-        popupFlags |= EditorPopupFlags_CreateNewDir;
-
-    if (ImGui::Selectable("Create script"))
-        popupFlags |= EditorPopupFlags_CreateScript;
-
-    if (ImGui::Selectable("Create material"))
-        popupFlags |= EditorPopupFlags_CreateMaterial;
-
-    ImGui::EndPopup();
-}
-
-void EditorWorkspace::create_popup_dir_manager()
-{
-    auto isopen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_DirManager));
-    if (!isopen)
-        return;
-
-    if (ImGui::Selectable("Create directory"))
-    {
-        popupFlags |= EditorPopupFlags_CreateNewDir;
-    }
-
-    if (ImGui::Selectable("Remove"))
-    {
-        gfile::remove(g_treefile_dir_selected->path);
-
-        g_treefile_dir_selected = g_treefile_dir_selected->parent;
-
-        updateFileTree(g_treefile_dir_selected);
-    }
-
-    ImGui::EndPopup();
-}
-
-void EditorWorkspace::create_popup_new_material()
-{
-    auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_CreateMaterial));
-    if (!isOpen)
-        return;
-
-    ImGui::SeparatorText("Create Material");
-
-    ImGui::Text("Name");
-    if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-        ImGui::SetKeyboardFocusHere(0);
-
-    char name[256] = {0};
-
-    if (ImGui::InputText("##popup_create_material_inputtext", name, GET_N_ARRAY(name), ImGuiInputTextFlags_EnterReturnsTrue))
-    {
-        std::string path = m_project->path + "/assets/material/" + name;
-        /*
-        auto baseRender = s_objectSelected->hasComponent<MeshRender>() ? static_cast<BaseRender *>(s_objectSelected->getComponent<MeshRender>()) : static_cast<BaseRender *>(s_objectSelected->getComponent<SkinnedMeshRender>());
-        if (baseRender != nullptr)
-            baseRender->createMaterial(name);
-        */
-        ImGui::CloseCurrentPopup();
-    }
     ImGui::EndPopup();
 }
 
@@ -2367,7 +1913,7 @@ void EditorWorkspace::OnPropertyMeshRender(GameObject& go, MeshRender *meshRende
     auto avail = ImGui::GetContentRegionAvail();
     
     if (ImGui::Button("Create", {avail.x, 0.0f}))
-        popupFlags |= EditorPopupFlags_CreateMaterial;
+    {}
 
     ImGui::Indent();
     for (size_t i=0;i<meshRender->numMaterials;i++)
@@ -2656,30 +2202,6 @@ void EditorWorkspace::SetupTexture(IconType type, TextureHandle h)
     }
 }
 
-void EditorWorkspace::PostLoadGameObject(Entity prefabID)
-{
-    if (m_scene == nullptr)
-        return;
-
-    m_scene->deselect_all();
-    m_scene->select(prefabID);
-}
-
-void EditorWorkspace::set_scene(Scene *scene)
-{
-    // m_scene = scene;
-
-    // scene->SetCamera(m_cameraID);
-}
-
-void EditorWorkspace::OutputGameObject(GameObject **ref, GameObject *go)
-{
-    // if ((*ref) != nullptr)
-        // GameObject::Destroy((*ref)->GetCacheID());
-
-    // *ref = go;
-}
-
 void EditorWorkspace::generateConfig(const std::string &file)
 {
     /*
@@ -2724,120 +2246,4 @@ void EditorWorkspace::generateConfig(const std::string &file)
     }
     */
 }
-
-void EditorWorkspace::updateFileTree(gtreefile *tree_file)
-{
-    if (!tree_file->bdirectory)
-        return;
-
-    auto &children = tree_file->children;
-
-    std::vector<std::filesystem::directory_entry> files;
-    for (auto &dir : std::filesystem::directory_iterator(tree_file->path))
-    {
-        files.push_back(dir);
-    }
-
-    std::sort(files.begin(), files.end(), [](auto& lhs, auto& rhs) {
-        if (lhs.is_directory() != rhs.is_directory()) {
-            return lhs.is_directory() > rhs.is_directory();
-        }
-        return lhs.path().filename() < rhs.path().filename();
-    });
-
-    children.clear();
-
-    children.resize(files.size());
-    for (std::size_t i=0;i<files.size();i++)
-    {
-        auto &child = children[i];
-
-        child.name          = files[i].path().filename().string();
-        child.path          = files[i].path().string();
-        child.parent        = tree_file;
-        child.extension     = files[i].path().extension();
-        child.bdirectory    = files[i].is_directory();
-
-        auto extension = files[i].path().extension().string();
-
-        auto icon = IconType::ICON_FILE;
-        if (extension == HEADER_MODEL_EXTENSION)
-        {
-            icon = IconType::ICON_GAMEOBJECT;
-        } else if (extension == ".anm")
-        {
-            icon = IconType::ICON_ANIMATION;
-        } else if (extension == ".scn")
-        {
-            icon = IconType::ICON_SCENE;
-        } else if (extension == HEADER_SHADER_EXTENSION)
-        {
-            icon = IconType::ICON_SHADER;
-        } else if (extension == ".hpp" || extension == ".cpp")
-        {
-            icon = IconType::ICON_SCRIPT;
-        } else if (extension == ".png")
-        {
-            icon = IconType::ICON_TEXTURE;
-        }
-
-        child.texture = iconsUI[icon];
-
-        updateFileTree(&child);
-    }
-}
-
-void EditorWorkspace::select_file(gtreefile *file)
-{
-    auto &&[it, added] = g_tree_file_selected_map.emplace(file);
-    if (added)
-        g_tree_file_selected.push_back(file);
-}
-
-void EditorWorkspace::unselect_file(gtreefile *file)
-{
-    g_tree_file_selected.erase(std::remove(g_tree_file_selected.begin(), g_tree_file_selected.end(), file), g_tree_file_selected.end());
-    g_tree_file_selected_map.erase(file);
-}
-
-bool EditorWorkspace::selected_file(gtreefile *file) const
-{
-    return g_tree_file_selected_map.find(file) != g_tree_file_selected_map.end();
-}
-
-void EditorWorkspace::unselect_all_file()
-{
-    g_tree_file_selected.clear();
-    g_tree_file_selected_map.clear();
-}
-
-void EditorWorkspace::delete_file_selected()
-{
-    for (auto &selected : g_tree_file_selected)
-        gfile::remove(selected->path);
-
-    unselect_all_file();
-
-    updateFileTree(&root_tree_file);
-}
-
-void EditorWorkspace::RebuildHierarchyVector()
-{
-    uiList.clear();
-
-    Entity root = m_scene->GetRoot();
-
-    auto rel = m_scene->GetWorldDynamic()->GetComponent<Relationship>(root);
-
-    Entity child = rel->firstChild;
-    while (child != INVALID_ENTITY)
-    {
-        uiList.push_back(child);
-
-        auto cRel = m_scene->GetWorldDynamic()->GetComponent<Relationship>(child);
-        child = cRel->nextSibling;
-    }
-}
-
-
 

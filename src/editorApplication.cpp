@@ -152,18 +152,12 @@ void EditorApplication::drawScene(Scene* scene)
         return;
 // #endif
 
-    const GameObject go(scene, scene->GetCamera());
+    const GameObject go(scene, scene->GetCurrentCamera());
     if (!go.IsAlive())
         return;
 
-    TransformLocal* transform =
-        go.GetComponent<TransformLocal>();
-
-    Camera* camera =
-        go.GetComponent<Camera>();
-
-    CameraData* cameraData =
-        go.GetComponent<CameraData>();
+    auto&&[transform, camera, cameraData] =
+        go.world->GetComponents<TransformLocal, Camera, CameraData>(go.entity);
 
     CameraBuffer cameraBuffer;
     cameraBuffer.projection = cameraData->projection;
@@ -180,7 +174,7 @@ void EditorApplication::drawScene(Scene* scene)
     {
         for (size_t i=0;i<count;i++)
         {
-            if (lightBuffer.numLights >= MAX_NUM_LIGHT)
+            if ((lightBuffer.numLights + 1) >= MAX_NUM_LIGHT)
                 break;
 
             auto& transform = transforms[i];

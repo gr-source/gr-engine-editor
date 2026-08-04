@@ -50,25 +50,10 @@ using EditorPopupFlags_ = std::uint32_t;
 
 enum EditorPopupFlags : EditorPopupFlags_
 {
-    EditorPopupFlags_EngineStatus           = 1,
-    EditorPopupFlags_Settings               = 2,
-    EditorPopupFlags_SkyboxEditor           = 3,
-    EditorPopupFlags_Plugin                 = 4,
-    EditorPopupFlags_LoadPlugin             = 5,
-    EditorPopupFlags_PluginEditor           = 6,
     EditorPopupFlags_AddComponent           = 7,
-    EditorPopupFlags_CreateMaterial         = 8,
-    EditorPopupFlags_CreateMaterialInDir    = 9,
-    EditorPopupFlags_FileManager            = 10,
-    EditorPopupFlags_CurrentDirManager      = 11,
-    EditorPopupFlags_RenameFileOrDir        = 12,
-    EditorPopupFlags_CreateNewDir           = 13,
-    EditorPopupFlags_CreateScript           = 14,
-    EditorPopupFlags_CreateShader           = 15,
     EditorPopupFlags_RenameGameObject       = 16,
     EditorPopupFlags_SceneAddOption         = 17,
-    EditorPopupFlags_CreateScene            = 18,
-    EditorPopupFlags_DirManager             = 19
+    EditorPopupFlags_CreateScene            = 18
 };
 
 #define GET_FLAG_NAME(c) #c
@@ -166,10 +151,6 @@ private:
 
     std::unordered_map<IconType, AssetPtr<gr::texture>> iconsUI;
 
-    std::vector<gtreefile *> g_tree_file_selected;
-
-    std::unordered_set<gtreefile *> g_tree_file_selected_map;
-
     std::shared_ptr<RenderTarget> m_backbuffer;
 
     // ComponentHandle m_cameraID;
@@ -202,15 +183,11 @@ private:
 
     int fps;
 
-    gtreefile root_tree_file;
-
-    gtreefile *g_treefile_dir_selected;
-
     ImGuizmo::OPERATION m_guizmoOperation;
 
     ImGuizmo::MODE m_guizmoManipulate;
 
-    std::vector<Entity> uiList;
+    std::vector<Entity> uiEntityList;
 
     std::vector<Entity> entitiesMarker;
 
@@ -279,16 +256,6 @@ private:
 
     void create_popup_rename_object();
 
-    void create_popup_create_script();
-
-    void create_popup_rename_filedir();
-
-    void create_popup_info_dir();
-
-    void create_popup_dir_manager();
-
-    void create_popup_new_material();
-
     void dropScriptInAddComponent();
 
     void ShowComponentInfoUI(GameObject& go, const ComponentInfo* info);
@@ -317,31 +284,12 @@ private:
 
     void InsertTexture(Material *material);
 
-    // Loader    
-    void PostLoadGameObject(Entity entity);
-
-    void set_scene(Scene *scene);
-
     template <typename T, typename... Args>
     void RenderProperty(Args&&... args);
 
     static void OutputGameObject(GameObject **ref, GameObject *go);
 
     void generateConfig(const std::string &file);
-
-    void updateFileTree(gtreefile *tree_file);
-
-    void select_file(gtreefile *file);
-
-    void unselect_file(gtreefile *file);
-
-    bool selected_file(gtreefile *file) const;
-
-    void unselect_all_file();
-
-    void delete_file_selected();
-
-    void RebuildHierarchyVector();
 };
 
 template <typename T, typename... Args>
