@@ -1,8 +1,17 @@
 #pragma once
 
+class Scene;
+
+struct EditorContext
+{
+    Scene* scene = nullptr;
+};
+
 class IView
 {
 public:
+    EditorContext* context;
+
     virtual ~IView() {}
 
     virtual void Render() = 0;

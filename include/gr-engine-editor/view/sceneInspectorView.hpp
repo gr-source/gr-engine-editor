@@ -9,11 +9,6 @@
 class SceneInspectorView : public WindowView
 {
 public:
-    const char* GetTitle() const override
-    {
-        return "Scene Inspector";
-    }
-
     void Draw() override;
 
 private:

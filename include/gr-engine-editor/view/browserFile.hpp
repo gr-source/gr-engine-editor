@@ -38,11 +38,6 @@ class BrowserFile : public WindowView
 public:
     BrowserFile();
 
-    inline const char* GetTitle() const override
-    {
-        return "Browser File";
-    }
-
 private:
     struct EntryInfo
     {

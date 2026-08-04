@@ -1,7 +1,6 @@
 #include "editorApplication.hpp"
 
 #include "event/editorApplicationEvent.hpp"
-#include "gr-base/core/clock.hpp"
 #include "gr-base/core/scene.hpp"
 #include "gr-base/managers/eventManager.hpp"
 
@@ -11,9 +10,7 @@
 #include "view/imguiRenderer.hpp"
 
 #include "view/projectMenu.hpp"
-#include "view/checkupdate.hpp"
 
-#include <cassert>
 #include <gr-base/core/file/file.hpp>
 
 #include <gr-render/gRender.h>
@@ -146,27 +143,9 @@ void EditorApplication::renderer()
 
 void EditorApplication::drawScene(Scene* scene)
 {
-    auto world = scene->world;
-// #ifdef NDEBUG
-    if (world == nullptr)
-        return;
-// #endif
-
-    const GameObject go(scene, scene->GetCurrentCamera());
-    if (!go.IsAlive())
-        return;
-
-    auto&&[transform, camera, cameraData] =
-        go.world->GetComponents<TransformLocal, Camera, CameraData>(go.entity);
-
-    CameraBuffer cameraBuffer;
-    cameraBuffer.projection = cameraData->projection;
-    cameraBuffer.view = cameraData->view;
-    *(Vector3*)(&cameraBuffer.position[0]) = transform->position;
-
     LightBuffer lightBuffer{0};
 
-    world->Query<TransformLocal, Light>([&](
+    scene->world->Query<TransformLocal, Light>([&](
                 size_t count,
                 Entity*,
                 TransformLocal* transforms,
@@ -199,18 +178,44 @@ void EditorApplication::drawScene(Scene* scene)
         }
     });
 
-    cameraUBO.Update(cameraBuffer);
-    lightUBO.Update(lightBuffer);
-
-    Renderer::SetRenderTarget(
-        camera->rendertarget
-    );
-
-    Frustum::CalculateFrustum(cameraData->projection * cameraData->view);
-
     Renderer::BeginFrame();
 
-    Renderer::Render();
+    scene->world->Query<TransformLocal, Camera, CameraData>(
+            [&](
+                size_t count,
+                Entity*,
+                TransformLocal* transformLocals,
+                Camera* cameras,
+                CameraData* cameraDatas)
+            {
+                for (size_t i=0;i<count;i++)
+                {
+                    auto& transformLocal = transformLocals[i];
+                    auto& cameraData = cameraDatas[i];
+                    auto& camera = cameras[i];
+
+                    CameraBuffer cameraBuffer;
+                    cameraBuffer.projection =
+                        cameraData.projection;
+                    cameraBuffer.view =
+                        cameraData.view;
+                    *(Vector3*)(&cameraBuffer.position[0]) =
+                        transformLocal.position;
+
+
+                    cameraUBO.Update(cameraBuffer);
+                    lightUBO.Update(lightBuffer);
+
+                    Renderer::SetRenderTarget(
+                        camera.rendertarget
+                    );
+
+                    Frustum::CalculateFrustum(cameraData.projection * cameraData.view);
+
+                    Renderer::Render();
+                }
+            }
+        );
 
     Renderer::EndFrame();
 }

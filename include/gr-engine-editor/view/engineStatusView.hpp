@@ -8,11 +8,6 @@ class EngineStatusView : public WindowView
 {
 public:
 private:
-    inline const char* GetTitle() const override
-    {
-        return "Status";
-    }
-
     void Draw() override;
 
     void renderer(Scene* scene);

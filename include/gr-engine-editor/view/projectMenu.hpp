@@ -32,11 +32,6 @@ public:
     ProjectMenu();
     ~ProjectMenu() override;
 
-    const char* GetTitle() const override
-    {
-        return "Project Menu";
-    }
-    
     void Draw() override;
 
 private:

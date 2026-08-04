@@ -224,8 +224,6 @@ private:
 
     void create_render_viewport();
 
-    void drop_scene_file_in_viewport();
-
     void render_scene(Scene *scene);
 
     void UpdateResizeSceneFramebuffer();

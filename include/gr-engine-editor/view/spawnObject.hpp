@@ -22,11 +22,6 @@ class SpawnObject : public WindowView
 public:
     SpawnObject();
 
-    const char* GetTitle() const override
-    {
-        return "SpawnO bject";
-    }
-
     void Draw() override;
 
 private:

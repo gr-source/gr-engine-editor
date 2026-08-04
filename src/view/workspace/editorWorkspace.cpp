@@ -174,8 +174,8 @@ EditorWorkspace::EditorWorkspace()
 
     m_guizmoManipulate = ImGuizmo::WORLD;
 
-    m_backbuffer = std::make_shared<RenderTarget>(1024, 1024);
-    Renderer::SetRenderTarget(m_backbuffer.get());
+    m_backbuffer = std::make_shared<RenderTarget>(128, 128);
+    // Renderer::SetRenderTarget(m_backbuffer.get());
 
     EditorApplication* engine = static_cast<EditorApplication*>(Application::application);
 
@@ -1071,29 +1071,8 @@ void EditorWorkspace::create_render_viewport()
 
     ImGui::EndTabBar();
     
-    drop_scene_file_in_viewport();
-
     if (m_scene != nullptr)
         render_scene(m_scene);
-}
-
-void EditorWorkspace::drop_scene_file_in_viewport()
-{
-    auto isOpen = ImGui::BeginDragDropTarget();
-    if (!isOpen)
-        return;
-
-    auto payload = ImGui::AcceptDragDropPayload(m_extensionDragDrop[DragDropFlags::SCN]);
-    if (payload == nullptr)
-        return ImGui::EndDragDropTarget();
-
-    std::vector<gtreefile *> files(payload->DataSize / sizeof(gtreefile *), nullptr);
-    memcpy(files.data(), payload->Data, payload->DataSize);
-
-    // for (auto file : files)
-    //     AssetsManager::LoadScene(file->path, &EditorWorkspace::set_scene, this);
-
-    ImGui::EndDragDropTarget();
 }
 
 void EditorWorkspace::render_scene(Scene *scene)
@@ -1225,19 +1204,17 @@ void EditorWorkspace::UpdateResizeSceneFramebuffer()
 
     auto camera = obj.GetComponent<Camera>();
 
-    auto rendertarget = camera->rendertarget;
-    float width = static_cast<float>(rendertarget->GetWidth());
-    float height = static_cast<float>(rendertarget->GetHeight());
-
     ImVec2 regionAvail = ImGui::GetContentRegionAvail();
-    if (camera != nullptr && (width != regionAvail.x || height != regionAvail.y && regionAvail.x > 5.0f && regionAvail.y > 5.0f))
+    if (
+            camera->viewport.w != regionAvail.x ||
+            camera->viewport.h != regionAvail.y
+        )
     {
-        if (regionAvail.x > 0 && regionAvail.y > 0)
-        {
-            Display::SetDisplayRect(Rect{0.0f, 0.0f, regionAvail.x, regionAvail.y});
+        if (camera->rendertarget != nullptr)
+            camera->rendertarget->resize(regionAvail.x, regionAvail.y);
 
-            rendertarget->resize(static_cast<int>(regionAvail.x), static_cast<int>(regionAvail.y));
-        }
+        camera->viewport.w = regionAvail.x;
+        camera->viewport.h = regionAvail.y;
     }
 }
 
