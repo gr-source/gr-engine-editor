@@ -1,5 +1,6 @@
 #pragma once
 
+#include <climits>
 #include <cstdint>
 #include <filesystem>
 
@@ -181,7 +182,10 @@ private:
 
     int fpsFrameCount;
 
-    int fps;
+    int fpsMax = INT_MIN;
+    int fpsMin = INT_MAX;
+
+    int fps = 0;
 
     ImGuizmo::OPERATION m_guizmoOperation;
 

@@ -31,6 +31,7 @@
 #include "gr-base/ecs/systemRegistry.hpp"
 #include "Global.h"
 
+#include "imgui.h"
 #include "script/cameraEditor.hpp"
 
 #include "system/cameraEditorSystem.hpp"
@@ -1099,8 +1100,6 @@ void EditorWorkspace::render_scene(Scene *scene)
 {
     UpdateResizeSceneFramebuffer();
 
-    // EditorController::bCanMove = ImGui::IsWindowHovered();
-
     auto regionAvail = ImGui::GetContentRegionAvail();
     auto windowPos = ImGui::GetWindowPos();
     auto cursorPos = ImGui::GetCursorPos();
@@ -1130,14 +1129,20 @@ void EditorWorkspace::render_scene(Scene *scene)
         }
     }
 
+    regionAvail = ImGui::GetContentRegionAvail();
+    cursorPos = ImGui::GetCursorPos();
+
     ImGuizmo::SetDrawlist();
-    ImGuizmo::SetRect(windowPos.x + cursorPos.x, windowPos.y + cursorPos.y, regionAvail.x, regionAvail.y);
+    ImGuizmo::SetRect(
+            windowPos.x + cursorPos.x,
+            windowPos.y + cursorPos.y,
+            regionAvail.x, regionAvail.y);
 
     GameObject obj(m_scene, m_scene->GetCurrentCamera());
     if (obj.IsAlive())
     {
-        regionAvail = ImGui::GetContentRegionAvail();
-        cursorPos = ImGui::GetCursorPos();
+        // regionAvail = ImGui::GetContentRegionAvail();
+        // cursorPos = ImGui::GetCursorPos();
 
         Camera* camera = obj.GetComponent<Camera>();
         if (camera != nullptr)
@@ -1161,12 +1166,15 @@ void EditorWorkspace::render_scene(Scene *scene)
         if (fpsTimer >= 1.0f)
         {
             fps = fpsFrameCount;
+            fpsMax = std::max(fpsMax, fps);
+            fpsMin = std::min(fpsMin, fps);
+
             fpsFrameCount = 0;
             fpsTimer = 0.0f;
         }
 
         char fps_text[256] = {0};
-        sprintf(fps_text, "FPS: %d", fps);
+        sprintf(fps_text, "FPS: %d\tMax: %d\tMin: %d", fps, fpsMax, fpsMin);
 
         auto textSize = ImGui::CalcTextSize(fps_text);
 
