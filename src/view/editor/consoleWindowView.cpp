@@ -1,8 +1,9 @@
 #include "view/editor/consoleWindowView.hpp"
 
-#include "gr-base/core/console.hpp"
-#include "gr-base/core/thread/threadpool.hpp"
 #include "gr-base/managers/eventManager.hpp"
+
+#include "gr-base/core/console.hpp"
+
 #include "imgui.h"
 
 ConsoleWindowView::ConsoleWindowView()

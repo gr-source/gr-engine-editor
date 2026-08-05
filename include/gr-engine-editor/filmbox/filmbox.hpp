@@ -25,6 +25,7 @@ private:
 
     std::unordered_map<std::string, int> m_boneIndexMap;
 
+    std::vector<std::string> m_textures;
     std::vector<FbxMesh> m_meshes;
 
     FbxScene loadSceneToCache(const aiScene *scene);
@@ -33,11 +34,11 @@ private:
 
     uint32_t loadMeshByNode(aiNode *mNode, const aiScene *scene);
 
+    std::vector<std::string> loadTextures(const aiScene *scene);
+
     std::vector<FbxMaterial> loadMaterials(const aiScene *scene);
 
     FbxMaterial readMaterial(const aiMaterial* material);
-
-    static void ProcessTexture(const aiMaterial *iMaterial, FbxMaterial& fbxMaterial);
 
     // std::vector<FbxMesh> loadMeshes(const aiScene *scene);
 

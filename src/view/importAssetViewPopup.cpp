@@ -58,14 +58,17 @@ void ImportAssetViewPopup::Draw()
     {
         for (auto it=m_scenes.begin();it!=m_scenes.end();)
         {
+            const FbxScene& scene = *it;
+
             ImGui::PushID(&(*it));
 
             bool visible = true;
             if (ImGui::CollapsingHeader(it->name.c_str(), &visible))
             {
-                ImGui::BulletText("Meshes: %lu", it->meshes.size());
-                ImGui::BulletText("Materials: %lu", it->materials.size());
-                ImGui::BulletText("Animations: %lu", it->animations.size());
+                ImGui::BulletText("Textures: %lu", scene.textures.size());
+                ImGui::BulletText("Materials: %lu", scene.materials.size());
+                ImGui::BulletText("Meshes: %lu", scene.meshes.size());
+                ImGui::BulletText("Animations: %lu", scene.animations.size());
 
                 ImGui::Spacing();
 
@@ -73,6 +76,8 @@ void ImportAssetViewPopup::Draw()
 
                 if (ImGui::Button("Import", ImVec2(avail.x, 0.0f)))
                 {
+                    TaskManager::Add<FbxSceneBuildTask>(scene);
+                    visible = false;
                 }
             }
 

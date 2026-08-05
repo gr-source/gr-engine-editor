@@ -45,19 +45,19 @@ bool Filmbox::load(const std::string &path, std::string &error, FbxScene* fbxSce
 
 FbxScene Filmbox::loadSceneToCache(const aiScene *scene)
 {
+    // std::vector<std::string> textures;
+    if (scene->HasTextures())
+    {
+        Console::LogDefault("Loading {00FF00}textures...");
+        // textures = loadTextures(scene);
+    }
+
     std::vector<FbxMaterial> materials;
     if (scene->HasMaterials())
     {
         Console::LogWarning("Loading material...");
         materials = loadMaterials(scene);
     }
-
-    // std::vector<FbxMesh> meshes;
-    // if (scene->HasMeshes())
-    // {
-        // Console::LogWarning("Loading Mesh...");
-        // meshes = loadMeshes(scene);
-    // }
 
     /*
     if (scene->HasAnimations())
@@ -78,6 +78,7 @@ FbxScene Filmbox::loadSceneToCache(const aiScene *scene)
         root.addChild(readNode(mRootNode->mChildren[i], scene));
 
     FbxScene fbxScene;
+    fbxScene.textures = m_textures;
     fbxScene.materials = materials;
     fbxScene.meshes = m_meshes;
     fbxScene.root = root;
@@ -196,6 +197,17 @@ uint32_t Filmbox::loadMeshByNode(aiNode* mNode, const aiScene* scene)
     return static_cast<uint32_t>(m_meshes.size() - 1);
 }
 
+std::vector<std::string> Filmbox::loadTextures(const aiScene *scene)
+{
+    std::vector<std::string> textures;
+    for (size_t i=0;i<scene->mNumTextures;i++)
+    {
+        aiTexture* texture =
+            scene->mTextures[i];
+    }
+    return textures;
+}
+
 std::vector<FbxMaterial> Filmbox::loadMaterials(const aiScene* scene)
 {
     std::vector<FbxMaterial> materials(scene->mNumMaterials);
@@ -204,6 +216,7 @@ std::vector<FbxMaterial> Filmbox::loadMaterials(const aiScene* scene)
     return materials;
 }
 
+#include <iostream>
 FbxMaterial Filmbox::readMaterial(const aiMaterial* material)
 {
     FbxMaterial fbxMaterial{};
@@ -224,38 +237,20 @@ FbxMaterial Filmbox::readMaterial(const aiMaterial* material)
     if (material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == AI_SUCCESS)
         fbxMaterial.roughness = roughness;
 
-    /*
-    material->Get(
-        "$mat.gltf.pbrMetallicRoughness.metallicFactor",
-        0,
-        0,
-        fbxMaterial.metallic);
-
-    material->Get(
-        "$mat.gltf.pbrMetallicRoughness.roughnessFactor",
-        0,
-        0,
-        fbxMaterial.roughness);
-    */
-
     float ao = 1.0f;
     if (material->Get(AI_MATKEY_USE_AO_MAP, ao) == AI_SUCCESS)
         fbxMaterial.ao = ao;
 
-    return fbxMaterial;
-}
+    aiString texturePath;
+    if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS)
+    {
+        m_textures.push_back(texturePath.C_Str());
 
-void Filmbox::ProcessTexture(const aiMaterial *iMaterial, FbxMaterial &fbxMaterial) {
-    auto count = iMaterial->GetTextureCount(aiTextureType_DIFFUSE);
-    for (auto i=0;i<count;++i) {
-        aiString path;
-        if (iMaterial->GetTexture(aiTextureType_DIFFUSE, i, &path) != AI_SUCCESS) {
-            continue;
-        }
-
-        fbxMaterial.addTexture(TextureType_Albedo, path.C_Str());
-        break;
+        fbxMaterial.textures[TextureType_Albedo] =
+            static_cast<FbxTextureID>(m_textures.size() - 1);
     }
+
+    return fbxMaterial;
 }
 
 /*

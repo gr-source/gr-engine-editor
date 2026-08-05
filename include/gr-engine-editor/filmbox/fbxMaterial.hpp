@@ -6,8 +6,11 @@
 #include <string>
 #include <vector>
 
-enum TextureType {
-    TextureType_Albedo
+typedef uint32_t FbxTextureID;
+
+enum TextureType
+{
+    TextureType_Albedo = 0
 };
 
 struct FbxMaterial
@@ -22,14 +25,6 @@ struct FbxMaterial
 
     float ao = 1.0f;
 
-    std::unordered_map<TextureType, const std::string> textures;
-
-    template <typename ...Args>
-    void addTexture(Args &&...args);
+    std::unordered_map<TextureType, FbxTextureID> textures;
 };
 
-template <typename... Args>
-inline void FbxMaterial::addTexture(Args &&...args)
-{
-    textures.emplace(std::forward<Args>(args)...);
-}

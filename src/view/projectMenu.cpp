@@ -2,10 +2,7 @@
 
 #include "editorApplication.hpp"
 #include "gr-base/application.hpp"
-#include "gr-base/core/mainthreaddispatcher.hpp"
 #include "imgui.h"
-
-#include <gr-base/core/thread/threadpool.hpp>
 
 #include <gr-base/core/console.hpp>
 #include <gr-base/core/scene.hpp>

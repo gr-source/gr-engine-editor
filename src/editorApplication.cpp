@@ -71,8 +71,6 @@ void EditorApplication::run()
 {
     beginFrame();
 
-    runtime.process();
-
     update();
 
     renderer();
@@ -107,6 +105,8 @@ void EditorApplication::endFrame()
 
 void EditorApplication::update()
 {
+    runtime.update();
+
     if (m_workspace != nullptr)
         m_workspace->Update();
 }

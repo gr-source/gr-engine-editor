@@ -2,7 +2,9 @@
 #include "gr-base/asset/materialasset.hpp"
 #include "gr-base/asset/meshasset.hpp"
 
+#include "gr-base/asset/textureAsset.hpp"
 #include "gr-base/core/console.hpp"
+#include "gr-base/core/file/file.hpp"
 #include "gr-base/core/thread/taskmanager.hpp"
 
 #include "gr-base/core/string.hpp"
@@ -29,12 +31,24 @@ void FbxSceneBuildTask::onPreExecute()
         );
 }
 
+#include <iostream>
 ModelAsset FbxSceneBuildTask::doInBackground()
 {
     AssetID shader =
         AssetDB::FindByHash(engine::hash::fnv1_str("engine://shader/simple_model"));
     if (shader == INVALID_ASSET)
         throw std::runtime_error("Shader default not found");
+
+    for (const auto& path : m_fbxScene.textures)
+    {
+        try
+        {
+            TextureAsset asset = loadTextureAsset(path);
+        } catch (const std::exception& e)
+        {
+            Console::LogDefault("{FFA500}[ FbxSceneBuildTask ] {FFFFFF}%s.", e.what());
+        }
+    }
 
     for (const auto& fbxMaterial : m_fbxScene.materials)
     {
@@ -45,6 +59,9 @@ ModelAsset FbxSceneBuildTask::doInBackground()
         asset.Set("metallic", fbxMaterial.metallic);
         asset.Set("roughness", fbxMaterial.roughness);
         asset.Set("ambientocclusion", fbxMaterial.ao);
+
+        for (auto&& [id, path] : fbxMaterial.textures)
+        {}
 
         std::string uri = "project://material/" + m_fbxScene.name + "/" + fbxMaterial.name;
 
@@ -120,7 +137,7 @@ void FbxSceneBuildTask::onPostExecute(Result<ModelAsset> result)
     LoadingTaskPopup::Destroy(m_dialog);
 
     if (!result.success)
-        return Console::LogError("[ FbxSceneBuildTask ] %s.", result.error.c_str());
+        return Console::LogDefault("{FF0000}[ FbxSceneBuildTask ] {FFFFFF}%s.", result.error.c_str());
 
     for (auto&& [name, wrapper] : m_materialMapWrapper)
     {
@@ -241,6 +258,48 @@ ModelAsset FbxSceneBuildTask::readNode(const FbxNode* fbxNode)
     asset.mesh = mesh;
 
     asset.AddComponent<TransformLocal>(transform);
+
+    return asset;
+}
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "gr-base/core/stb/stb_image.h"
+
+TextureAsset FbxSceneBuildTask::loadTextureAsset(const std::string& path)
+{
+    if (!gfile::exists(path))
+        throw std::runtime_error(std::string(strerror(ENOENT)) + ": " + path);
+
+    bool isHDR = stbi_is_hdr(path.c_str());
+
+    int width;
+    int height;
+    int ch;
+
+    void* raw = isHDR ?
+        static_cast<void*>(stbi_loadf(path.c_str(), &width, &height, &ch, 0)) :
+        static_cast<void*>(stbi_load(path.c_str(), &width, &height, &ch, 0));
+
+    if (raw == nullptr)
+        throw std::runtime_error("failed to load texture: " + path);
+
+    size_t pixelCount = width * height * ch;
+    size_t byteSize = isHDR
+        ? pixelCount * sizeof(float)
+        : pixelCount * sizeof(unsigned char);
+
+    std::vector<uint8_t> pixels(byteSize);
+    memcpy(pixels.data(), raw, byteSize);
+
+    stbi_image_free(raw);
+
+    TextureAsset asset;
+    asset.width = width;
+    asset.height = height;
+    asset.channels = ch;
+    asset.hdr = isHDR;
+
+    asset.raw = pixels;
 
     return asset;
 }

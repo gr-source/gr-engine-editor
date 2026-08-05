@@ -170,6 +170,7 @@ void EngineStatusView::renderer(Scene* scene)
 
     ImGui::SeparatorText("Threads");
     ImGui::Text("Threads: %ld/%ld", Threadpool::GetThreadCount(), Threadpool::GetCount());
+    ImGui::Text("Jobs: %ld", Threadpool::GetJobCount());
 
     ImGui::SeparatorText("Renderização");
 

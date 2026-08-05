@@ -6,6 +6,7 @@
 #include "gr-base/asset/materialasset.hpp"
 #include "gr-base/asset/meshasset.hpp"
 #include "gr-base/asset/modelasset.hpp"
+#include "gr-base/asset/textureAsset.hpp"
 #include "gr-base/core/thread/asynctask.hpp"
 #include "gr-base/externals/handle.h"
 
@@ -37,6 +38,8 @@ private:
     void onPostExecute(Result<ModelAsset> result) override;
 
     ModelAsset readNode(const FbxNode* fbxNode);
+
+    TextureAsset loadTextureAsset(const std::string& path);
 };
 
 

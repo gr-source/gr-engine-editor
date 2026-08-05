@@ -9,6 +9,8 @@ struct FbxScene
 {
     std::vector<FbxAnimation> animations;
 
+    std::vector<std::string> textures;
+
     std::vector<FbxMaterial> materials;
 
     std::vector<FbxMesh> meshes;
