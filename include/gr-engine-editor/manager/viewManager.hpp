@@ -12,12 +12,12 @@ typedef uint32_t ViewID;
 
 class ViewManager
 {
-    EditorContext context;
 public:
-    ViewManager();
-    ~ViewManager();
 
     void renderer();
+
+    template <typename T, typename... Args>
+    T* add(Args&&... args);
 
     template <typename T>
     void show();
@@ -55,6 +55,34 @@ private:
     }
 };
 
+template <typename T, typename... Args>
+inline T* ViewManager::add(Args&&... args)
+{
+    static_assert(std::is_base_of_v<WindowView, T> || std::is_base_of_v<IPopupView, T>, 
+              "This object is not valid.");   
+
+    ViewID id = GetViewID<T>();
+    if constexpr (std::is_base_of_v<IPopupView, T>)
+    {
+        if (id >= m_popups.size())
+            m_popups.resize(id + 1, nullptr);
+
+        if (m_popups[id] == nullptr)
+            m_popups[id] = std::make_shared<T>(std::forward<Args>(args)...);
+
+        return static_cast<T*>(m_popups[id].get());
+    } else if constexpr (std::is_base_of_v<WindowView, T>)
+    {
+        if (id >= m_windows.size())
+            m_windows.resize(id + 1, nullptr);
+
+        if (m_windows[id] == nullptr)
+            m_windows[id] = std::make_shared<T>(std::forward<Args>(args)...);
+
+        return static_cast<T*>(m_windows[id].get());
+    }
+}
+
 template <typename T>
 inline void ViewManager::show()
 {
@@ -68,10 +96,7 @@ inline void ViewManager::show()
             m_popups.resize(id + 1, nullptr);
 
         if (m_popups[id] == nullptr)
-        {
-            m_popups[id] = std::make_shared<T>();
-            m_popups[id]->context = &context;
-        }
+            return;
 
         m_popups[id]->open = true;
     } else if constexpr (std::is_base_of_v<WindowView, T>)
@@ -80,10 +105,7 @@ inline void ViewManager::show()
             m_windows.resize(id + 1, nullptr);
 
         if (m_windows[id] == nullptr)
-        {
-            m_windows[id] = std::make_shared<T>();
-            m_windows[id]->context = &context;
-        }
+            return;
 
         m_windows[id]->open = true;
     }
@@ -151,10 +173,7 @@ inline T* ViewManager::getOrAddView()
             m_popups.resize(id + 1, nullptr);
 
         if (m_popups[id] == nullptr)
-        {
-            m_popups[id] = std::make_shared<T>();
-            m_popups[id]->context = &context;
-        }
+            return nullptr;
 
         return static_cast<T*>(m_popups[id].get());
     } else if constexpr (std::is_base_of_v<WindowView, T>)
@@ -163,10 +182,7 @@ inline T* ViewManager::getOrAddView()
             m_windows.resize(id + 1, nullptr);
 
         if (m_windows[id] == nullptr)
-        {
-            m_windows[id] = std::make_shared<T>();
-            m_windows[id]->context = &context;
-        }
+            return nullptr;
 
         return static_cast<T*>(m_windows[id].get());
     }

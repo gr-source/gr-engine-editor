@@ -12,8 +12,8 @@
 
 ProjectBrowser::ProjectBrowser()
 {
-    viewManager.show<CheckUpdate>();
-    viewManager.show<ProjectMenu>();
+    viewManager.add<CheckUpdate>()->open = true;
+    viewManager.add<ProjectMenu>()->open = true;
 
     EventManager::Attach<ProjectBrowser_onCheckProjectExists>(&ProjectBrowser::onReadProjects, this);
 }

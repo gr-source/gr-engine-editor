@@ -1,16 +1,37 @@
 #include "view/editor/sceneViewport.hpp"
 
+#include "settings.h"
+
+#include "view/editor/editorContext.hpp"
+
 #include "gr-base/managers/sceneManager.hpp"
 
+#include "gr-base/core/rendertarget.hpp"
+#include "gr-base/core/gameObject.hpp"
+#include "gr-base/core/clock.hpp"
 #include "gr-base/core/scene.hpp"
 
-#include "imgui.h"
+#include "gr-base/script/relationship.hpp"
+#include "gr-base/script/transform.hpp"
+#include "gr-base/script/camera.hpp"
+
+#define GET_FLAG_NAME(c) #c
+
+SceneViewport::SceneViewport(EditorContext* context) : context(context)
+{
+    s_texturePlayGame = context->iconsUI[IconType::ICON_PLAY_GAME];
+    m_backbuffer = std::make_shared<RenderTarget>(128, 128);
+}
 
 void SceneViewport::Draw()
 {
     if (ImGui::Begin("Viewport"))
         show();
     ImGui::End();
+
+    create_call_popup();
+
+    create_popup_create_scene();
 }
 
 void SceneViewport::show()
@@ -38,8 +59,6 @@ void SceneViewport::show()
 
         if (!bactive)
         {
-            context->scene = nullptr;
-            
             SceneManager::SetActive(nullptr);
 
             SceneManager::Remove(scene);
@@ -47,8 +66,7 @@ void SceneViewport::show()
     }
 
     if (ImGui::TabItemButton("+"))
-    {}
-        // popupFlags |= EditorPopupFlags_CreateScene;
+        popupFlags |= PopupFlags_CreateScene;
 
     ImGui::EndTabBar();
     
@@ -58,8 +76,9 @@ void SceneViewport::show()
 
 void SceneViewport::render_scene(Scene *scene)
 {
-    /*
-    UpdateResizeSceneFramebuffer();
+    GameObject obj(scene, scene->GetCurrentCamera());
+    if (obj.IsAlive())
+        apply_viewport(&obj);
 
     auto regionAvail = ImGui::GetContentRegionAvail();
     auto windowPos = ImGui::GetWindowPos();
@@ -68,12 +87,13 @@ void SceneViewport::render_scene(Scene *scene)
     // Play button
     if (s_texturePlayGame.get() != nullptr)
     {
-        s_texturePlayGame = iconsUI[ICON_PLAY_GAME];
-        if (Settings::bGameRunning) {
+        s_texturePlayGame = context->iconsUI[ICON_PLAY_GAME];
+        if (Settings::bGameRunning)
+        {
             if (ImGui::IsKeyReleased(ImGuiKey_Escape) && ImGui::IsWindowHovered()) {
-                OnStopButton();
+                // OnStopButton();
             } else {
-                s_texturePlayGame = iconsUI[ICON_STOP_GAME];
+                s_texturePlayGame = context->iconsUI[ICON_STOP_GAME];
             }
         }
         
@@ -83,9 +103,9 @@ void SceneViewport::render_scene(Scene *scene)
         {
             if (!Settings::bGameRunning)
             {
-                OnPlayButton();
+                // OnPlayButton();
             } else {
-                OnStopButton();
+                // OnStopButton();
             }
         }
     }
@@ -99,7 +119,6 @@ void SceneViewport::render_scene(Scene *scene)
             windowPos.y + cursorPos.y,
             regionAvail.x, regionAvail.y);
 
-    GameObject obj(m_scene, m_scene->GetCurrentCamera());
     if (obj.IsAlive())
     {
         // regionAvail = ImGui::GetContentRegionAvail();
@@ -112,7 +131,7 @@ void SceneViewport::render_scene(Scene *scene)
 
             ImGui::Image(reinterpret_cast<ImTextureID>(rendertarget->GetTextureID()), regionAvail, {0.0f, 1.0f}, {1.0f, 0.0f});
 
-            drop_gameobject_in_scene();
+            // drop_gameobject_in_scene();
 
             if (scene->has_object_selected() && !Settings::bGameRunning)
                 create_render_guizmo(scene, &obj);
@@ -121,27 +140,29 @@ void SceneViewport::render_scene(Scene *scene)
 
     // Fps Draw
     {
-        fpsTimer += static_cast<float>(Clock::deltaTime);
+        fpsTimer += Clock::deltaTime;
         fpsFrameCount++;
 
         if (fpsTimer >= 1.0f)
         {
-            fps = fpsFrameCount;
-            fpsMax = std::max(fpsMax, fps);
-            fpsMin = std::min(fpsMin, fps);
+            displayFps = fpsFrameCount;
+            displayMS = Clock::deltaTime * 1000.0;
+
+            fpsMax = std::max(fpsMax, displayFps);
+            fpsMin = std::min(fpsMin, displayFps);
 
             fpsFrameCount = 0;
-            fpsTimer = 0.0f;
+            fpsTimer -= 1.0f;
         }
 
         char fps_text[256] = {0};
-        sprintf(fps_text, "FPS: %d\tMax: %d\tMin: %d", fps, fpsMax, fpsMin);
+        sprintf(fps_text, "FPS: %d | Max: %d | Min: %d (ms: %.5lf)", displayFps, fpsMax, fpsMin, displayMS);
 
         auto textSize = ImGui::CalcTextSize(fps_text);
 
-        ImGui::SetCursorPos(ImVec2(regionAvail.x - textSize.x, cursorPos.y + textSize.y));
+        ImGui::SetCursorPos({ regionAvail.x - textSize.x, cursorPos.y });
 
-        ImGui::TextColored(FPSColor, "%s", fps_text);
+        ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%s", fps_text);
     }
 
     ImGui::SetCursorPos({8.0f, cursorPos.y});
@@ -160,22 +181,176 @@ void SceneViewport::render_scene(Scene *scene)
 
     ImGui::PopStyleColor();
 
-    if (m_scene->has_object_selected() && ImGui::IsWindowFocused() && mImGuiIO->KeyShift && ImGui::IsKeyReleased(ImGuiKey_D))
+    if (
+            scene->has_object_selected() &&
+            ImGui::IsWindowFocused() &&
+            context->io->KeyShift &&
+            ImGui::IsKeyReleased(ImGuiKey_D)
+        )
     {
-        auto temp = m_scene->get_object_selected();
-        m_scene->deselect_all();
+        auto temp = scene->get_object_selected();
+        scene->deselect_all();
 
         for (auto go : temp)
-            m_scene->select(m_scene->create(go));
+            scene->select(scene->create(go));
     }
+}
 
-    if (ImGui::IsWindowFocused() && mImGuiIO->KeyCtrl && ImGui::IsKeyReleased(ImGuiKey_S))
+void SceneViewport::apply_viewport(GameObject* gameObject)
+{
+    auto camera = gameObject->GetComponent<Camera>();
+
+    ImVec2 regionAvail = ImGui::GetContentRegionAvail();
+    if (
+            camera->viewport.w != regionAvail.x ||
+            camera->viewport.h != regionAvail.y
+        )
     {
-        // std::string path = m_project->path + "/assets/scene";
+        if (camera->rendertarget != nullptr)
+            camera->rendertarget->resize(regionAvail.x, regionAvail.y);
 
-        // for (auto &scene : SceneManager::GetScenes())
-            // TaskManager::Add<SceneSaveTask>(path + "/" + SceneManager::GetSceneName(scene) + ".scn", scene);
+        camera->viewport.w = regionAvail.x;
+        camera->viewport.h = regionAvail.y;
     }
-    */
+}
+
+void SceneViewport::create_render_guizmo(Scene *scene, const GameObject* gameObjectCamera)
+{
+    if (
+            ImGui::IsWindowHovered() &&
+            !context->io->KeyShift &&
+            !context->io->KeyCtrl
+        )
+    {
+        if (ImGui::IsKeyReleased(ImGuiKey_G))
+            m_guizmoOperation = ImGuizmo::TRANSLATE;
+    
+        if (ImGui::IsKeyReleased(ImGuiKey_R))
+            m_guizmoOperation = ImGuizmo::ROTATE;
+    
+        if (ImGui::IsKeyReleased(ImGuiKey_S))
+            m_guizmoOperation = ImGuizmo::SCALE;
+    }
+
+    auto camera = gameObjectCamera->GetComponent<CameraData>();
+
+    for (auto entity : scene->get_object_selected())
+    {
+        GameObject gameObject(scene, entity);
+        if (!gameObject.IsAlive())
+            continue;
+
+        create_guizmo_manipulate(gameObject, camera->projection, camera->view);
+    }
+}
+
+void SceneViewport::create_guizmo_manipulate(const GameObject& gameObject, const Matrix4x4& projection, const Matrix4x4& view)
+{
+    ImGuizmo::SetID(gameObject.entity);
+    auto transform = gameObject.GetComponent<TransformWorld>();
+    auto transformLocal = gameObject.GetComponent<TransformLocal>();
+
+    auto manipulatedWorld = transform->world;
+
+    bool changed =
+        ImGuizmo::Manipulate(
+                &view[0][0],
+                &projection[0][0],
+                m_guizmoOperation,
+                m_guizmoManipulate,
+                &manipulatedWorld[0][0]
+            );
+    if (!changed)
+        return;
+
+    Matrix4x4 localMatrix = manipulatedWorld;
+
+    if (gameObject.HasComponent<Relationship>())
+    {
+        auto rel = gameObject.GetComponent<Relationship>();
+        if (rel->parent != INVALID_ENTITY)
+        {
+            const GameObject parent(gameObject.scene, rel->parent);
+            if (parent.HasComponent<TransformWorld>())
+            {
+                auto transform = parent.GetComponent<TransformWorld>();
+
+                localMatrix =
+                    Math::inverse(transform->world) * manipulatedWorld;
+            }
+        }
+    }
+
+    Math::decompose(
+            localMatrix,
+            transformLocal->position,
+            transformLocal->rotation,
+            transformLocal->scale
+        );
+
+    context->scene->MarkChanged<TransformWorld>(gameObject.entity);
+}
+
+void SceneViewport::create_call_popup()
+{
+    switch (popupFlags)
+    {
+    case PopupFlags_CreateScene:
+        ImGui::OpenPopup(GET_FLAG_NAME(PopupFlags_CreateScene));
+        break;
+    default:
+        break;
+    }
+
+    popupFlags = 0;
+}
+
+#include <gr-base/system/transformsystem.hpp>
+#include <gr-base/system/physicsSystem.hpp>
+#include <gr-base/system/camerasystem.hpp>
+#include <gr-base/system/renderSystem.hpp>
+
+#include "system/cameraEditorSystem.hpp"
+
+void SceneViewport::create_popup_create_scene()
+{
+    if (!ImGui::BeginPopup(GET_FLAG_NAME(PopupFlags_CreateScene)))
+        return;
+
+    ImGui::Text("Input scene name");
+
+    if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        ImGui::SetKeyboardFocusHere();
+
+    std::vector<char> buffer(256, '\0');
+    if (ImGui::InputText("##popup_create_scene_inputtext", buffer.data(), buffer.size() - 1, ImGuiInputTextFlags_EnterReturnsTrue))
+    {
+        std::string name = buffer.data();
+
+        Scene* scene = SceneManager::Create(name);
+
+        scene->AddSystem<CameraEditorSystem>();
+        scene->AddSystem<TransformSystem>();
+        scene->AddSystem<CameraSystem>();
+
+        scene->AddSystem<RenderSystem>();
+        scene->AddSystem<PhysicsSystem>();
+
+        Entity camera = scene->create("MainCamera");
+        {
+            GameObject go(scene, camera);
+            go.AddComponent<CameraData>();
+            go.GetOrAddComponent<Camera>()->rendertarget = m_backbuffer.get();
+        }
+
+        scene->SetMainCamera(camera);
+
+        SceneManager::SetActive(scene);
+
+        context->scene = scene;
+
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
 }
 

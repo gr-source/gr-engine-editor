@@ -4,12 +4,6 @@
 
 #include <imgui.h>
 
-ViewManager::ViewManager()
-{}
-
-ViewManager::~ViewManager()
-{}
-
 void ViewManager::renderer()
 {
     for (auto& view : m_windows)

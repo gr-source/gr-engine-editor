@@ -23,7 +23,7 @@ void ImguiRenderer::Initialize()
 
     m_io = &ImGui::GetIO();
     m_io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    SetFont("/usr/share/fonts/TTF/0xProtoNerdFont-Regular.ttf");
+    SetFont("/usr/share/fonts/Adwaita/AdwaitaMono-Bold.ttf");
 
     SetConfigPath((gfile::get_config_directory() + "/imgui.ini").c_str());
 }

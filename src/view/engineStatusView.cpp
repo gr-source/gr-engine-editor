@@ -6,6 +6,8 @@
 #include <gr-base/core/status.hpp>
 #include <gr-base/core/scene.hpp>
 
+#include <gr-base/profiler.hpp>
+
 #include <gr-base/core/thread/threadpool.hpp>
 
 #include <gr-base/managers/assetsManager.hpp>
@@ -160,6 +162,16 @@ void EngineStatusView::renderer(Scene* scene)
 
                 ImGui::TreePop();
             }
+        }
+    }
+
+    if (ImGui::CollapsingHeader("Profiler"))
+    {
+        for (auto&& [name, timeMs] : Profiler::GetEntries())
+        {
+            ImGui::Text("%-20s %.3f ms",
+                name.c_str(),
+                timeMs);
         }
     }
 

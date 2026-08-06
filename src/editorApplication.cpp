@@ -84,10 +84,14 @@ void EditorApplication::dropPath(const std::vector<std::string>& entries)
         m_workspace->dropPath(entries);
 }
 
+#include <gr-base/profiler.hpp>
+
 // private
 void EditorApplication::beginFrame()
 {
     // std::cout << "[ ===== BeginFrame ===== ]\n";
+
+    Profiler::BeginFrame();
 
     auto scene = Scene::GetCurrent();
     if (scene != nullptr)
@@ -101,6 +105,8 @@ void EditorApplication::endFrame()
     auto scene = Scene::GetCurrent();
     if (scene != nullptr)
         scene->EndFrame();
+
+    Profiler::EndFrame();
 }
 
 void EditorApplication::update()
