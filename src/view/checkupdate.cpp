@@ -1,9 +1,10 @@
 #include "view/checkupdate.hpp"
 
 #include "event/projectBrowserEvent.hpp"
-#include "gr-base/core/thread/taskmanager.hpp"
 
 #include "gr-base/managers/eventManager.hpp"
+#include "gr-base/managers/taskmanager.hpp"
+
 #include "task/checkUpdateTask.hpp"
 
 #include "imgui.h"

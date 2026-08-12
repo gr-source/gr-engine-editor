@@ -1,18 +1,18 @@
 #include "view/browserFile.hpp"
 
-#include "gr-base/asset/assetDB.hpp"
+// #include "gr-base/asset/assetDB.hpp"
 
-#include "gr-base/asset/assetResolver.hpp"
-#include "gr-base/core/gameObject.hpp"
-#include "gr-base/core/console.hpp"
-#include "gr-base/core/scene.hpp"
+#include <gr-base/core/assetResolver.hpp>
+#include <gr-base/core/gameObject.hpp>
+#include <gr-base/core/console.hpp>
+#include <gr-base/core/scene.hpp>
 
-#include "gr-base/core/file/file.hpp"
+#include <gr-base/file/file.hpp>
 
-#include "gr-base/core/thread/taskmanager.hpp"
 #include "gr-base/externals/hash.hpp"
 
 #include "gr-base/managers/assetsManager.hpp"
+#include "gr-base/managers/taskmanager.hpp"
 
 #include "gr-base/managers/eventManager.hpp"
 #include "gr-base/task/assetSaveTask.hpp"
@@ -93,7 +93,6 @@ void BrowserFile::renderer()
     create_popup();
 }
 
-#include <iostream>
 void BrowserFile::render_virtual_directories(EntryID entryID)
 {
     auto info =
@@ -356,8 +355,6 @@ void BrowserFile::onAssetRemove(AssetEventOnRemove* event)
     auto relPath = AssetResolver::Resolve(info->uri);
     if (gfile::exists(relPath))
         gfile::remove(relPath);
-
-    std::cout << "Remove: " << info->uri << std::endl;
 
     /*
     URI uri = URI::parse(info->uri);

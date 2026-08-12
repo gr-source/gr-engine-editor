@@ -1,20 +1,18 @@
 #include "view/spawnObject.hpp"
 
+#include "view/imguiRenderer.hpp"
+
 #include <gr-base/managers/assetsManager.hpp>
 
 #include <gr-base/core/gameObject.hpp>
 
 #include <gr-base/script/transform.hpp>
-#include <memory>
 
-#include "BulletCollision/CollisionShapes/btBoxShape.h"
-#include "BulletDynamics/Dynamics/btRigidBody.h"
-#include "LinearMath/btDefaultMotionState.h"
-#include "gr-base/asset/assetDB.hpp"
-#include "gr-base/core/scene.hpp"
-#include "gr-base/script/name.hpp"
+// #include "gr-base/asset/assetDB.hpp"
+// #include "gr-base/core/scene.hpp"
+#include <gr-base/script/name.hpp>
+
 #include "imgui.h"
-#include "view/imguiRenderer.hpp"
 
 SpawnObject::SpawnObject() :
     numInstances(100),

@@ -11,7 +11,7 @@
 
 #include "view/projectMenu.hpp"
 
-#include <gr-base/core/file/file.hpp>
+#include <gr-base/file/file.hpp>
 
 #include <gr-render/gRender.h>
 
@@ -226,8 +226,8 @@ void EditorApplication::drawScene(Scene* scene)
     Renderer::EndFrame();
 }
 
-#include <gr-base/asset/assetProvider.hpp>
-#include <gr-base/asset/assetResolver.hpp>
+// #include <gr-base/core/assetProvider.hpp>
+#include <gr-base/core/assetResolver.hpp>
 
 class ProjectAssetProvider : public IAssetProvider
 {

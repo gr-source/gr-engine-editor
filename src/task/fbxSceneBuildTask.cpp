@@ -1,15 +1,15 @@
-#include "gr-base/asset/assetDB.hpp"
 #include "gr-base/asset/materialasset.hpp"
 #include "gr-base/asset/meshasset.hpp"
 
 #include "gr-base/asset/textureAsset.hpp"
-#include "gr-base/core/console.hpp"
-#include "gr-base/core/file/file.hpp"
-#include "gr-base/core/thread/taskmanager.hpp"
 
-#include "gr-base/core/string.hpp"
+#include <gr-base/core/assetDB.hpp>
+#include <gr-base/core/console.hpp>
 
-#include "gr-base/externals/hash.hpp"
+#include <gr-base/file/file.hpp>
+
+#include "gr-base/managers/taskmanager.hpp"
+
 #include "gr-base/script/transform.hpp"
 
 #include "task/fbxSceneBuildTask.hpp.hpp"
@@ -31,7 +31,6 @@ void FbxSceneBuildTask::onPreExecute()
         );
 }
 
-#include <iostream>
 ModelAsset FbxSceneBuildTask::doInBackground()
 {
     AssetID shader =
@@ -43,7 +42,7 @@ ModelAsset FbxSceneBuildTask::doInBackground()
     {
         try
         {
-            TextureAsset asset = loadTextureAsset(path);
+            TextureAsset asset = buildToTextureAsset(path);
         } catch (const std::exception& e)
         {
             Console::LogDefault("{FFA500}[ FbxSceneBuildTask ] {FFFFFF}%s.", e.what());
@@ -276,7 +275,7 @@ ModelAsset FbxSceneBuildTask::readNode(const FbxNode* fbxNode)
 #define STB_IMAGE_IMPLEMENTATION
 #include "gr-base/core/stb/stb_image.h"
 
-TextureAsset FbxSceneBuildTask::loadTextureAsset(const std::string& path)
+TextureAsset FbxSceneBuildTask::buildToTextureAsset(const std::string& path)
 {
     if (!gfile::exists(path))
         throw std::runtime_error(std::string(strerror(ENOENT)) + ": " + path);

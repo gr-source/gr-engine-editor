@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gr-base/asset/assetPtr.hpp"
+#include <gr-base/core/assetPtr.hpp>
 
 #include <gr-render/texture.h>
 

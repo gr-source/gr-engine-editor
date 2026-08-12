@@ -1,18 +1,17 @@
 #include "view/editor/sceneViewport.hpp"
 
-#include "gr-base/asset/assetDB.hpp"
-#include "gr-base/asset/default.hpp"
 #include "gr-base/managers/assetsManager.hpp"
 #include "settings.h"
 
 #include "view/editor/editorContext.hpp"
 
-#include "gr-base/managers/sceneManager.hpp"
+#include <gr-base/managers/sceneManager.hpp>
 
-#include "gr-base/core/rendertarget.hpp"
-#include "gr-base/core/gameObject.hpp"
-#include "gr-base/core/clock.hpp"
-#include "gr-base/core/scene.hpp"
+#include <gr-base/core/rendertarget.hpp>
+#include <gr-base/core/gameObject.hpp>
+#include <gr-base/core/assetDB.hpp>
+#include <gr-base/core/clock.hpp>
+#include <gr-base/core/scene.hpp>
 
 #include "gr-base/script/relationship.hpp"
 #include "gr-base/script/transform.hpp"

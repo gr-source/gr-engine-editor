@@ -1,12 +1,12 @@
 #pragma once
 
-#include "gr-base/pool/sparseSet.hpp"
 #include "view/windowView.hpp"
 
-#include "gr-base/asset/URI.hpp"
+#include <gr-base/pool/sparseSet.hpp>
 
-#include "gr-base/asset/assetDB.hpp"
-#include "gr-base/asset/assetPtr.hpp"
+#include "gr-base/core/assetDB.hpp"
+#include <gr-base/core/assetPtr.hpp>
+
 #include "gr-base/asset/default.hpp"
 
 #include "gr-base/asset/default.hpp"
@@ -17,7 +17,8 @@
 
 #include <unordered_map>
 #include <unordered_set>
-#include <memory>
+#include <vector>
+#include <string>
 
 class BrowserFile : public WindowView
 {

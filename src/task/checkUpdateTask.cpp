@@ -1,8 +1,8 @@
 #include "task/checkUpdateTask.hpp"
 
-#include "gr-base/core/file/file.hpp"
-#include "gr-base/core/string.hpp"
-#include "gr-base/externals/hash.hpp"
+#include <gr-base/externals/hash.hpp>
+
+#include <gr-base/file/file.hpp>
 
 #include <stdexcept>
 #include <fstream>

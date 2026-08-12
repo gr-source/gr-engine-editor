@@ -5,7 +5,7 @@
 #include "gr-base/ecs/systemRegistry.hpp"
 #include "gr-base/module/moduleloader.hpp"
 
-#include <gr-base/core/file/file.hpp>
+#include <gr-base/file/file.hpp>
 
 #include <dlfcn.h>
 #include <gr-base/ecs/typeinfo.hpp>

@@ -3,12 +3,11 @@
 #include "gr-base/ecs/componentRegistry.hpp"
 #include "gr-base/ecs/systemRegistry.hpp"
 
+#include <gr-base/core/threadpool.hpp>
 #include <gr-base/core/status.hpp>
 #include <gr-base/core/scene.hpp>
 
 #include <gr-base/profiler.hpp>
-
-#include <gr-base/core/thread/threadpool.hpp>
 
 #include <gr-base/managers/assetsManager.hpp>
 

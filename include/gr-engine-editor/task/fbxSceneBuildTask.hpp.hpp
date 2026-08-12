@@ -39,7 +39,7 @@ private:
 
     ModelAsset readNode(const FbxNode* fbxNode);
 
-    TextureAsset loadTextureAsset(const std::string& path);
+    TextureAsset buildToTextureAsset(const std::string& path);
 };
 
 

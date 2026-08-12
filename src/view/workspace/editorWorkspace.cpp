@@ -36,10 +36,6 @@
 
 #include <gr-base/application.hpp>
 
-#include <gr-base/asset/assetDB.hpp>
-
-#include "gr-base/core/thread/taskmanager.hpp"
-
 #include "manager/viewManager.hpp"
 
 #include "task/filmboxLoadTask.hpp"
@@ -51,12 +47,14 @@
 #include "view/sceneInspectorView.hpp"
 #include "view/spawnObject.hpp"
 
+#include <gr-base/core/assetDB.hpp>
 #include <gr-base/core/window.hpp>
 
-#include <gr-base/core/file/file.hpp>
+#include <gr-base/file/file.hpp>
 
 #include <gr-base/managers/assetsManager.hpp>
 #include <gr-base/managers/sceneManager.hpp>
+#include <gr-base/managers/taskmanager.hpp>
 
 #include <gr-base/core/console.hpp>
 #include <gr-base/core/display.hpp>
