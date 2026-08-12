@@ -1,5 +1,8 @@
 #include "view/editor/sceneViewport.hpp"
 
+#include "gr-base/asset/assetDB.hpp"
+#include "gr-base/asset/default.hpp"
+#include "gr-base/managers/assetsManager.hpp"
 #include "settings.h"
 
 #include "view/editor/editorContext.hpp"
@@ -14,6 +17,7 @@
 #include "gr-base/script/relationship.hpp"
 #include "gr-base/script/transform.hpp"
 #include "gr-base/script/camera.hpp"
+#include "view/imguiRenderer.hpp"
 
 #define GET_FLAG_NAME(c) #c
 
@@ -27,11 +31,46 @@ void SceneViewport::Draw()
 {
     if (ImGui::Begin("Viewport"))
         show();
+
+    drop_in_window();
+
     ImGui::End();
 
     create_call_popup();
 
     create_popup_create_scene();
+}
+
+void SceneViewport::drop_in_window()
+{
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+
+    if (ImGui::BeginDragDropTargetCustom(window->InnerRect, window->ID))
+    {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("AssetID"))
+        {
+            if (context->scene == nullptr)
+            {
+                context->scene = CreateScene("Unknow");
+
+                SceneManager::SetActive(context->scene);
+            }
+
+            size_t count =
+                payload->DataSize / sizeof(AssetID);
+
+            AssetID* ids =
+                (AssetID*)payload->Data;
+
+            for (size_t i=0;i<count;i++)
+            {
+                auto info = AssetDB::GetAsset(ids[i]);
+                if (info != nullptr && info->type == AssetType_Model)
+                    AssetsManager::LoadGameObjectAsync(info->uri);
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
 }
 
 void SceneViewport::show()
@@ -325,25 +364,8 @@ void SceneViewport::create_popup_create_scene()
     std::vector<char> buffer(256, '\0');
     if (ImGui::InputText("##popup_create_scene_inputtext", buffer.data(), buffer.size() - 1, ImGuiInputTextFlags_EnterReturnsTrue))
     {
-        std::string name = buffer.data();
-
-        Scene* scene = SceneManager::Create(name);
-
-        scene->AddSystem<CameraEditorSystem>();
-        scene->AddSystem<TransformSystem>();
-        scene->AddSystem<CameraSystem>();
-
-        scene->AddSystem<RenderSystem>();
-        scene->AddSystem<PhysicsSystem>();
-
-        Entity camera = scene->create("MainCamera");
-        {
-            GameObject go(scene, camera);
-            go.AddComponent<CameraData>();
-            go.GetOrAddComponent<Camera>()->rendertarget = m_backbuffer.get();
-        }
-
-        scene->SetMainCamera(camera);
+        auto scene =
+            CreateScene(buffer.data());
 
         SceneManager::SetActive(scene);
 
@@ -352,5 +374,29 @@ void SceneViewport::create_popup_create_scene()
         ImGui::CloseCurrentPopup();
     }
     ImGui::EndPopup();
+}
+
+
+Scene* SceneViewport::CreateScene(const std::string& name)
+{
+    Scene* scene = SceneManager::Create(name);
+
+    scene->AddSystem<CameraEditorSystem>();
+    scene->AddSystem<TransformSystem>();
+    scene->AddSystem<CameraSystem>();
+
+    scene->AddSystem<RenderSystem>();
+    scene->AddSystem<PhysicsSystem>();
+
+    Entity camera = scene->create("MainCamera");
+    {
+        GameObject go(scene, camera);
+        go.AddComponent<CameraData>();
+        go.GetOrAddComponent<Camera>()->rendertarget = m_backbuffer.get();
+    }
+
+    scene->SetMainCamera(camera);
+
+    return scene;
 }
 

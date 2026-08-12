@@ -2,6 +2,7 @@
 
 #include "gr-base/asset/assetDB.hpp"
 
+#include "gr-base/asset/assetResolver.hpp"
 #include "gr-base/core/gameObject.hpp"
 #include "gr-base/core/console.hpp"
 #include "gr-base/core/scene.hpp"
@@ -16,23 +17,30 @@
 #include "gr-base/managers/eventManager.hpp"
 #include "gr-base/task/assetSaveTask.hpp"
 #include "gr-base/task/modelsavetask.hpp"
+#include "imgui.h"
 #include "view/imguiWidget.hpp"
 
 #include <gr-render/texture.h>
 
 #include <algorithm>
 
+#define GETNAME(n) #n
+
 BrowserFile::BrowserFile() :
-    m_selected_dir(nullptr),
     m_imguiIO(&ImGui::GetIO())
 {
     open = true;
 
-    m_root = std::make_shared<FileInfo>();
-    m_root->name = "project://";
-    m_root->path = "/";
+    entryRootID =
+        m_spaseSet.emplace(FileInfo{
+                    .name = "project://",
+                    .path = "/",
+                    .hash = engine::hash::fnv1_str("/")
+                });
 
-    m_hashmap.emplace(engine::hash::fnv1_str(m_root->path), m_root.get());
+    auto root = m_spaseSet.get(entryRootID);
+
+    m_hashmap.emplace(root->hash, entryRootID);
 
     EventManager::Attach<AssetEventOnLoaded>(
             &BrowserFile::onAssetLoadedDB,
@@ -60,48 +68,81 @@ void BrowserFile::Draw()
 
 void BrowserFile::renderer()
 {
-    auto avail = ImGui::GetContentRegionAvail();
+    // auto avail = ImGui::GetContentRegionAvail();
 
+    ImGui::Columns(2, nullptr, true);
     ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
-    if (ImGui::BeginChild("browserFile_render_directories", ImVec2(avail.x / 3.0f, 0), ImGuiChildFlags_AlwaysUseWindowPadding))
-        render_virtual_directories(m_root.get());
+    if (ImGui::BeginChild("browserFile_render_directories"))
+    {
+        render_virtual_directories(entryRootID);
 
-    ImGui::EndChild();
+        ImGui::EndChild();
+    }
 
-    ImGui::SameLine();
-    if (ImGui::BeginChild("browserFile_render_entries", ImVec2(0.0f, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding))
-        render_virtual_entries();
+    ImGui::NextColumn();
+    if (ImGui::BeginChild("browserFile_render_entries"))
+    {
+        if (entrySelectedDir != INVALID_SPARSE_ID)
+            render_virtual_entries(entrySelectedDir);
 
-    create_render_popup_asset_info();
+        ImGui::EndChild();
+    }
 
-    ImGui::EndChild();
+    create_call_popup();
+
+    create_popup();
 }
 
-void BrowserFile::render_virtual_directories(FileInfo* info)
+#include <iostream>
+void BrowserFile::render_virtual_directories(EntryID entryID)
 {
+    auto info =
+        m_spaseSet.get(entryID);
+
     ImGuiTreeNodeFlags flags = 0;
     if (info->children.empty())
         return;
 
     auto& name = info->name;
 
-    if (m_selected_dir == info)
+    if (entrySelectedDir == entryID)
         flags |= ImGuiTreeNodeFlags_Selected;
 
     auto isOpen = ImGui::TreeNodeEx(name.c_str(), flags);
-    if (ImGui::IsItemClicked())
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
     {
-        m_selected_dir = info;
+        entrySelectedDir = entryID;
 
         m_selected_assets.clear();
+    } else if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+    {
+        entrySelectedDir = entryID;
+
+        popupFlags |= PopupFlags_ShowDirOption;
+        /*
+        Hash64 hash =
+            engine::hash::fnv1_str(info->path);
+
+        auto it =
+            m_hashmap.find(hash);
+        if (it != m_hashmap.end())
+        {
+            std::cout << "Delete: " << name << ", " << info->path << std::endl;
+
+            for (auto& child : it->second->children)
+            {
+                std::cout << child->path << std::endl;
+            }
+        }
+        */
     }
 
     drop_source_in_directories();
 
     if (isOpen)
     {
-        for (auto& child : info->children)
-            render_virtual_directories(child.get());
+        for (auto& childEntryID : info->children)
+            render_virtual_directories(childEntryID);
 
         ImGui::TreePop();
     }
@@ -145,17 +186,20 @@ void BrowserFile::drop_source_in_directories()
     ImGui::EndDragDropTarget();
 }
 
-void BrowserFile::render_virtual_entries()
+void BrowserFile::render_virtual_entries(EntryID entryID)
 {
-    if (m_selected_dir == nullptr)
-        return;
+    auto info =
+        m_spaseSet.get(entryID);
 
-    auto& name = m_selected_dir->name;
+    auto& name = info->name;
     ImGui::SeparatorText(name.c_str());
 
     ImGui::Columns(4, nullptr, false);
-    for (auto& entry : m_selected_dir->children)
+    for (auto& entryID : info->children)
     {
+        auto entry =
+            m_spaseSet.get(entryID);
+
         if (!entry->leaf())
             continue;
 
@@ -175,20 +219,13 @@ void BrowserFile::render_virtual_entries()
         }
 
         if (
-            ImGui::IsItemClicked(ImGuiMouseButton_Right) &&
-            (m_imguiIO->KeyShift &&
-                ImGui::IsItemClicked(ImGuiMouseButton_Left))
-        )
+                m_imguiIO->KeyShift &&
+                ImGui::IsItemClicked(ImGuiMouseButton_Left)
+            )
         {
             if (bSelected)
                 m_selected_assets.erase(entry->assetID);
             else
-                m_selected_assets.emplace(entry->assetID);
-        } else if (
-            ImGui::IsItemClicked(ImGuiMouseButton_Right)
-        )
-        {
-            if (!bSelected)
                 m_selected_assets.emplace(entry->assetID);
         }
 
@@ -200,14 +237,26 @@ void BrowserFile::render_virtual_entries()
                 )
             {
                 if (!bSelected)
+                {
+                    m_selected_assets.clear();
                     m_selected_assets.emplace(entry->assetID);
+                }
             }
 
             drag_selected_entries();
         }
 
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Right) && !m_selected_assets.empty())
-            ImGui::OpenPopup("create_render_popup_asset_info");
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right) && m_selected_assets.find(entry->assetID) != m_selected_assets.end())
+        {
+            popupFlags |= PopupFlags_ShowAssetInfo;
+        } else if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+        {
+            popupFlags |= PopupFlags_ShowAssetInfo;
+
+            m_selected_assets.clear();
+
+            m_selected_assets.emplace(entry->assetID);
+        }
 
         ImGui::NextColumn();
     }
@@ -218,8 +267,11 @@ void BrowserFile::render_virtual_entries()
         {
             m_selected_assets.clear();
 
-            for (auto &entry : m_selected_dir->children)
+            for (auto &entryID : info->children)
             {
+                auto entry =
+                    m_spaseSet.get(entryID);
+
                 if (!entry->leaf())
                     continue;
 
@@ -270,7 +322,7 @@ void BrowserFile::drag_selected_entries()
     }
 }
 
-void BrowserFile::onAssetLoadedDB(IEvent* data)
+void BrowserFile::onAssetLoadedDB(AssetEventOnLoaded* event)
 {
     try
     {
@@ -282,10 +334,8 @@ void BrowserFile::onAssetLoadedDB(IEvent* data)
     }
 }
 
-void BrowserFile::onAssetCreated(IEvent* data)
+void BrowserFile::onAssetCreated(AssetEventOnCreated* event)
 {
-    auto event = static_cast<AssetEventOnCreated*>(data);
-
     auto info = AssetDB::GetAsset(event->value);
     if (info == nullptr)
         return;
@@ -297,14 +347,19 @@ void BrowserFile::onAssetCreated(IEvent* data)
     create_hierarchy(info);
 }
 
-void BrowserFile::onAssetRemove(IEvent* data)
+void BrowserFile::onAssetRemove(AssetEventOnRemove* event)
 {
-    auto event = static_cast<AssetEventOnRemove*>(data);
-
     auto info = AssetDB::GetAsset(event->value);
     if (info == nullptr)
         return;
 
+    auto relPath = AssetResolver::Resolve(info->uri);
+    if (gfile::exists(relPath))
+        gfile::remove(relPath);
+
+    std::cout << "Remove: " << info->uri << std::endl;
+
+    /*
     URI uri = URI::parse(info->uri);
 
     std::string path = "/" + uri.path;
@@ -317,17 +372,21 @@ void BrowserFile::onAssetRemove(IEvent* data)
         std::string parentPath = gfile::parent(path);
         auto parentHash = engine::hash::fnv1_str(parentPath);
 
-        auto parentNode = m_hashmap[parentHash];
+        auto parentEntryID = m_hashmap[parentHash];
 
-        parentNode->children.erase(
-            std::remove_if(parentNode->children.begin(), 
-                           parentNode->children.end(), 
-                           [&](auto& n) { return n.get() == node; }),
-            parentNode->children.end() // Este argumento estava faltando/fora do lugar
+        auto parentEntry =
+            m_spaseSet.get(parentEntryID);
+
+        parentEntry->children.erase(
+            std::remove_if(parentEntry->children.begin(), 
+                           parentEntry->children.end(), 
+                           [&](EntryID entryID) { return entryID == node; }),
+            parentEntry->children.end() // Este argumento estava faltando/fora do lugar
         );   
     }
 
     m_hashmap.erase(hash);
+    */
 }
 
 std::vector<BrowserFile::EntryInfo> BrowserFile::splitPath(const std::string& path)
@@ -338,7 +397,6 @@ std::vector<BrowserFile::EntryInfo> BrowserFile::splitPath(const std::string& pa
     while (!current.empty())
     {
         std::string name = gfile::get_file_name(current);
-        // std::string name = std::filesystem::path(current).filename();
 
         EntryInfo entry;
         entry.path = current;
@@ -350,7 +408,6 @@ std::vector<BrowserFile::EntryInfo> BrowserFile::splitPath(const std::string& pa
             break;
 
         current = gfile::parent(current);
-        // current = std::filesystem::path(current).parent_path();
     }
 
     std::reverse(entries.begin(), entries.end());
@@ -367,9 +424,7 @@ void BrowserFile::create_hierarchy(AssetInfo* info)
     auto entries =
         splitPath(path);
 
-    auto parent = m_root.get();
-
-    // std::cout << path << std::endl;
+    auto parentID = entryRootID;
 
     for (const auto& entry : entries)
     {
@@ -378,33 +433,62 @@ void BrowserFile::create_hierarchy(AssetInfo* info)
         auto it = m_hashmap.find(hash);
         if (it != m_hashmap.end())
         {
-            parent = it->second;
+            parentID = it->second;
             continue;
         }
 
-        auto node = std::make_shared<FileInfo>();
-        node->name = entry.name;
-        node->path = entry.path;
+        auto newEntryID =
+            m_spaseSet.emplace(FileInfo{
+                        .name = entry.name,
+                        .path = entry.path,
+                        .hash = hash,
+                        .parent = parentID
+                    });
 
-        parent->children.push_back(node);
+        auto parentPtr =
+            m_spaseSet.get(parentID);
 
-        m_hashmap.emplace(hash, node.get());
+        parentPtr->children.push_back(newEntryID);
 
-        parent = node.get();
+        m_hashmap.emplace(hash, newEntryID);
+
+        parentID = newEntryID;
     }
 
-    if (
-            parent != nullptr &&
-            parent->assetID == INVALID_ASSET
-        )
-    {
-        parent->assetID = info->id;
-    }
+    auto parentPtr =
+        m_spaseSet.get(parentID);
+
+    if (parentPtr->assetID == INVALID_ASSET)
+        parentPtr->assetID = info->id;
 }
 
-void BrowserFile::create_render_popup_asset_info()
+void BrowserFile::create_call_popup()
 {
-    if (!ImGui::BeginPopup("create_render_popup_asset_info"))
+    switch (popupFlags)
+    {
+        case PopupFlags_ShowAssetInfo:
+            ImGui::OpenPopup(GETNAME(PopupFlags_ShowAssetInfo));
+            break;
+        case PopupFlags_ShowDirOption:
+            ImGui::OpenPopup(GETNAME(PopupFlags_ShowDirOption));
+            break;
+        default:
+            break;
+    }
+
+    popupFlags = 0;
+}
+
+void BrowserFile::create_popup()
+{
+    create_popup_asset_info();
+
+    create_popup_dir_option();
+}
+
+void BrowserFile::create_popup_asset_info()
+{
+    if (!ImGui::BeginPopup(GETNAME(PopupFlags_ShowAssetInfo)))
         return;
 
     ImGui::SeparatorText("Asset Menu");
@@ -487,6 +571,52 @@ void BrowserFile::create_render_popup_asset_info()
     }
 
     ImGui::EndPopup();
+}
+
+void BrowserFile::create_popup_dir_option()
+{
+    if (!ImGui::BeginPopup(GETNAME(PopupFlags_ShowDirOption)))
+        return;
+
+    auto info =
+        m_spaseSet.get(entrySelectedDir);
+
+    ImGui::SeparatorText(info->name.c_str());
+
+    if (ImGui::Button("Delete") && entrySelectedDir != entryRootID)
+    {
+        remove_all_assets_on_dir(entrySelectedDir);
+        entrySelectedDir =
+            INVALID_SPARSE_ID;
+
+        ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::EndPopup();
+}
+
+
+void BrowserFile::remove_all_assets_on_dir(EntryID entryID)
+{
+    auto info =
+        m_spaseSet.get(entryID);
+
+    if (info->assetID != INVALID_ASSET)
+        AssetDB::Unregistry(info->assetID);
+
+    if (info->parent != INVALID_SPARSE_ID)
+    {
+        auto parent = m_spaseSet.get(info->parent);
+        parent->children.erase(std::remove(parent->children.begin(), parent->children.end(), entryID), parent->children.end());
+    }
+
+    auto temp = info->children;
+    for (auto& childEntryID : temp)
+        remove_all_assets_on_dir(childEntryID);
+
+    m_hashmap.erase(info->hash);
+
+    m_spaseSet.destroy(entryID);
 }
 
 

@@ -66,6 +66,8 @@ private:
 
     uint32_t popupFlags = 0;
 
+    void drop_in_window();
+
     void show();
 
     void render_scene(Scene *scene);
@@ -80,6 +82,8 @@ private:
     void create_call_popup();
 
     void create_popup_create_scene();
+
+    Scene* CreateScene(const std::string& name);
 };
 
 

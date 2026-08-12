@@ -60,8 +60,19 @@ ModelAsset FbxSceneBuildTask::doInBackground()
         asset.Set("roughness", fbxMaterial.roughness);
         asset.Set("ambientocclusion", fbxMaterial.ao);
 
-        for (auto&& [id, path] : fbxMaterial.textures)
-        {}
+        /*
+        for (auto&& [type, path] : fbxMaterial.textures)
+        {
+            switch (type)
+            {
+                case TextureType_Albedo:
+                    asset.Set("albedo", fbxMaterial.albedo);
+                    break;
+                default:
+                    break;
+            }
+        }
+        */
 
         std::string uri = "project://material/" + m_fbxScene.name + "/" + fbxMaterial.name;
 

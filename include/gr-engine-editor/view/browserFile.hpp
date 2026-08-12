@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gr-base/pool/sparseSet.hpp"
 #include "view/windowView.hpp"
 
 #include "gr-base/asset/URI.hpp"
@@ -18,42 +19,62 @@
 #include <unordered_set>
 #include <memory>
 
-struct FileInfo
-{
-    std::string name;
-    std::string path;
-
-    AssetID assetID = INVALID_ASSET;
-
-    std::vector<std::shared_ptr<FileInfo>> children;
-
-    bool leaf() const
-    {
-        return children.empty();
-    }
-};
-
 class BrowserFile : public WindowView
 {
 public:
     BrowserFile();
 
 private:
+
+    typedef SparseID EntryID;
+
+    enum PopupFlags
+    {
+        PopupFlags_ShowAssetInfo = 1 << 1,
+        PopupFlags_ShowDirOption = 1 << 2
+    };
+
     struct EntryInfo
     {
         std::string name;
         std::string path;
     };
 
-    std::unordered_map<uint64_t, FileInfo*> m_hashmap;
+    struct FileInfo
+    {
+        std::string name;
+        std::string path;
 
-    std::shared_ptr<FileInfo> m_root;
+        AssetID assetID = INVALID_ASSET;
+        Hash64 hash = INVALID_HASH64;
 
-    FileInfo* m_selected_dir;
+        EntryID parent
+            = INVALID_SPARSE_ID;
+
+        std::vector<EntryID> children;
+
+        bool leaf() const
+        {
+            return children.empty();
+        }
+    };
+
+    SparseSet2<FileInfo> m_spaseSet;
+
+    std::unordered_map<Hash64, EntryID> m_hashmap;
+
+    EntryID entryRootID =
+        INVALID_SPARSE_ID;
+
+    EntryID entrySelectedDir =
+        INVALID_SPARSE_ID;
 
     AssetPtr<gr::texture> m_fileTexture;
 
     std::unordered_set<AssetID> m_selected_assets;
+
+    uint32_t popupFlags =
+        0;
 
     ImGuiIO* m_imguiIO;
 
@@ -61,25 +82,33 @@ private:
 
     void renderer();
 
-    void render_virtual_directories(FileInfo* info);
+    void render_virtual_directories(EntryID entryID);
 
     void drop_source_in_directories();
 
-    void render_virtual_entries();
+    void render_virtual_entries(EntryID entryID);
 
     void drag_selected_entries();
 
-    void onAssetLoadedDB(IEvent* event);
+    void onAssetLoadedDB(AssetEventOnLoaded* event);
 
-    void onAssetCreated(IEvent* data);
+    void onAssetCreated(AssetEventOnCreated* event);
 
-    void onAssetRemove(IEvent* data);
+    void onAssetRemove(AssetEventOnRemove* event);
 
     std::vector<EntryInfo> splitPath(const std::string& path);
 
     void create_hierarchy(AssetInfo* info);
 
-    void create_render_popup_asset_info();
+    void create_call_popup();
+
+    void create_popup();
+
+    void create_popup_asset_info();
+
+    void create_popup_dir_option();
+
+    void remove_all_assets_on_dir(EntryID entryID);
 };
 
 
