@@ -1,10 +1,11 @@
 #pragma once
 
+#include "gr-base/render/default.hpp"
 #include "view/windowView.hpp"
 
 #include <gr-base/core/assetPtr.hpp>
 
-#include <gr-render/texture.h>
+#include <gr-render/texture.hpp>
 
 #include "imgui.h"
 #include "guizmo/ImGuizmo.h"
@@ -18,7 +19,6 @@
 struct EditorContext;
 struct GameObject;
 
-class RenderTarget;
 class Scene;
 
 class SceneViewport : public WindowView
@@ -62,7 +62,8 @@ private:
     ImGuizmo::MODE m_guizmoManipulate =
         ImGuizmo::WORLD;
 
-    std::shared_ptr<RenderTarget> m_backbuffer;
+    RenderTargetID m_backbuffer =
+        InvalidRenderTarget;
 
     uint32_t popupFlags = 0;
 

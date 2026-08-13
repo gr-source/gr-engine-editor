@@ -24,6 +24,9 @@ EditorApplication::~EditorApplication()
         config_release(config);
 }
 
+#include <gr-base/render/postProcessPipeline.hpp>
+#include <gr-base/render/defaultPostProcess.hpp>
+
 void EditorApplication::initialize()
 {
     runtime.initialize();
@@ -45,10 +48,13 @@ void EditorApplication::initialize()
             this
         );
 
-    m_workspace = std::make_unique<ProjectBrowser>();
-
     cameraUBO.Create(0, sizeof(CameraBuffer));
     lightUBO.Create(1, sizeof(LightBuffer));
+
+    pipeline = std::make_shared<PostProcessPipeline>();
+    pipeline->add<DefaultPostProcess>();
+
+    m_workspace = std::make_unique<ProjectBrowser>();
 }
 
 void EditorApplication::shutdown()
@@ -207,7 +213,6 @@ void EditorApplication::drawScene(Scene* scene)
                         cameraData.view;
                     *(Vector3*)(&cameraBuffer.position[0]) =
                         transformLocal.position;
-
 
                     cameraUBO.Update(cameraBuffer);
                     lightUBO.Update(lightBuffer);

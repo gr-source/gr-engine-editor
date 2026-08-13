@@ -54,11 +54,15 @@ typedef struct LightBuffer
     LightData lights[MAX_NUM_LIGHT];
 } LightBuffer;
 
+class PostProcessPipeline;
+
 class EditorApplication : public Application
 {
 public:
     EditorApplication();
     ~EditorApplication() override;
+
+    std::shared_ptr<PostProcessPipeline> pipeline;
 
     std::unique_ptr<IWorkspace> m_workspace;
 

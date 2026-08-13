@@ -20,7 +20,7 @@
 #include "imgui.h"
 #include "view/imguiWidget.hpp"
 
-#include <gr-render/texture.h>
+#include <gr-render/texture.hpp>
 
 #include <algorithm>
 

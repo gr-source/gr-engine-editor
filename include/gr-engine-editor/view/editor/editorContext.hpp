@@ -2,7 +2,7 @@
 
 #include <gr-base/core/assetPtr.hpp>
 
-#include <gr-render/texture.h>
+#include <gr-render/texture.hpp>
 
 #include <unordered_map>
 

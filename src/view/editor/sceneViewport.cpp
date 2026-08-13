@@ -5,9 +5,11 @@
 
 #include "view/editor/editorContext.hpp"
 
+#include <gr-base/managers/renderTargetManager.hpp>
 #include <gr-base/managers/sceneManager.hpp>
 
-#include <gr-base/core/rendertarget.hpp>
+#include <gr-base/render/rendertarget.hpp>
+
 #include <gr-base/core/gameObject.hpp>
 #include <gr-base/core/assetDB.hpp>
 #include <gr-base/core/clock.hpp>
@@ -23,7 +25,13 @@
 SceneViewport::SceneViewport(EditorContext* context) : context(context)
 {
     s_texturePlayGame = context->iconsUI[IconType::ICON_PLAY_GAME];
-    m_backbuffer = std::make_shared<RenderTarget>(128, 128);
+
+    RenderTargetDesc desc;
+    desc.width = 128;
+    desc.height = 128;
+
+    m_backbuffer =
+        RenderTargetManager::Create(desc);
 }
 
 void SceneViewport::Draw()
@@ -165,9 +173,12 @@ void SceneViewport::render_scene(Scene *scene)
         Camera* camera = obj.GetComponent<Camera>();
         if (camera != nullptr)
         {
-            RenderTarget* rendertarget = camera->rendertarget;
+            auto rendertarget =
+                RenderTargetManager::Get(camera->rendertarget);
 
-            ImGui::Image(reinterpret_cast<ImTextureID>(rendertarget->GetTextureID()), regionAvail, {0.0f, 1.0f}, {1.0f, 0.0f});
+            auto texture = rendertarget->GetTextureColor();
+
+            ImGui::Image(reinterpret_cast<ImTextureID>(texture->id), regionAvail, {0.0f, 1.0f}, {1.0f, 0.0f});
 
             // drop_gameobject_in_scene();
 
@@ -244,8 +255,9 @@ void SceneViewport::apply_viewport(GameObject* gameObject)
             camera->viewport.h != regionAvail.y
         )
     {
-        if (camera->rendertarget != nullptr)
-            camera->rendertarget->resize(regionAvail.x, regionAvail.y);
+        auto rt = RenderTargetManager::Get(camera->rendertarget);
+        if (rt != nullptr)
+            rt->resize(regionAvail.x, regionAvail.y);
 
         camera->viewport.w = regionAvail.x;
         camera->viewport.h = regionAvail.y;
@@ -391,7 +403,8 @@ Scene* SceneViewport::CreateScene(const std::string& name)
     {
         GameObject go(scene, camera);
         go.AddComponent<CameraData>();
-        go.GetOrAddComponent<Camera>()->rendertarget = m_backbuffer.get();
+        go.GetOrAddComponent<Camera>()->rendertarget =
+            m_backbuffer;
     }
 
     scene->SetMainCamera(camera);
