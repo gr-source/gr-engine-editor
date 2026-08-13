@@ -202,7 +202,7 @@ EditorWorkspace::EditorWorkspace()
 
     try
     {
-        ModuleLoader::Load("script", m_project->path + "/.build/lib/libscript.so");
+        ModuleLoader::Load("script", m_project->path + "/.build/lib/libgr-script.so");
 
     } catch (const std::exception &e)
     {
@@ -254,7 +254,7 @@ void* GetVTable(const TypeInfo* info)
 
 void EditorWorkspace::loadScript(const std::string& dir)
 {
-    const std::string file = dir + "/libscript.so";
+    const std::string file = dir + "/libgr-script.so";
 
     if (!gfile::exists(file))
         return;
@@ -356,7 +356,7 @@ void EditorWorkspace::loadScript(const std::string& dir)
     //
     ModuleLoader::Unload("script");
 
-    if (ModuleLoader::CheckModuleHasInMemory("libscript.so"))
+    if (ModuleLoader::CheckModuleHasInMemory("libgr-script.so"))
     {
         Console::LogError("[ Script ] Fatal error: module still loaded.");
         return;
