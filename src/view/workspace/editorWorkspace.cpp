@@ -217,7 +217,7 @@ EditorWorkspace::EditorWorkspace()
     );
 
     TaskManager::Add<ShaderBuildTask>(
-            "/home/NoirVoid/.local/share/gr-engine/assets/shader/model/simple_model.glsl",
+            "/home/NoirVoid/.local/share/gr-engine/assets/shader/simple_model.glsl",
             URI::parse("engine://shader/simple_model")
         );
 

@@ -216,6 +216,8 @@ void EditorApplication::drawScene(Scene* scene)
                         camera.rendertarget
                     );
 
+                    Renderer::SetViewport(camera.viewport);
+
                     Frustum::CalculateFrustum(cameraData.projection * cameraData.view);
 
                     Renderer::Render();
