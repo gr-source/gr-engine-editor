@@ -1,10 +1,12 @@
 #include "view/editor/sceneViewport.hpp"
 
 #include "gr-base/managers/assetsManager.hpp"
+#include "gr-base/render/pipeline/forwardPipeline.hpp"
 #include "settings.h"
 
 #include "view/editor/editorContext.hpp"
 
+#include <gr-base/managers/renderPipelineManager.hpp>
 #include <gr-base/managers/renderTargetManager.hpp>
 #include <gr-base/managers/sceneManager.hpp>
 
@@ -29,6 +31,7 @@ SceneViewport::SceneViewport(EditorContext* context) : context(context)
     RenderTargetDesc desc;
     desc.width = 128;
     desc.height = 128;
+    desc.colorFormat = TEXTURE_FORMAT_RGBA16F;
 
     m_backbuffer =
         RenderTargetManager::Create(desc);
@@ -173,12 +176,16 @@ void SceneViewport::render_scene(Scene *scene)
         Camera* camera = obj.GetComponent<Camera>();
         if (camera != nullptr)
         {
-            auto rendertarget =
-                RenderTargetManager::Get(camera->rendertarget);
+            auto pipeline =
+                RenderPipelineManager::Get<ForwardPipeline>(camera->pipeline);
 
-            auto texture = rendertarget->GetTextureColor();
-
-            ImGui::Image(reinterpret_cast<ImTextureID>(texture->id), regionAvail, {0.0f, 1.0f}, {1.0f, 0.0f});
+            auto rt = RenderTargetManager::Get(pipeline->GetOutput());
+            if (rt != nullptr)
+            {
+                auto texture = rt->textureColor;
+                if (texture.get() != nullptr)
+                    ImGui::Image(reinterpret_cast<ImTextureID>(texture->id), regionAvail, {0.0f, 1.0f}, {1.0f, 0.0f});
+            }
 
             // drop_gameobject_in_scene();
 
@@ -255,7 +262,13 @@ void SceneViewport::apply_viewport(GameObject* gameObject)
             camera->viewport.h != regionAvail.y
         )
     {
-        auto rt = RenderTargetManager::Get(camera->rendertarget);
+        auto pipeline =
+            RenderPipelineManager::Get<ForwardPipeline>(camera->pipeline);
+
+        if (pipeline == nullptr)
+            return;
+
+        auto rt = RenderTargetManager::Get(pipeline->GetOutput());
         if (rt != nullptr)
             rt->resize(regionAvail.x, regionAvail.y);
 
@@ -403,8 +416,7 @@ Scene* SceneViewport::CreateScene(const std::string& name)
     {
         GameObject go(scene, camera);
         go.AddComponent<CameraData>();
-        go.GetOrAddComponent<Camera>()->rendertarget =
-            m_backbuffer;
+        go.GetOrAddComponent<Camera>();
     }
 
     scene->SetMainCamera(camera);

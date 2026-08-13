@@ -10,7 +10,6 @@
 
 #include <gr-base/script/default.hpp>
 
-#include <gr-base/managers/worldmanager.hpp>
 #include <gr-base/managers/eventManager.hpp>
 
 #include <gr-base/ecs/world.hpp>

@@ -23,9 +23,9 @@ EditorApplication::~EditorApplication()
     if (config != nullptr)
         config_release(config);
 }
+#include <gr-base/render/pipeline/forwardPipeline.hpp>
 
-#include <gr-base/render/postProcessPipeline.hpp>
-#include <gr-base/render/defaultPostProcess.hpp>
+#include <gr-base/managers/renderPipelineManager.hpp>
 
 void EditorApplication::initialize()
 {
@@ -51,8 +51,7 @@ void EditorApplication::initialize()
     cameraUBO.Create(0, sizeof(CameraBuffer));
     lightUBO.Create(1, sizeof(LightBuffer));
 
-    pipeline = std::make_shared<PostProcessPipeline>();
-    pipeline->add<DefaultPostProcess>();
+    RenderPipelineManager::Register<ForwardPipeline>(RenderPipelineForward);
 
     m_workspace = std::make_unique<ProjectBrowser>();
 }
@@ -217,15 +216,15 @@ void EditorApplication::drawScene(Scene* scene)
                     cameraUBO.Update(cameraBuffer);
                     lightUBO.Update(lightBuffer);
 
-                    Renderer::SetRenderTarget(
-                        camera.rendertarget
-                    );
+                    auto pipeline = RenderPipelineManager::Get<IRenderPipeline>(camera.pipeline);
 
                     Renderer::SetViewport(camera.viewport);
 
                     Frustum::CalculateFrustum(cameraData.projection * cameraData.view);
 
-                    Renderer::Render();
+                    pipeline->Execute();
+
+                    // Renderer::Render();
                 }
             }
         );
