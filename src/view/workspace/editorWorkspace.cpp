@@ -2108,9 +2108,9 @@ void EditorWorkspace::LoadReources()
     #undef LOAD_ICON
 }
 
-void EditorWorkspace::SetupTexture(IconType type, TextureHandle h)
+void EditorWorkspace::SetupTexture(IconType type, AssetPtr<gr::texture> texture)
 {
-    context.iconsUI[type] = h;
+    context.iconsUI[type] = texture;
 }
 
 void EditorWorkspace::loadComponentName()

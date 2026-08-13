@@ -114,7 +114,7 @@ public:
 
     void LoadReources();
     
-    void SetupTexture(IconType type, TextureHandle h);
+    void SetupTexture(IconType type, AssetPtr<gr::texture> texture);
 
     inline ViewManager& GetViewManager()
     {
