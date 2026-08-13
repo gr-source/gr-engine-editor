@@ -216,15 +216,11 @@ void EditorApplication::drawScene(Scene* scene)
                     cameraUBO.Update(cameraBuffer);
                     lightUBO.Update(lightBuffer);
 
-                    auto pipeline = RenderPipelineManager::Get<IRenderPipeline>(camera.pipeline);
-
-                    Renderer::SetViewport(camera.viewport);
-
                     Frustum::CalculateFrustum(cameraData.projection * cameraData.view);
 
-                    pipeline->Execute();
+                    auto pipeline = RenderPipelineManager::Get<IRenderPipeline>(camera.pipeline);
 
-                    // Renderer::Render();
+                    pipeline->Execute();
                 }
             }
         );

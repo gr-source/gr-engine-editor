@@ -27,14 +27,6 @@
 SceneViewport::SceneViewport(EditorContext* context) : context(context)
 {
     s_texturePlayGame = context->iconsUI[IconType::ICON_PLAY_GAME];
-
-    RenderTargetDesc desc;
-    desc.width = 128;
-    desc.height = 128;
-    desc.colorFormat = TEXTURE_FORMAT_RGBA16F;
-
-    m_backbuffer =
-        RenderTargetManager::Create(desc);
 }
 
 void SceneViewport::Draw()
@@ -179,13 +171,9 @@ void SceneViewport::render_scene(Scene *scene)
             auto pipeline =
                 RenderPipelineManager::Get<ForwardPipeline>(camera->pipeline);
 
-            auto rt = RenderTargetManager::Get(pipeline->GetOutput());
-            if (rt != nullptr)
-            {
-                auto texture = rt->textureColor;
-                if (texture.get() != nullptr)
-                    ImGui::Image(reinterpret_cast<ImTextureID>(texture->id), regionAvail, {0.0f, 1.0f}, {1.0f, 0.0f});
-            }
+            auto texture = pipeline->GetTextureOutput();
+            if (texture.get() != nullptr)
+                ImGui::Image(reinterpret_cast<ImTextureID>(texture->id), regionAvail, {0.0f, 1.0f}, {1.0f, 0.0f});
 
             // drop_gameobject_in_scene();
 
@@ -268,9 +256,11 @@ void SceneViewport::apply_viewport(GameObject* gameObject)
         if (pipeline == nullptr)
             return;
 
+        /*
         auto rt = RenderTargetManager::Get(pipeline->GetOutput());
         if (rt != nullptr)
             rt->resize(regionAvail.x, regionAvail.y);
+        */
 
         camera->viewport.w = regionAvail.x;
         camera->viewport.h = regionAvail.y;
@@ -368,6 +358,7 @@ void SceneViewport::create_call_popup()
     popupFlags = 0;
 }
 
+#include <gr-base/system/characterInputSystem.hpp>
 #include <gr-base/system/transformsystem.hpp>
 #include <gr-base/system/physicsSystem.hpp>
 #include <gr-base/system/camerasystem.hpp>
@@ -409,6 +400,7 @@ Scene* SceneViewport::CreateScene(const std::string& name)
     scene->AddSystem<TransformSystem>();
     scene->AddSystem<CameraSystem>();
 
+    scene->AddSystem<CharacterInputSystem>();
     scene->AddSystem<RenderSystem>();
     scene->AddSystem<PhysicsSystem>();
 

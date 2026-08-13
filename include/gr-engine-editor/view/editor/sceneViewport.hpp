@@ -1,11 +1,10 @@
 #pragma once
 
-#include "gr-base/render/default.hpp"
 #include "view/windowView.hpp"
 
 #include <gr-base/core/assetPtr.hpp>
 
-#include <gr-render/texture.hpp>
+#include <gr-render/default.hpp>
 
 #include "imgui.h"
 #include "guizmo/ImGuizmo.h"
@@ -13,8 +12,7 @@
 #include <gr-math/gmath.hpp>
 
 #include <climits>
-#include <memory>
-#include <array>
+#include <string>
 
 struct EditorContext;
 struct GameObject;
@@ -61,9 +59,6 @@ private:
 
     ImGuizmo::MODE m_guizmoManipulate =
         ImGuizmo::WORLD;
-
-    RenderTargetID m_backbuffer =
-        InvalidRenderTarget;
 
     uint32_t popupFlags = 0;
 

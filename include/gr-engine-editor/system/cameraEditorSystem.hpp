@@ -6,7 +6,7 @@
 
 #include <gr-base/ecs/default.hpp>
 
-class CameraEditorSystem : public ISystemImpl<Read<TransformLocal>, Write<TransformLocal>>
+class CameraEditorSystem : public ISystemImpl<Read<>, Write<>>
 {
 public:
     CameraEditorSystem();
