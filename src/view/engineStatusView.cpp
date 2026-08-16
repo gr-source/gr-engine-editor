@@ -75,7 +75,7 @@ void EngineStatusView::renderer(Scene* scene)
     {
         ImGui::Text("Entities: %ld", scene->GetEntityCount());
 
-        auto world = scene->GetWorldDynamic();
+        auto world = scene->world;
 
         ImGui::Text("Archetypes: %zu", world->GetArchetypeCount());
 
