@@ -156,7 +156,7 @@ void EditorApplication::drawScene(Scene* scene)
 {
     LightBuffer lightBuffer{0};
 
-    scene->world->Query<TransformLocal, Light>([&](
+    scene->world.Query<TransformLocal, Light>([&](
                 size_t count,
                 Entity*,
                 TransformLocal* transforms,
@@ -191,7 +191,7 @@ void EditorApplication::drawScene(Scene* scene)
 
     Renderer::BeginFrame();
 
-    scene->world->Query<TransformLocal, Camera, CameraData>(
+    scene->world.Query<TransformLocal, Camera, CameraData>(
             [&](
                 size_t count,
                 Entity*,

@@ -488,14 +488,12 @@ EditorWorkspace::HotReloadPass EditorWorkspace::CheckComponentInfo(std::vector<C
 
     for (auto& scene : SceneManager::GetScenes())
     {
-        auto world = scene->world;
-
         std::vector<std::tuple<Signature, std::vector<Entity>>> archetypes;
         std::vector<std::tuple<Signature, std::vector<Entity>>> addArchetypes;
 
-        for (size_t i=0;i<world->GetArchetypeCount();i++)
+        for (size_t i=0;i<scene->world.GetArchetypeCount();i++)
         {
-            auto& arche = world->GetRawArchetype()[i];
+            auto& arche = scene->world.GetRawArchetype()[i];
 
             Signature common = (arche.mask & requiredRemoveMask);
             if (common)
@@ -523,7 +521,7 @@ EditorWorkspace::HotReloadPass EditorWorkspace::CheckComponentInfo(std::vector<C
         for (auto&& [mask, entities] : archetypes)
         {
             for (auto& entity : entities)
-                world->DelComponentByMask(entity, mask);
+                scene->world.DelComponentByMask(entity, mask);
         }
 
 
@@ -543,14 +541,12 @@ void EditorWorkspace::ReloadComponentPass(const EditorWorkspace::HotReloadPass& 
 {
     for (auto&& [scene, archetypes] : pass.recreatePerScene)
     {
-        auto world = scene->world;
-
         for (auto&& [mask, entities] : archetypes)
         {
             for (auto& entity : entities)
             {
                 std::cout << "Add: " << entity << ": " << mask << std::endl;
-                world->AddComponentByMask(entity, mask);
+                scene->world.AddComponentByMask(entity, mask);
             }
         }
     }
@@ -1430,7 +1426,7 @@ void EditorWorkspace::create_render_property()
 
     ImGui::SeparatorText(objName.c_str());
 
-    for (auto typeID : context.scene->world->GetAllComponentType(go.entity))
+    for (auto typeID : context.scene->world.GetAllComponentType(go.entity))
         ShowComponentInfoUI(go, ComponentRegistry::GetComponentByID(typeID));
 
     auto avail = ImGui::GetContentRegionAvail();
@@ -1661,7 +1657,7 @@ void EditorWorkspace::ShowComponentInfoUI(GameObject& go, const ComponentInfo* i
 
     if (!bVisible)
     {
-        go.world->DelComponentByID(go.entity, info->index);
+        go.scene->world.DelComponentByID(go.entity, info->index);
     }
         // go->DelComponent(info->index);
 

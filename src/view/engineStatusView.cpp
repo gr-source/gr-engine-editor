@@ -75,13 +75,11 @@ void EngineStatusView::renderer(Scene* scene)
     {
         ImGui::Text("Entities: %ld", scene->GetEntityCount());
 
-        auto world = scene->world;
+        ImGui::Text("Archetypes: %zu", scene->world.GetArchetypeCount());
 
-        ImGui::Text("Archetypes: %zu", world->GetArchetypeCount());
+        auto array = scene->world.GetRawArchetype();
 
-        auto array = world->GetRawArchetype();
-
-        for (ArchetypeID i = 0; i < world->GetArchetypeCount(); i++)
+        for (ArchetypeID i = 0; i < scene->world.GetArchetypeCount(); i++)
         {
             const auto& arche = array[i];
 
