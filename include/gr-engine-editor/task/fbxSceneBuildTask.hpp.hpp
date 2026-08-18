@@ -26,7 +26,10 @@ private:
         AssetID id;
     };
 
+    std::unordered_map<std::string, AssetWrapper<TextureAsset>> m_textureMapWrapper;
+
     std::unordered_map<std::string, AssetWrapper<MaterialAsset>> m_materialMapWrapper;
+
     std::unordered_map<std::string, AssetWrapper<MeshAsset>> m_meshMapWrapper;
 
     Handle m_dialog;

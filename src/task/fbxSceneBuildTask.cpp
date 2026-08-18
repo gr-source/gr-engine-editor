@@ -34,15 +34,30 @@ void FbxSceneBuildTask::onPreExecute()
 ModelAsset FbxSceneBuildTask::doInBackground()
 {
     AssetID shader =
-        AssetDB::FindByHash(engine::hash::fnv1_str("engine://shader/simple_model"));
+        AssetDB::FindByName("engine://shader/simple_model");
     if (shader == INVALID_ASSET)
         throw std::runtime_error("Shader default not found");
 
     for (const auto& path : m_fbxScene.textures)
     {
+        std::string filename = gfile::get_file_name(path);
+
         try
         {
             TextureAsset asset = buildToTextureAsset(path);
+            //
+            // std::string uri = "project://texture/" + m_fbxScene.name + "/" + filename;
+            //
+            // AssetID id = AssetDB::FindByName(uri);
+            // if (id == INVALID_ASSET)
+            //     id = AssetDB::CreateID();
+            //
+            // AssetWrapper<TextureAsset> wrapper;
+            // wrapper.asset = asset;
+            // wrapper.id = id;
+            // wrapper.uri = uri;
+
+            // m_textureMapWrapper.emplace(path, wrapper);
         } catch (const std::exception& e)
         {
             Console::LogDefault("{FFA500}[ FbxSceneBuildTask ] {FFFFFF}%s.", e.what());
@@ -59,23 +74,9 @@ ModelAsset FbxSceneBuildTask::doInBackground()
         asset.Set("roughness", fbxMaterial.roughness);
         asset.Set("ambientocclusion", fbxMaterial.ao);
 
-        /*
-        for (auto&& [type, path] : fbxMaterial.textures)
-        {
-            switch (type)
-            {
-                case TextureType_Albedo:
-                    asset.Set("albedo", fbxMaterial.albedo);
-                    break;
-                default:
-                    break;
-            }
-        }
-        */
-
         std::string uri = "project://material/" + m_fbxScene.name + "/" + fbxMaterial.name;
 
-        AssetID id = AssetDB::FindByHash(engine::hash::fnv1_str(uri));
+        AssetID id = AssetDB::FindByName(uri);
         if (id == INVALID_ASSET)
             id = AssetDB::CreateID();
 
@@ -127,7 +128,7 @@ ModelAsset FbxSceneBuildTask::doInBackground()
 
         std::string uri = "project://mesh/" + m_fbxScene.name + "/" + fbxMesh.name;
 
-        AssetID id = AssetDB::FindByHash(engine::hash::fnv1_str(uri));
+        AssetID id = AssetDB::FindByName(uri);
         if (id == INVALID_ASSET)
             id = AssetDB::CreateID();
 
@@ -190,7 +191,7 @@ void FbxSceneBuildTask::onPostExecute(Result<ModelAsset> result)
     std::string uri =
         "project://model/" + m_fbxScene.name + "/" + asset.name;
 
-    AssetID id = AssetDB::FindByHash(engine::hash::fnv1_str(uri));
+    AssetID id = AssetDB::FindByName(uri);
     if (id == INVALID_ASSET)
         id = AssetDB::CreateID();
 
@@ -208,25 +209,6 @@ void FbxSceneBuildTask::onPostExecute(Result<ModelAsset> result)
         std::make_shared<ModelAsset>(asset);
 
     TaskManager::Add<AssetSaveTask>(info);
-
-
-    /*
-    std::cout << "[ ===== Material ===== ]" << std::endl;
-    for (auto&& [name, wrapper] : m_materialMapWrapper)
-    {
-        std::cout
-            << name << ": "
-            << wrapper.id << std::endl;
-    }
-
-    std::cout << "[ ===== Mesh ===== ]" << std::endl;
-    for (auto&& [name, wrapper] : m_meshMapWrapper)
-    {
-        std::cout
-            << name << ": "
-            << wrapper.id << std::endl;
-    }
-    */
 }
 
 ModelAsset FbxSceneBuildTask::readNode(const FbxNode* fbxNode)
