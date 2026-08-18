@@ -4,7 +4,10 @@
 
 #include <gr-render/texture.hpp>
 
-#include <unordered_map>
+#include <unordered_set>
+#include <algorithm>
+
+typedef uint64_t Entity;
 
 struct ImGuiIO;
 class Scene;
@@ -29,12 +32,61 @@ enum IconType
 	ICON_ANIMATION      = 15,
 	ICON_SHADER         = 16,
 	ICON_SCENE          = 17,
-	ICON_SCRIPT         = 18
+	ICON_SCRIPT         = 18,
+    ICON_COUNT
+};
+
+#include <unordered_set>
+#include <vector>
+
+template <typename T>
+struct Selector
+{
+    std::unordered_set<T> map;
+    std::vector<T> list;
+
+    void select(T value)
+    {
+        if (map.find(value) != map.end())
+            return;
+
+        map.emplace(value);
+        list.push_back(value);
+    }
+
+    void deselect(T value)
+    {
+        list.erase(std::remove(list.begin(), list.end(), value), list.end());
+        map.erase(value);
+    }
+
+    void deselect_all()
+    {
+        list.clear();
+        map.clear();
+    }
+
+    bool empty() const
+    {
+        return list.empty();
+    }
+
+    std::vector<T> getSelected() const
+    {
+        return list;
+    }
+
+    bool has(T value) const
+    {
+        return map.find(value) != map.end();
+    }
 };
 
 struct EditorContext
 {
-    std::unordered_map<IconType, AssetPtr<gr::texture>> iconsUI;
+    AssetPtr<gr::texture> iconsUI[IconType::ICON_COUNT];
+
+    Selector<Entity> selector;
 
     Scene* scene = nullptr;
     ImGuiIO* io = nullptr;

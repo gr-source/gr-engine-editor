@@ -641,7 +641,7 @@ void EditorWorkspace::initialize()
     viewManager.add<ImportAssetViewPopup>();
 
     viewManager.add<SceneViewport>(&context)->open = true;
-    viewManager.add<SpawnObject>();
+    viewManager.add<SpawnObject>(&context);
     viewManager.add<EngineStatusView>();
     viewManager.add<SceneInspectorView>();
     viewManager.add<ConsoleWindowView>()->open = true;
@@ -803,12 +803,14 @@ void EditorWorkspace::create_render_hierarchy(Scene* scene)
         ImGui::TreePop();
     }
 
-    if (ImGui::IsKeyReleased(ImGuiKey_Delete) && scene->has_object_selected())
+    if (
+            ImGui::IsKeyReleased(ImGuiKey_Delete) &&
+            !context.selector.empty())
     {
-        for (auto go : scene->get_object_selected())
+        for (auto go : context.selector.getSelected())
             scene->destroy(go);
 
-        scene->deselect_all();
+        context.selector.deselect_all();
 
 
         GameObject root(scene, scene->GetRoot());
@@ -819,7 +821,7 @@ void EditorWorkspace::create_render_hierarchy(Scene* scene)
             Entity child = rel->firstChild;
 
             if (child != INVALID_ENTITY)
-                scene->select(child);
+                context.selector.select(child);
         }
     }
 }
@@ -865,11 +867,14 @@ void EditorWorkspace::RenderSceneObject(Scene *scene)
         }
     }
 
-    if (ImGui::IsKeyReleased(ImGuiKey_F2) && ImGui::IsWindowHovered() && scene->has_object_selected())
+    if (ImGui::IsKeyReleased(ImGuiKey_F2) && ImGui::IsWindowHovered() && !context.selector.empty())
         popupFlags |= EditorPopupFlags_RenameGameObject;
 
-    if (ImGui::IsKeyReleased(ImGuiKey_Escape) && ImGui::IsWindowHovered())
-        scene->deselect_all();
+    if (
+            ImGui::IsKeyReleased(ImGuiKey_Escape) &&
+            ImGui::IsWindowHovered()
+        )
+        context.selector.deselect_all();
 
     ImGui::EndChild();
 }
@@ -882,7 +887,7 @@ void EditorWorkspace::ShowGameObjectHierarchy(GameObject& go)
 
     // auto rel = ;
 
-    if (go.scene->object_has_been_selected(go.entity))
+    if (context.selector.has(go.entity))
         flags |= ImGuiTreeNodeFlags_Selected;
 
     if (go.HasComponent<Relationship>() && go.GetComponent<Relationship>()->firstChild != INVALID_ENTITY)
@@ -892,18 +897,18 @@ void EditorWorkspace::ShowGameObjectHierarchy(GameObject& go)
 
     if (ImGui::IsKeyDown(ImGuiKey_ModShift) && ImGui::IsItemClicked(ImGuiMouseButton_Left))
     {
-        if (go.scene->object_has_been_selected(go.entity))
+        if (context.selector.has(go.entity))
         {
-            go.scene->deselect(go.entity);
+            context.selector.deselect(go.entity);
         } else
         {
-            go.scene->select(go.entity);
+            context.selector.select(go.entity);
         }
     } else if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
     {
-        go.scene->deselect_all();
+        context.selector.deselect_all();
 
-        go.scene->select(go.entity);
+        context.selector.select(go.entity);
     }
 
     dragDropGameObject(go.entity, name);
@@ -1396,8 +1401,8 @@ void EditorWorkspace::drop_gameobject_in_scene()
                     info->uri,
                     [&](Entity entity)
                     {
-                        context.scene->deselect_all();
-                        context.scene->select(entity);
+                        context.selector.deselect_all();
+                        context.selector.select(entity);
                     }
                 );
     }
@@ -1409,7 +1414,7 @@ void EditorWorkspace::create_window_property()
 {
     if (ImGui::Begin("property", NULL, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysHorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar) &&
             context.scene != nullptr &&
-            context.scene->has_object_selected()
+            !context.selector.empty()
         )
         create_render_property();
 
@@ -1418,7 +1423,7 @@ void EditorWorkspace::create_window_property()
 
 void EditorWorkspace::create_render_property()
 {
-    GameObject go(context.scene, context.scene->get_object_selected().back());
+    GameObject go(context.scene, context.selector.getSelected().back());
     if (!go.IsAlive())
         return;
 
@@ -1561,7 +1566,7 @@ void EditorWorkspace::create_popup_add_component()
             )
         {
 
-            for (auto& entity : context.scene->get_object_selected())
+            for (auto& entity : context.selector.getSelected())
             {
                 GameObject gameObject(context.scene, entity);
 
@@ -1585,7 +1590,7 @@ void EditorWorkspace::create_popup_rename_object()
 
     ImGui::SeparatorText("[ Rename ]");
 
-    Entity entity = context.scene->get_object_selected().back();
+    Entity entity = context.selector.getSelected().back();
 
     GameObject go(context.scene, entity);
 

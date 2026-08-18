@@ -1,5 +1,6 @@
 #pragma once
 
+#include "view/editor/editorContext.hpp"
 #include "view/windowView.hpp"
 
 #include <gr-base/core/assetPtr.hpp>
@@ -63,6 +64,8 @@ private:
     uint32_t popupFlags = 0;
 
     void drop_in_window();
+
+    void onEntityLoaded(Entity entity);
 
     void show();
 

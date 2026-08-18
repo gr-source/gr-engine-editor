@@ -2,55 +2,40 @@
 
 #include "view/imguiRenderer.hpp"
 
+#include "view/editor/editorContext.hpp"
+
 #include <gr-base/managers/assetsManager.hpp>
 
 #include <gr-base/core/gameObject.hpp>
 
 #include <gr-base/script/transform.hpp>
 
-// #include "gr-base/asset/assetDB.hpp"
-// #include "gr-base/core/scene.hpp"
 #include <gr-base/script/name.hpp>
 
 #include "imgui.h"
 
-SpawnObject::SpawnObject() :
+SpawnObject::SpawnObject(EditorContext* context) :
     numInstances(100),
     position({0.0f, 0.0f}),
-    m_info(nullptr)
+    m_info(nullptr),
+    context(context)
 {}
 
 void SpawnObject::Draw()
 {
-    auto scene = Scene::GetCurrent();
-
-    if (ImGui::Begin("Spawn bject", &open) && scene != nullptr)
-        renderer(scene);
+    if (ImGui::Begin("Spawn bject", &open) && context->scene != nullptr)
+        renderer(context->scene);
 
     ImGui::End();
 }
 
 void SpawnObject::renderer(Scene* scene)
 {
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
-
-    if (ImGui::BeginDragDropTargetCustom(window->InnerRect, window->ID))
-    {
-        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("AssetID"))
-        {
-            AssetID* ids =
-                (AssetID*)payload->Data;
-
-            m_info = AssetDB::GetAsset(ids[0]);
-            if (m_info != nullptr && m_info->type != AssetType_Model)
-                m_info = nullptr;
-        }
-        ImGui::EndDragDropTarget();
-    }
+    drop_asset();
 
     ImGui::SeparatorText(m_info != nullptr ? m_info->uri : "Not selected file");
 
-    ImGui::InputInt("Num", &numInstances);
+    ImGui::InputInt("Instances", &numInstances);
 
     if (ImGui::Button("Spawn") && m_info != nullptr)
         AssetsManager::LoadGameObjectAsync(m_info->uri, &SpawnObject::SetPrefab, this);
@@ -72,22 +57,14 @@ void SpawnObject::SetPrefab(Entity prefabID)
     if (scene == nullptr)
         return;
 
-    int distance = numInstances / 2;
+    const int start = -(numInstances / 2);
 
-    int currentX = floor(position.x / 16.0f);
-    int currentZ = floor(position.y / 16.0f);
-
-    // Cria uma shape pra box
-    // std::shared_ptr<btCollisionShape> shape =
-    //     std::make_shared<btBoxShape>(btVector3());
-    // shape->setLocalScaling(btVector3());
-
-    for (int x=-distance;x<distance;x++)
+    for (int x = 0; x < numInstances; ++x)
     {
-        for (int z=-distance;z<distance;z++)
+        for (int z = 0; z < numInstances; ++z)
         {
-            int targetX = (currentX + x);
-            int targetZ = (currentZ + z);
+            const float targetX = (start + x) * 10.0f;
+            const float targetZ = (start + z) * 10.0f;
 
             std:: string str = "Test[" + std::to_string(targetX) + "][" + std::to_string(targetZ) + "]";
 
@@ -97,9 +74,9 @@ void SpawnObject::SetPrefab(Entity prefabID)
             name->value = strdup(str.c_str());
 
             auto transform = gameObject.GetComponent<TransformLocal>();
-            transform->position = {(float)targetX * 5.5f, 0.0f, (float)targetZ * 4.5f};
+            transform->position = {(float)targetX, 0.0f, (float)targetZ };
 
-            gameObject.AddComponentByName("CubeMovement");
+            // gameObject.AddComponentByName("CubeMovement");
 
             scene->MarkChanged<TransformWorld>(gameObject.entity);
 
@@ -108,6 +85,25 @@ void SpawnObject::SetPrefab(Entity prefabID)
     }
 
     scene->destroy(prefabID);
+}
+
+void SpawnObject::drop_asset()
+{
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+
+    if (ImGui::BeginDragDropTargetCustom(window->InnerRect, window->ID))
+    {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("AssetID"))
+        {
+            AssetID* ids =
+                (AssetID*)payload->Data;
+
+            m_info = AssetDB::GetAsset(ids[0]);
+            if (m_info != nullptr && m_info->type != AssetType_Model)
+                m_info = nullptr;
+        }
+        ImGui::EndDragDropTarget();
+    }
 }
 
 

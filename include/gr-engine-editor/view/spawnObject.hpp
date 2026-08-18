@@ -11,6 +11,8 @@
 
 #include <vector>
 
+struct EditorContext;
+
 class SpawnObject : public WindowView
 {
     int numInstances;
@@ -20,16 +22,22 @@ class SpawnObject : public WindowView
     std::vector<Entity> m_instances;
 
 public:
-    SpawnObject();
+    SpawnObject(EditorContext* context);
 
     void Draw() override;
 
 private:
-    AssetInfo* m_info;
+    EditorContext* context =
+        nullptr;
+
+    AssetInfo* m_info =
+        nullptr;
 
     void renderer(Scene* scene);
 
     void SetPrefab(Entity prefabID);
+
+    void drop_asset();
 };
 
 

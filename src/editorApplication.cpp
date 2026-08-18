@@ -189,6 +189,8 @@ void EditorApplication::drawScene(Scene* scene)
         }
     });
 
+    lightUBO.Update(lightBuffer);
+
     Renderer::BeginFrame();
 
     scene->world.Query<TransformLocal, Camera, CameraData>(
@@ -214,7 +216,6 @@ void EditorApplication::drawScene(Scene* scene)
                         transformLocal.position;
 
                     cameraUBO.Update(cameraBuffer);
-                    lightUBO.Update(lightBuffer);
 
                     Frustum::CalculateFrustum(cameraData.projection * cameraData.view);
 

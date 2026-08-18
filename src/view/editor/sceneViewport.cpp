@@ -68,11 +68,17 @@ void SceneViewport::drop_in_window()
             {
                 auto info = AssetDB::GetAsset(ids[i]);
                 if (info != nullptr && info->type == AssetType_Model)
-                    AssetsManager::LoadGameObjectAsync(info->uri);
+                    AssetsManager::LoadGameObjectAsync(info->uri, &SceneViewport::onEntityLoaded, this);
             }
         }
         ImGui::EndDragDropTarget();
     }
+}
+
+void SceneViewport::onEntityLoaded(Entity entity)
+{
+    context->selector.deselect_all();
+    context->selector.select(entity);
 }
 
 void SceneViewport::show()
@@ -90,7 +96,7 @@ void SceneViewport::show()
             if (scene != context->scene)
             {
                 if (context->scene != nullptr)
-                    context->scene->deselect_all();
+                    context->selector.deselect_all();
 
                 context->scene = scene;
             }
@@ -177,7 +183,7 @@ void SceneViewport::render_scene(Scene *scene)
 
             // drop_gameobject_in_scene();
 
-            if (scene->has_object_selected() && !Settings::bGameRunning)
+            if (!context->selector.empty() && !Settings::bGameRunning)
                 create_render_guizmo(scene, &obj);
         }
     }
@@ -200,7 +206,7 @@ void SceneViewport::render_scene(Scene *scene)
         }
 
         char fps_text[256] = {0};
-        sprintf(fps_text, "FPS: %d | Max: %d | Min: %d (ms: %.5lf)", displayFps, fpsMax, fpsMin, displayMS);
+        sprintf(fps_text, "Timer: %.2f | FPS: %d | Max: %d | Min: %d (ms: %.5lf)", Clock::time, displayFps, fpsMax, fpsMin, displayMS);
 
         auto textSize = ImGui::CalcTextSize(fps_text);
 
@@ -226,17 +232,17 @@ void SceneViewport::render_scene(Scene *scene)
     ImGui::PopStyleColor();
 
     if (
-            scene->has_object_selected() &&
+            !context->selector.empty() &&
             ImGui::IsWindowFocused() &&
             context->io->KeyShift &&
             ImGui::IsKeyReleased(ImGuiKey_D)
         )
     {
-        auto temp = scene->get_object_selected();
-        scene->deselect_all();
+        auto temp = context->selector.getSelected();
+        context->selector.deselect_all();
 
         for (auto go : temp)
-            scene->select(scene->create(go));
+            context->selector.select(scene->create(go));
     }
 }
 
@@ -287,7 +293,7 @@ void SceneViewport::create_render_guizmo(Scene *scene, const GameObject* gameObj
 
     auto camera = gameObjectCamera->GetComponent<CameraData>();
 
-    for (auto entity : scene->get_object_selected())
+    for (auto entity : context->selector.getSelected())
     {
         GameObject gameObject(scene, entity);
         if (!gameObject.IsAlive())
