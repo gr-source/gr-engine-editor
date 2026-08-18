@@ -340,7 +340,7 @@ void BrowserFile::onAssetCreated(AssetEventOnCreated* event)
         return;
 
     URI uri = URI::parse(info->uri);
-    if (uri.scheme != Scheme::Project)
+    if (uri.scheme != Scheme_Project)
         return;
 
     create_hierarchy(info);

@@ -9,13 +9,4 @@ Application* CreateInstance()
 }
 }
 
-__attribute__((__constructor__))
-void Initialize()
-{}
-
-
-__attribute__((destructor))
-void Shutdown()
-{}
-
 

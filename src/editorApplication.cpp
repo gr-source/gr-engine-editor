@@ -1,6 +1,7 @@
 #include "editorApplication.hpp"
 
 #include "event/editorApplicationEvent.hpp"
+#include "gr-base/core/assetDB.hpp"
 #include "gr-base/core/scene.hpp"
 #include "gr-base/managers/eventManager.hpp"
 
@@ -239,7 +240,7 @@ public:
     ProjectAssetProvider(const std::string& dir) : m_directory(dir)
     {}
 
-    virtual std::string resolve(const std::string& path) override
+    std::string resolve(const std::string& path) override
     {
         return m_directory + "/assets/" + path;
     }
@@ -288,7 +289,7 @@ void EditorApplication::onCheckProject(IEvent* event)
     if (m_project == nullptr)
         return;
 
-    AssetResolver::Registry<ProjectAssetProvider>(Scheme::Project, m_project->path);
+    AssetResolver::Registry<ProjectAssetProvider>(Scheme_Project, m_project->path);
 
     m_workspace = std::make_unique<EditorWorkspace>();
 }
