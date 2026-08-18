@@ -18,7 +18,7 @@ private:
 
     void onPostExecute(Result<int> result) override;
 
-    bool copydata(const std::string& src_dir);
+    bool CopyUpdateFile(const std::string& src_dir, const std::string& dst_dir);
 
     uint64_t GetHashFromFile(const std::string& file);
 };

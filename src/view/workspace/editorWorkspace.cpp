@@ -1450,6 +1450,9 @@ void EditorWorkspace::create_call_popup()
     case EditorPopupFlags_SceneAddOption:
         ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_SceneAddOption));
         break;
+    case EditorPopupFlags_RenameGameObject:
+        ImGui::OpenPopup(GET_FLAG_NAME(EditorPopupFlags_RenameGameObject));
+        break;
     default:
         break;
     }
