@@ -193,7 +193,7 @@ EditorWorkspace::EditorWorkspace()
 
     initialize();
 
-    AssetDB::Load(m_project->path + "/asset.db");
+    AssetDB::Load(Scheme::Project, m_project->path + "/asset.db");
 
     bBuildDock = gfile::exists("imgui.ini");
 
@@ -230,7 +230,7 @@ EditorWorkspace::EditorWorkspace()
 
 EditorWorkspace::~EditorWorkspace()
 {
-    AssetDB::Save(m_project->path + "/asset.db");
+    AssetDB::Save(Scheme::Project, m_project->path + "/asset.db");
 
     for (auto& scene : SceneManager::GetScenes())
     {
