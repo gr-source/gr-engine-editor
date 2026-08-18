@@ -135,7 +135,7 @@ void EditorApplication::renderer()
     gr::gRender::SetEnable(GR_DEPTH, false);
     gr::gRender::SetEnable(GR_CULL_FACE, true);
     gr::gRender::SetRenderState(gr::GR_BACKGROUND, gr::GR_COLOR_BUFFER);
-    gr::gRender::SetBackgroundColor(Color{0.5f, 0.5f, 0.5f, 1.0f}.data);
+    gr::gRender::SetBackgroundColor(Color::Red());
     
     ImguiRenderer::Begin();
 
@@ -153,6 +153,82 @@ void EditorApplication::renderer()
 #include <gr-base/script/camera.hpp>
 #include <gr-base/script/light.hpp>
 
+void EditorApplication::drawScene(Scene* scene)
+{
+    const GameObject go(scene, scene->GetCurrentCamera());
+    if (!go.IsAlive())
+        return;
+
+    TransformLocal* transform =
+        go.GetComponent<TransformLocal>();
+
+    Camera* camera =
+        go.GetComponent<Camera>();
+
+    CameraData* cameraData =
+        go.GetComponent<CameraData>();
+
+    CameraBuffer cameraBuffer;
+    cameraBuffer.projection = cameraData->projection;
+    cameraBuffer.view = cameraData->view;
+    *(Vector3*)(&cameraBuffer.position[0]) = transform->position;
+
+    LightBuffer lightBuffer{0};
+
+    scene->world.Query<TransformLocal, Light>([&](
+                size_t count,
+                Entity*,
+                TransformLocal* transforms,
+                Light* lights)
+    {
+        for (size_t i=0;i<count;i++)
+        {
+            if (lightBuffer.numLights >= MAX_NUM_LIGHT)
+                break;
+
+            auto& transform = transforms[i];
+            auto& light = lights[i];
+
+            LightData& data = lightBuffer.lights[lightBuffer.numLights++];
+            *(Vector3*)(&data.position[0]) = transform.position;
+            *(Vector3*)(&data.direction[0]) = transform.rotation * type_traits<Vector3>::forward;
+            // data.direction = transform.rotation * type_traits<Vector3>::forward;
+
+            data.color = light.color;
+            data.params = {
+                light.attenuationConstant,
+                light.attenuationLinear,
+                light.attenuationQuadratic,
+                static_cast<float>(light.type)
+            };
+
+            data.spot = {
+                cosf(Math::rad(light.angleInnerCone)),
+                cosf(Math::rad(light.angleOuterCone))
+            };
+        }
+    });
+
+    cameraUBO.Update(cameraBuffer);
+    lightUBO.Update(lightBuffer);
+
+    Frustum::CalculateFrustum(cameraData->projection * cameraData->view);
+
+    Renderer::BeginFrame();
+
+    if (m_workspace != nullptr)
+        m_workspace->Render3D();
+
+    auto pipeline = RenderPipelineManager::Get<IRenderPipeline>(camera->pipeline);
+    if (pipeline != nullptr)
+        pipeline->Execute();
+
+    // Renderer::Render();
+
+    Renderer::EndFrame();
+}
+
+/*
 void EditorApplication::drawScene(Scene* scene)
 {
     LightBuffer lightBuffer{0};
@@ -229,6 +305,7 @@ void EditorApplication::drawScene(Scene* scene)
 
     Renderer::EndFrame();
 }
+*/
 
 // #include <gr-base/core/assetProvider.hpp>
 #include <gr-base/core/assetResolver.hpp>

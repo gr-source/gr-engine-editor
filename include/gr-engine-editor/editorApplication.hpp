@@ -19,6 +19,7 @@ extern "C"
 }
 
 #include <gr-render/uniformBuffer.hpp>
+#include <gr-render/color.hpp>
 
 #include <gr-math/gmath.hpp>
 

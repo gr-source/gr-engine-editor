@@ -96,7 +96,7 @@ public:
 
     void Update() override;
 
-    // void onRender3D() override;
+    void Render3D() override;
 
     void DrawWorkspace() override;
 

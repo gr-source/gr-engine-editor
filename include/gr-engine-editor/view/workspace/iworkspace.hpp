@@ -19,6 +19,8 @@ public:
     virtual void dropPath(const std::vector<std::string>& entries) {}
 
     void Render() override;
+
+    virtual void Render3D() {}
 };
 
 

@@ -56,7 +56,6 @@
 #include <gr-base/managers/taskmanager.hpp>
 
 #include <gr-base/core/console.hpp>
-#include <gr-base/core/display.hpp>
 #include <gr-base/core/scene.hpp>
 
 #include <gr-base/script/meshFilter.hpp>
@@ -559,11 +558,11 @@ void EditorWorkspace::Update()
         context.scene->Update();
 }
 
-/*
-void EditorWorkspace::onRender3D()
+void EditorWorkspace::Render3D()
 {
+    if (context.scene != nullptr)
+        context.scene->Render();
 }
-*/
 
 void EditorWorkspace::DrawWorkspace()
 {

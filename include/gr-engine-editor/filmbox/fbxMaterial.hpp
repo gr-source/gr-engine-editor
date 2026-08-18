@@ -1,10 +1,12 @@
 #pragma once
 
-#include <gr-render/gRender.h>
+// #include <gr-render/gRender.h>
+#include <gr-render/color.hpp>
+
 #include <gr-math/gmath.hpp>
 
+#include <unordered_map>
 #include <string>
-#include <vector>
 
 typedef uint32_t FbxTextureID;
 
@@ -17,7 +19,7 @@ struct FbxMaterial
 {
     std::string name;
 
-    Color albedo = COLOR_BLUE;
+    Color albedo = Color::Blue();
 
     float roughness = 0.5f;
 
