@@ -45,19 +45,19 @@ ModelAsset FbxSceneBuildTask::doInBackground()
         try
         {
             TextureAsset asset = buildToTextureAsset(path);
-            //
-            // std::string uri = "project://texture/" + m_fbxScene.name + "/" + filename;
-            //
-            // AssetID id = AssetDB::FindByName(uri);
-            // if (id == INVALID_ASSET)
-            //     id = AssetDB::CreateID();
-            //
-            // AssetWrapper<TextureAsset> wrapper;
-            // wrapper.asset = asset;
-            // wrapper.id = id;
-            // wrapper.uri = uri;
 
-            // m_textureMapWrapper.emplace(path, wrapper);
+            std::string uri = "project://texture/" + m_fbxScene.name + "/" + filename;
+
+            AssetID id = AssetDB::FindByName(uri);
+            if (id == INVALID_ASSET)
+                id = AssetDB::CreateID();
+
+            AssetWrapper<TextureAsset> wrapper;
+            wrapper.asset = asset;
+            wrapper.id = id;
+            wrapper.uri = uri;
+
+            m_textureMapWrapper.emplace(path, wrapper);
         } catch (const std::exception& e)
         {
             Console::LogDefault("{FFA500}[ FbxSceneBuildTask ] {FFFFFF}%s.", e.what());
@@ -73,6 +73,26 @@ ModelAsset FbxSceneBuildTask::doInBackground()
         asset.Set("metallic", fbxMaterial.metallic);
         asset.Set("roughness", fbxMaterial.roughness);
         asset.Set("ambientocclusion", fbxMaterial.ao);
+
+        for (auto&& [type, id] : fbxMaterial.textures)
+        {
+            const auto& path =
+                m_fbxScene.textures[id];
+
+            auto it =
+                m_textureMapWrapper.find(path);
+            if (it == m_textureMapWrapper.end())
+                continue;
+
+            switch (type)
+            {
+                case TextureType_Albedo:
+                    asset.SetTexture("albedoTex", it->second.id);
+                    break;
+                default:
+                    break;
+            }
+        }
 
         std::string uri = "project://material/" + m_fbxScene.name + "/" + fbxMaterial.name;
 
@@ -149,6 +169,24 @@ void FbxSceneBuildTask::onPostExecute(Result<ModelAsset> result)
 
     if (!result.success)
         return Console::LogDefault("{FF0000}[ FbxSceneBuildTask ] {FFFFFF}%s.", result.error.c_str());
+
+    for (auto&& [name, wrapper] : m_textureMapWrapper)
+    {
+        AssetSaveInfo info;
+        info.type =
+            AssetType_Texture;
+
+        info.id =
+            wrapper.id;
+
+        info.uri =
+            URI::parse(wrapper.uri);
+
+        info.asset =
+            std::make_shared<TextureAsset>(wrapper.asset);
+
+        TaskManager::Add<AssetSaveTask>(info);
+    }
 
     for (auto&& [name, wrapper] : m_materialMapWrapper)
     {
