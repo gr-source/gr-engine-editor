@@ -604,7 +604,8 @@ void EditorWorkspace::dropPath(const std::vector<std::string>& entries)
             TaskManager::Add<FilmboxLoadTask>(file);
         else if (
                 filename.find(".png") != std::string::npos ||
-                filename.find(".jpeg") != std::string::npos
+                filename.find(".jpeg") != std::string::npos ||
+                filename.find(".jpg") != std::string::npos
             )
         {
             std::string parent = gfile::parent(file);

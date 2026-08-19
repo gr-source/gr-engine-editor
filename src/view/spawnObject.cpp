@@ -63,8 +63,8 @@ void SpawnObject::SetPrefab(Entity prefabID)
     {
         for (int z = 0; z < numInstances; ++z)
         {
-            const float targetX = (start + x) * 10.0f;
-            const float targetZ = (start + z) * 10.0f;
+            const float targetX = (start + x) * 5.0f;
+            const float targetZ = (start + z) * 5.0f;
 
             std:: string str = "Test[" + std::to_string(targetX) + "][" + std::to_string(targetZ) + "]";
 
