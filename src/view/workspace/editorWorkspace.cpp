@@ -1817,7 +1817,7 @@ void EditorWorkspace::OnPropertyMeshFilter(GameObject& go, MeshFilter *meshFilte
     if (mesh == nullptr)
         return ImGui::Text("No mesh");
 
-    ImGui::Text("Mesh Handle: %ld", meshFilter->mesh);
+    ImGui::Text("Mesh Handle: %d", meshFilter->mesh);
     ImGui::Text("Vertices: %ld", mesh->numVertices);
     ImGui::Text("Indices: %ld", mesh->numIndices);
     ImGui::Text("Sub: %ld", mesh->numSubmeshes);
@@ -1842,7 +1842,7 @@ void EditorWorkspace::OnPropertyMeshRender(GameObject& go, MeshRender *meshRende
     {
         auto& material = meshRender->materials[i];
 
-        ImGui::Text("Material: %ld", material);
+        ImGui::Text("Material: %d", material);
     }
     ImGui::Unindent();
 }

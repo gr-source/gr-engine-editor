@@ -73,13 +73,39 @@ void EditorApplication::shutdown()
 
 #include <gr-base/managers/sceneManager.hpp>
 
+#include <gr-base/scopeTimer.hpp>
+
+struct PrintFrame
+{
+    std::string name;
+    ScopeTimer scope;
+
+    PrintFrame(const std::string& name) : name(name)
+    {
+        scope.start();
+    }
+
+    ~PrintFrame()
+    {
+        auto ms = scope.end();
+
+        std::cout << name << ": " << ms << " ms\n";
+    }
+};
+
 void EditorApplication::run()
 {
     beginFrame();
 
-    update();
+    {
+        // PrintFrame p("Update");
+        update();
+    }
 
-    renderer();
+    {
+        // PrintFrame p("render");
+        renderer();
+    }
 
     endFrame();
 }
@@ -159,14 +185,8 @@ void EditorApplication::drawScene(Scene* scene)
     if (!go.IsAlive())
         return;
 
-    TransformLocal* transform =
-        go.GetComponent<TransformLocal>();
-
-    Camera* camera =
-        go.GetComponent<Camera>();
-
-    CameraData* cameraData =
-        go.GetComponent<CameraData>();
+    auto&& [transform, camera, cameraData] =
+        scene->world.GetComponents<TransformLocal, Camera, CameraData>(scene->GetCurrentCamera());
 
     CameraBuffer cameraBuffer;
     cameraBuffer.projection = cameraData->projection;

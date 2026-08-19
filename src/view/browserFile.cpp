@@ -38,7 +38,7 @@ BrowserFile::BrowserFile() :
                     .hash = engine::hash::fnv1_str("/")
                 });
 
-    auto root = m_spaseSet.get(entryRootID);
+    auto root = m_spaseSet.try_get(entryRootID);
 
     m_hashmap.emplace(root->hash, entryRootID);
 
@@ -96,7 +96,7 @@ void BrowserFile::renderer()
 void BrowserFile::render_virtual_directories(EntryID entryID)
 {
     auto info =
-        m_spaseSet.get(entryID);
+        m_spaseSet.try_get(entryID);
 
     ImGuiTreeNodeFlags flags = 0;
     if (info->children.empty())
@@ -188,7 +188,7 @@ void BrowserFile::drop_source_in_directories()
 void BrowserFile::render_virtual_entries(EntryID entryID)
 {
     auto info =
-        m_spaseSet.get(entryID);
+        m_spaseSet.try_get(entryID);
 
     auto& name = info->name;
     ImGui::SeparatorText(name.c_str());
@@ -197,7 +197,7 @@ void BrowserFile::render_virtual_entries(EntryID entryID)
     for (auto& entryID : info->children)
     {
         auto entry =
-            m_spaseSet.get(entryID);
+            m_spaseSet.try_get(entryID);
 
         if (!entry->leaf())
             continue;
@@ -269,7 +269,7 @@ void BrowserFile::render_virtual_entries(EntryID entryID)
             for (auto &entryID : info->children)
             {
                 auto entry =
-                    m_spaseSet.get(entryID);
+                    m_spaseSet.try_get(entryID);
 
                 if (!entry->leaf())
                     continue;
@@ -443,7 +443,7 @@ void BrowserFile::create_hierarchy(AssetInfo* info)
                     });
 
         auto parentPtr =
-            m_spaseSet.get(parentID);
+            m_spaseSet.try_get(parentID);
 
         parentPtr->children.push_back(newEntryID);
 
@@ -453,7 +453,7 @@ void BrowserFile::create_hierarchy(AssetInfo* info)
     }
 
     auto parentPtr =
-        m_spaseSet.get(parentID);
+        m_spaseSet.try_get(parentID);
 
     if (parentPtr->assetID == INVALID_ASSET)
         parentPtr->assetID = info->id;
@@ -576,7 +576,7 @@ void BrowserFile::create_popup_dir_option()
         return;
 
     auto info =
-        m_spaseSet.get(entrySelectedDir);
+        m_spaseSet.try_get(entrySelectedDir);
 
     ImGui::SeparatorText(info->name.c_str());
 
@@ -596,14 +596,14 @@ void BrowserFile::create_popup_dir_option()
 void BrowserFile::remove_all_assets_on_dir(EntryID entryID)
 {
     auto info =
-        m_spaseSet.get(entryID);
+        m_spaseSet.try_get(entryID);
 
     if (info->assetID != INVALID_ASSET)
         AssetDB::Unregistry(info->assetID);
 
     if (info->parent != INVALID_SPARSE_ID)
     {
-        auto parent = m_spaseSet.get(info->parent);
+        auto parent = m_spaseSet.try_get(info->parent);
         parent->children.erase(std::remove(parent->children.begin(), parent->children.end(), entryID), parent->children.end());
     }
 

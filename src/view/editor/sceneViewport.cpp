@@ -7,7 +7,6 @@
 #include "view/editor/editorContext.hpp"
 
 #include <gr-base/managers/renderPipelineManager.hpp>
-#include <gr-base/managers/renderTargetManager.hpp>
 #include <gr-base/managers/sceneManager.hpp>
 
 #include <gr-base/render/rendertarget.hpp>
