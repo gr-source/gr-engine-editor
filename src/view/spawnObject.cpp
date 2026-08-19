@@ -1,16 +1,19 @@
 #include "view/spawnObject.hpp"
 
+#include "gr-base/core/clock.hpp"
 #include "view/imguiRenderer.hpp"
 
 #include "view/editor/editorContext.hpp"
 
 #include <gr-base/managers/assetsManager.hpp>
 
+#include <gr-base/core/mainthreaddispatcher.hpp>
 #include <gr-base/core/gameObject.hpp>
 
 #include <gr-base/script/transform.hpp>
 
 #include <gr-base/script/name.hpp>
+#include <iostream>
 
 #include "imgui.h"
 
@@ -78,7 +81,13 @@ void SpawnObject::SetPrefab(Entity prefabID)
 
             gameObject.AddComponentByName("CubeMovement");
 
-            scene->MarkChanged<TransformWorld>(gameObject.entity);
+            MainThreadDispatcher::Queue(5.0f, [gameObject = std::forward<GameObject>(gameObject)]() mutable
+            {
+                if (gameObject.IsAlive())
+                {
+                    gameObject.AddComponent<Static>();
+                }
+            });
 
             m_instances.push_back(gameObject.entity);
         }
