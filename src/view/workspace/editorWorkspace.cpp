@@ -231,10 +231,12 @@ EditorWorkspace::~EditorWorkspace()
 {
     AssetDB::Save(Scheme_Project, m_project->path + "/asset.db");
 
-    for (auto& scene : SceneManager::GetScenes())
+    for (auto scene : SceneManager::GetScenes())
     {
         for (auto systemID : scene->GetSystemIDs())
             scene->DelSystemByID(systemID);
+
+        SceneManager::Remove(scene);
     }
 
     ModuleLoader::Unload("script");
