@@ -492,9 +492,13 @@ EditorWorkspace::HotReloadPass EditorWorkspace::CheckComponentInfo(std::vector<C
         std::vector<std::tuple<Signature, std::vector<Entity>>> archetypes;
         std::vector<std::tuple<Signature, std::vector<Entity>>> addArchetypes;
 
-        for (size_t i=0;i<scene->world.GetArchetypeCount();i++)
+        auto& world = scene->world;
+
+        auto& storage = world.GetStorage();
+
+        for (size_t i=0;i<storage.count;i++)
         {
-            auto& arche = scene->world.GetRawArchetype()[i];
+            auto& arche = storage.archetypes[i];
 
             Signature common = (arche.mask & requiredRemoveMask);
             if (common)

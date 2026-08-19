@@ -73,17 +73,17 @@ void EngineStatusView::renderer(Scene* scene)
 
     if (ImGui::CollapsingHeader("ECS") && scene != nullptr)
     {
+        auto& storage = scene->world.GetStorage();
+
         ImGui::Text("Entities: %ld", scene->GetEntityCount());
 
-        ImGui::Text("Archetypes: %zu", scene->world.GetArchetypeCount());
+        ImGui::Text("Archetypes: %zu", storage.count);
 
-        auto array = scene->world.GetRawArchetype();
-
-        for (ArchetypeID i = 0; i < scene->world.GetArchetypeCount(); i++)
+        for (size_t i = 0; i < storage.count; i++)
         {
-            const auto& arche = array[i];
+            const auto& arche = storage.archetypes[i];
 
-            if (ImGui::TreeNode((void*)(intptr_t)i, "Archetype %u", i))
+            if (ImGui::TreeNode((void*)(intptr_t)i, "Archetype %zu", i))
             {
                 // =========================
                 // COMPONENT TYPES
