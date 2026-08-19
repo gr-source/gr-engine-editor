@@ -143,7 +143,7 @@ EditorWorkspace::EditorWorkspace()
         #object, \
         [this](GameObject* go) \
         { \
-            OnProperty##object(*go, go->GetComponent<object>()); \
+            OnProperty##object(*go, go->TryGetComponent<object>()); \
         } \
     }
     /*
@@ -821,8 +821,7 @@ void EditorWorkspace::create_render_hierarchy(Scene* scene)
 
         GameObject root(scene, scene->GetRoot());
 
-        auto rel = root.GetComponent<Relationship>();
-        if (rel != nullptr)
+        if (auto rel = root.TryGetComponent<Relationship>())
         {
             Entity child = rel->firstChild;
 
@@ -896,7 +895,8 @@ void EditorWorkspace::ShowGameObjectHierarchy(GameObject& go)
     if (context.selector.has(go.entity))
         flags |= ImGuiTreeNodeFlags_Selected;
 
-    if (go.HasComponent<Relationship>() && go.GetComponent<Relationship>()->firstChild != INVALID_ENTITY)
+    auto rel = go.TryGetComponent<Relationship>();
+    if (rel != nullptr && rel->firstChild != INVALID_ENTITY)
         flags &= ~ImGuiTreeNodeFlags_Leaf;
 
     auto isOpen = ImGui::TreeNodeEx(name.c_str(), flags);
@@ -923,9 +923,9 @@ void EditorWorkspace::ShowGameObjectHierarchy(GameObject& go)
     {
         if (go.HasComponent<Relationship>())
         {
-            auto rel = go.GetComponent<Relationship>();
+            auto& rel = go.GetComponent<Relationship>();
 
-            GameObject child(go.scene, rel->firstChild);
+            GameObject child(go.scene, rel.firstChild);
 
             while (child.IsAlive())
             {
@@ -936,7 +936,7 @@ void EditorWorkspace::ShowGameObjectHierarchy(GameObject& go)
                 if (!child.HasComponent<Relationship>())
                     break;
 
-                child.entity = child.GetComponent<Relationship>()->nextSibling;
+                child.entity = child.GetComponent<Relationship>().nextSibling;
             }
         }
 
@@ -1614,11 +1614,11 @@ void EditorWorkspace::create_popup_rename_object()
 
     if (ImGui::InputText("##create_popup_rename_object_inputtext_0", newName, sizeof(newName), ImGuiInputTextFlags_EnterReturnsTrue))
     {
-        auto n = go.GetOrAddComponent<Name>();
-        if (n->value != nullptr)
-            free(n->value);
+        auto& n = go.GetOrAddComponent<Name>();
+        if (n.value != nullptr)
+            free(n.value);
 
-        n->value = strdup(newName);
+        n.value = strdup(newName);
 
         ImGui::CloseCurrentPopup();
     }

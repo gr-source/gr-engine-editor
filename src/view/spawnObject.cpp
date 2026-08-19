@@ -1,6 +1,5 @@
 #include "view/spawnObject.hpp"
 
-#include "gr-base/core/clock.hpp"
 #include "view/imguiRenderer.hpp"
 
 #include "view/editor/editorContext.hpp"
@@ -13,7 +12,6 @@
 #include <gr-base/script/transform.hpp>
 
 #include <gr-base/script/name.hpp>
-#include <iostream>
 
 #include "imgui.h"
 
@@ -73,11 +71,11 @@ void SpawnObject::SetPrefab(Entity prefabID)
 
             GameObject gameObject(scene, scene->create(prefabID));
 
-            auto name = gameObject.GetOrAddComponent<Name>();
-            name->value = strdup(str.c_str());
+            auto& name = gameObject.GetOrAddComponent<Name>();
+            name.value = strdup(str.c_str());
 
-            auto transform = gameObject.GetComponent<TransformLocal>();
-            transform->position = {(float)targetX, 0.0f, (float)targetZ };
+            auto& transform = gameObject.GetComponent<TransformLocal>();
+            transform.position = {(float)targetX, 0.0f, (float)targetZ };
 
             gameObject.AddComponentByName("CubeMovement");
 
@@ -85,7 +83,7 @@ void SpawnObject::SetPrefab(Entity prefabID)
             {
                 if (gameObject.IsAlive())
                 {
-                    gameObject.AddComponent<Static>();
+                    gameObject.TryAddComponent<Static>();
                 }
             });
 

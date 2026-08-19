@@ -170,11 +170,11 @@ void SceneViewport::render_scene(Scene *scene)
         // regionAvail = ImGui::GetContentRegionAvail();
         // cursorPos = ImGui::GetCursorPos();
 
-        Camera* camera = obj.GetComponent<Camera>();
-        if (camera != nullptr)
+        Camera& camera = obj.GetComponent<Camera>();
+        // if (camera != nullptr)
         {
             auto pipeline =
-                RenderPipelineManager::Get<ForwardPipeline>(camera->pipeline);
+                RenderPipelineManager::Get<ForwardPipeline>(camera.pipeline);
 
             auto texture = pipeline->GetTextureOutput();
             if (texture.get() != nullptr)
@@ -247,16 +247,16 @@ void SceneViewport::render_scene(Scene *scene)
 
 void SceneViewport::apply_viewport(GameObject* gameObject)
 {
-    auto camera = gameObject->GetComponent<Camera>();
+    auto& camera = gameObject->GetComponent<Camera>();
 
     ImVec2 regionAvail = ImGui::GetContentRegionAvail();
     if (
-            camera->viewport.w != regionAvail.x ||
-            camera->viewport.h != regionAvail.y
+            camera.viewport.w != regionAvail.x ||
+            camera.viewport.h != regionAvail.y
         )
     {
         auto pipeline =
-            RenderPipelineManager::Get<ForwardPipeline>(camera->pipeline);
+            RenderPipelineManager::Get<ForwardPipeline>(camera.pipeline);
 
         if (pipeline == nullptr)
             return;
@@ -267,8 +267,8 @@ void SceneViewport::apply_viewport(GameObject* gameObject)
             rt->resize(regionAvail.x, regionAvail.y);
         */
 
-        camera->viewport.w = regionAvail.x;
-        camera->viewport.h = regionAvail.y;
+        camera.viewport.w = regionAvail.x;
+        camera.viewport.h = regionAvail.y;
     }
 }
 
@@ -298,17 +298,17 @@ void SceneViewport::create_render_guizmo(Scene *scene, const GameObject* gameObj
         if (!gameObject.IsAlive())
             continue;
 
-        create_guizmo_manipulate(gameObject, camera->projection, camera->view);
+        create_guizmo_manipulate(gameObject, camera.projection, camera.view);
     }
 }
 
 void SceneViewport::create_guizmo_manipulate(const GameObject& gameObject, const Matrix4x4& projection, const Matrix4x4& view)
 {
     ImGuizmo::SetID(gameObject.entity);
-    auto transform = gameObject.GetComponent<TransformWorld>();
-    auto transformLocal = gameObject.GetComponent<TransformLocal>();
+    auto& transform = gameObject.GetComponent<TransformWorld>();
+    auto& transformLocal = gameObject.GetComponent<TransformLocal>();
 
-    auto manipulatedWorld = transform->world;
+    auto manipulatedWorld = transform.world;
 
     bool changed =
         ImGuizmo::Manipulate(
@@ -325,25 +325,25 @@ void SceneViewport::create_guizmo_manipulate(const GameObject& gameObject, const
 
     if (gameObject.HasComponent<Relationship>())
     {
-        auto rel = gameObject.GetComponent<Relationship>();
+        auto rel = gameObject.TryGetComponent<Relationship>();
         if (rel->parent != INVALID_ENTITY)
         {
             const GameObject parent(gameObject.scene, rel->parent);
             if (parent.HasComponent<TransformWorld>())
             {
-                auto transform = parent.GetComponent<TransformWorld>();
+                auto& transform = parent.GetComponent<TransformWorld>();
 
                 localMatrix =
-                    Math::inverse(transform->world) * manipulatedWorld;
+                    Math::inverse(transform.world) * manipulatedWorld;
             }
         }
     }
 
     Math::decompose(
             localMatrix,
-            transformLocal->position,
-            transformLocal->rotation,
-            transformLocal->scale
+            transformLocal.position,
+            transformLocal.rotation,
+            transformLocal.scale
         );
 
     context->scene->MarkChanged<TransformWorld>(gameObject.entity);

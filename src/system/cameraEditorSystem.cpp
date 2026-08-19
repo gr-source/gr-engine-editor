@@ -18,13 +18,13 @@ void CameraEditorSystem::Update()
     if (!go.IsAlive())
         return;
 
-    auto transform = go.GetComponent<TransformLocal>();
+    auto& transform = go.GetComponent<TransformLocal>();
 
     Vector3 diretion = type_traits<Vector3>::zero;
 
-    Vector3 forward = Math::normalize(transform->rotation * type_traits<Vector3>::forward);
-    Vector3 right = Math::normalize(transform->rotation * type_traits<Vector3>::right);
-    Vector3 up = Math::normalize(transform->rotation * type_traits<Vector3>::up);
+    Vector3 forward = Math::normalize(transform.rotation * type_traits<Vector3>::forward);
+    Vector3 right = Math::normalize(transform.rotation * type_traits<Vector3>::right);
+    Vector3 up = Math::normalize(transform.rotation * type_traits<Vector3>::up);
 
     if (Input::IsKeyPress(KEY_W))
         diretion += forward;
@@ -53,17 +53,17 @@ void CameraEditorSystem::Update()
     {
         diretion = Math::normalize(diretion);
 
-        transform->position +=
+        transform.position +=
             diretion * m_movementSpeed * (float)Clock::deltaTime;
 
-        scene->MarkChanged<TransformWorld>(go.entity);
+        // scene->MarkChanged<TransformWorld>(go.entity);
     }
 
     if (Input::IsMousePress(MOUSE_BUTTON_MIDDLE))
     {
-        ProcessMouse(Input::GetMouseDelta(), transform);
+        ProcessMouse(Input::GetMouseDelta(), &transform);
 
-        scene->MarkChanged<TransformWorld>(go.entity);
+        // scene->MarkChanged<TransformWorld>(go.entity);
     }
 }
 
