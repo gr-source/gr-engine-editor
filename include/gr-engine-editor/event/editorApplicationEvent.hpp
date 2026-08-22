@@ -8,7 +8,7 @@ struct EditorApplicationEvent_onCheckProject : IEvent
 
 struct EditorApplicationEvent_onOpenProject : IEvent
 {
-    std::string dir;
+    std::string path;
 };
 
 struct EditorApplicationEvent_onCloseProject : IEvent

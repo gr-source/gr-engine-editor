@@ -4,6 +4,8 @@ project("gr-engine-editor" VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if(NOT DEFINED GR_ENGINE_CORE)
     message(FATAL_ERROR "GR_ENGINE_CORE NÃO foi definida!")
     return()
@@ -19,6 +21,12 @@ message(STATUS "GR_ENGINE_CORE configurada com sucesso: ${GR_ENGINE_CORE}")
 find_package(Bullet QUIET)
 if(NOT Bullet_FOUND)
     message(FATAL_ERROR "Please install libbullet-dev")
+    return()
+endif()
+
+find_package(assimp QUIET)
+if(NOT assimp_FOUND)
+    message(FATAL_ERROR "Please install libassimp-dev")
     return()
 endif()
 

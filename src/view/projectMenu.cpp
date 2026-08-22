@@ -1,8 +1,13 @@
 #include "view/projectMenu.hpp"
 
 #include "editorApplication.hpp"
+
+#include "event/projectBrowserEvent.hpp"
 #include "gr-base/application.hpp"
+
 #include "imgui.h"
+
+#include <gr-base/managers/eventManager.hpp>
 
 #include <gr-base/core/console.hpp>
 #include <gr-base/core/scene.hpp>
@@ -110,7 +115,13 @@ void ProjectMenu::render_project_list()
 
     for (auto &project : m_projects)
     {
-        ImGui::Selectable(project.name.c_str());
+        if (ImGui::Selectable(project.name.c_str()))
+        {
+            EditorApplicationEvent_onOpenProject event;
+            event.path = project.path;
+
+            EventManager::NotifyAsync<EditorApplicationEvent_onOpenProject>(&event);
+        }
             // MainThreadDispatcher::Add(Priority::LOW, &Engine::init_project, m_engine, project.path + "/metadata.ini");
     }
 }

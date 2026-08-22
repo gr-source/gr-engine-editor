@@ -161,7 +161,7 @@ void EditorApplication::renderer()
     gr::gRender::SetEnable(GR_DEPTH, false);
     gr::gRender::SetEnable(GR_CULL_FACE, true);
     gr::gRender::SetRenderState(gr::GR_BACKGROUND, gr::GR_COLOR_BUFFER);
-    gr::gRender::SetBackgroundColor(Color::Red());
+    gr::gRender::SetBackgroundColor(Color::Black());
     
     ImguiRenderer::Begin();
 
@@ -393,7 +393,13 @@ void EditorApplication::onCheckProject(IEvent* event)
 
 void EditorApplication::onOpenProject(EditorApplicationEvent_onOpenProject* event)
 {
-    std::cout << "Open: " << event->dir << std::endl;
+    m_project = ProjectMenu::Load(event->path + "/metadata.ini");
+    if (m_project == nullptr)
+        return;
+
+    AssetResolver::Registry<ProjectAssetProvider>(Scheme_Project, m_project->path);
+
+    m_workspace = std::make_unique<EditorWorkspace>();
 }
 
 void EditorApplication::onCloseProject(IEvent* event)
