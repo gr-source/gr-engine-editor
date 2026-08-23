@@ -190,17 +190,17 @@ void SceneViewport::render_scene(Scene *scene)
     // Fps Draw
     {
         fpsTimer += Clock::deltaTime;
-        fpsFrameCount++;
+        // fpsFrameCount++;
 
         if (fpsTimer >= 1.0f)
         {
-            displayFps = fpsFrameCount;
+            displayFps = static_cast<int>(floorl(1.0 / Clock::deltaTime));
             displayMS = Clock::deltaTime * 1000.0;
 
             fpsMax = std::max(fpsMax, displayFps);
             fpsMin = std::min(fpsMin, displayFps);
 
-            fpsFrameCount = 0;
+            // fpsFrameCount = 0;
             fpsTimer -= 1.0f;
         }
 

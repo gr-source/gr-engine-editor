@@ -241,7 +241,22 @@ void EditorApplication::drawScene(Scene* scene)
 
     auto pipeline = RenderPipelineManager::Get<IPipeline>(camera->pipeline);
     if (pipeline != nullptr)
+    {
+        /*
+        ScopeTimer scope;
+
+        scope.start();
+        */
+
         pipeline->Render(cam);
+
+        /*
+        double ms =
+            scope.end();
+
+        Profiler::Add("[ Renderer ] Renderer", static_cast<float>(ms));
+        */
+    }
 
     Renderer::EndFrame();
 }

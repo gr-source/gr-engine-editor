@@ -42,8 +42,8 @@ private:
     double fpsTimer =
         0.0;
 
-    int fpsFrameCount =
-        0;
+    // int fpsFrameCount =
+    //     0;
 
     int fpsMax = INT_MIN;
     int fpsMin = INT_MAX;
