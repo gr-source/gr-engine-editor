@@ -239,9 +239,11 @@ void EditorApplication::drawScene(Scene* scene)
     if (m_workspace != nullptr)
         m_workspace->Render3D();
 
-    auto pipeline = RenderPipelineManager::Get<IRenderPipeline>(camera->pipeline);
+    CameraRenderData cam;
+
+    auto pipeline = RenderPipelineManager::Get<IPipeline>(camera->pipeline);
     if (pipeline != nullptr)
-        pipeline->Execute();
+        pipeline->Render(cam);
 
     // Renderer::Render();
 
