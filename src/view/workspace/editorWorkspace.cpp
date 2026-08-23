@@ -28,12 +28,14 @@
 #include "gr-base/ecs/systemRegistry.hpp"
 #include "Global.h"
 
+#include "gr-base/managers/renderPipelineManager.hpp"
+#include "gr-base/render/pipeline/forwardPipeline.hpp"
 #include "imgui.h"
 #include "script/cameraEditor.hpp"
 
 #include "system/cameraEditorSystem.hpp"
 
-#include <gr-base/application.hpp>
+// #include <gr-base/application.hpp>
 
 #include "manager/viewManager.hpp"
 
@@ -134,7 +136,7 @@ EditorWorkspace::EditorWorkspace()
 
     // Renderer::SetRenderTarget(m_backbuffer.get());
 
-    EditorApplication* engine = static_cast<EditorApplication*>(Application::application);
+    EditorApplication* engine = static_cast<EditorApplication*>(IApplication::GetInstance());
 
     m_project = engine->getProject();
 
@@ -190,13 +192,13 @@ EditorWorkspace::EditorWorkspace()
 #undef REGISTER_SYSTEM
     // ComponentRegistry::Register<CameraEditor>(false);
 
+    LoadReources();
+
     initialize();
 
     AssetDB::Load(Scheme_Project, m_project->path + "/asset.db");
 
     bBuildDock = gfile::exists("imgui.ini");
-
-    LoadReources();
 
     try
     {
@@ -225,6 +227,8 @@ EditorWorkspace::EditorWorkspace()
         );
 
     loadComponentName();
+
+    RenderPipelineManager::Register<ForwardPipeline>(RenderPipelineForward);
 }
 
 EditorWorkspace::~EditorWorkspace()
@@ -629,10 +633,30 @@ void EditorWorkspace::dropPath(const std::vector<std::string>& entries)
     }
 }
 
-// void EditorWorkspace::drop(void *data)
-// {
-//     updateFileTree(&root_tree_file);
-// }
+// #include <gr-base/core/assetProvider.hpp>
+#include <gr-base/core/assetResolver.hpp>
+
+class ProjectFileProvider : public IAssetProvider
+{
+    std::string m_directory;
+public:
+    ProjectFileProvider(const std::string& dir) : m_directory(dir)
+    {}
+
+    std::string resolve(const std::string& path) override
+    {
+        return m_directory + "/assets/" + path;
+    }
+};
+
+void EditorWorkspace::Initialize()
+{
+    AssetResolver::Registry<ProjectFileProvider>(Scheme_Project, m_project->path);
+}
+
+void EditorWorkspace::Shutdown()
+{
+}
 
 #include <gr-base/core/renderer.hpp>
 

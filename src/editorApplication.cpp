@@ -1,12 +1,12 @@
 #include "editorApplication.hpp"
 
 #include "event/editorApplicationEvent.hpp"
-#include "gr-base/core/assetDB.hpp"
+#include "gr-base/core/logger.hpp"
 #include "gr-base/core/scene.hpp"
 #include "gr-base/managers/eventManager.hpp"
 
-#include "view/workspace/projectBrowserWorkspace.hpp"
 #include "view/workspace/editorWorkspace.hpp"
+#include "view/workspace/mainWorkspace.hpp"
 
 #include "view/imguiRenderer.hpp"
 
@@ -16,7 +16,7 @@
 
 #include <gr-render/gRender.h>
 
-EditorApplication::EditorApplication() : m_project(nullptr), config(nullptr), m_workspace(nullptr)
+EditorApplication::EditorApplication() : m_project(nullptr), config(nullptr)
 {}
 
 EditorApplication::~EditorApplication()
@@ -36,10 +36,6 @@ void EditorApplication::initialize()
 
     loadConfig();
 
-    EventManager::Subscribe<EditorApplicationEvent_onCheckProject>(
-            &EditorApplication::onCheckProject,
-            this
-        );
     EventManager::Subscribe<EditorApplicationEvent_onOpenProject>(
             &EditorApplication::onOpenProject,
             this
@@ -52,14 +48,15 @@ void EditorApplication::initialize()
     cameraUBO.Create(0, sizeof(CameraBuffer));
     lightUBO.Create(1, sizeof(LightBuffer));
 
-    RenderPipelineManager::Register<ForwardPipeline>(RenderPipelineForward);
-
-    m_workspace = std::make_unique<ProjectBrowser>();
+    MakeWorkspace<MainWorkspace>();
 }
 
 void EditorApplication::shutdown()
 {
-    m_workspace = nullptr;
+    if (gworkspace != nullptr)
+        gworkspace->Shutdown();
+
+    gworkspace = nullptr;
 
     ImguiRenderer::Shutdown();
 
@@ -112,8 +109,8 @@ void EditorApplication::run()
 
 void EditorApplication::dropPath(const std::vector<std::string>& entries)
 {
-    if (m_workspace != nullptr)
-        m_workspace->dropPath(entries);
+    if (gworkspace != nullptr)
+        gworkspace->dropPath(entries);
 }
 
 #include <gr-base/profiler.hpp>
@@ -145,8 +142,8 @@ void EditorApplication::update()
 {
     runtime.update();
 
-    if (m_workspace != nullptr)
-        m_workspace->Update();
+    if (gworkspace != nullptr)
+        gworkspace->Update();
 }
 
 #include <gr-base/core/renderer.hpp>
@@ -165,8 +162,8 @@ void EditorApplication::renderer()
     
     ImguiRenderer::Begin();
 
-    if (m_workspace != nullptr)
-        m_workspace->Render();
+    if (gworkspace != nullptr)
+        gworkspace->Render();
 
     ImguiRenderer::End();
 }
@@ -236,8 +233,8 @@ void EditorApplication::drawScene(Scene* scene)
 
     Renderer::BeginFrame();
 
-    if (m_workspace != nullptr)
-        m_workspace->Render3D();
+    if (gworkspace != nullptr)
+        gworkspace->Render3D();
 
     CameraRenderData cam;
 
@@ -329,22 +326,6 @@ void EditorApplication::drawScene(Scene* scene)
 }
 */
 
-// #include <gr-base/core/assetProvider.hpp>
-#include <gr-base/core/assetResolver.hpp>
-
-class ProjectAssetProvider : public IAssetProvider
-{
-    std::string m_directory;
-public:
-    ProjectAssetProvider(const std::string& dir) : m_directory(dir)
-    {}
-
-    std::string resolve(const std::string& path) override
-    {
-        return m_directory + "/assets/" + path;
-    }
-};
-
 void EditorApplication::loadConfig()
 {
     config = config_create();
@@ -375,40 +356,48 @@ void EditorApplication::saveConfig()
     config_save(config, (gfile::get_config_directory() + "/config.ini").c_str());
 }
 
-void EditorApplication::onCheckProject(EditorApplicationEvent_onCheckProject& event)
-{
-    gSection* section = config_find_section(config, "project");
-    if (section != NULL)
-    {
-        const char* path = config_get_string(section, "path");
-        if (path != NULL && gfile::exists(path))
-            m_project = ProjectMenu::Load(path);
-    }
-
-    if (m_project == nullptr)
-        return;
-
-    AssetResolver::Registry<ProjectAssetProvider>(Scheme_Project, m_project->path);
-
-    m_workspace = std::make_unique<EditorWorkspace>();
-}
-
 void EditorApplication::onOpenProject(EditorApplicationEvent_onOpenProject& event)
 {
     m_project = ProjectMenu::Load(event.path + "/metadata.ini");
     if (m_project == nullptr)
         return;
 
-    AssetResolver::Registry<ProjectAssetProvider>(Scheme_Project, m_project->path);
 
-    m_workspace = std::make_unique<EditorWorkspace>();
+    if (config == NULL)
+        return;
+
+    if (m_project != nullptr)
+    {
+        auto section =
+            config_find_section(config, "project");
+        if (section == nullptr)
+            section = config_create_section(config, "project");
+        config_set_string(section, "path", (m_project->path + "/metadata.ini").c_str());
+    }
+
+    config_save(config, (gfile::get_config_directory() + "/config.ini").c_str());
+
+    MakeWorkspace<EditorWorkspace>();
 }
 
 void EditorApplication::onCloseProject(EditorApplicationEvent_onCloseProject& event)
 {
-    m_workspace = nullptr; // = std::make_unique<ProjectBrowser>();
+    MakeWorkspace<MainWorkspace>();
 
     m_project = nullptr;
 }
 
+void EditorApplication::SetWorkspace(std::unique_ptr<IWorkspace> workspace)
+{
+    try
+    {
+        workspace->Initialize();
+    } catch (const std::exception& e)
+    {
+        logger::critical("[ EditorApplication ] %s", e.what());
+        return;
+    }
+
+    gworkspace = std::move(workspace);
+}
 

@@ -10,7 +10,9 @@ class IWorkspace : public IView
 public:
     IWorkspace();
 
-    virtual const char* GetWorkspaceID() const = 0;
+    virtual void Initialize() {}
+
+    virtual void Shutdown() {}
 
     virtual void DrawWorkspace() = 0;
 

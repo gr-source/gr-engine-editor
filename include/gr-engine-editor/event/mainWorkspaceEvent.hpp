@@ -2,6 +2,6 @@
 
 #include "gr-base/core/ievent.hpp"
 
-struct ProjectBrowser_onCheckProjectExists : IEvent
+struct MainWorkspace_onPostCheckUpdate : IEvent
 {};
 

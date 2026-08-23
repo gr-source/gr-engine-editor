@@ -89,11 +89,6 @@ public:
     EditorWorkspace();
     ~EditorWorkspace() override;
 
-    const char *GetWorkspaceID() const override
-    {
-        return "Editor";
-    }
-
     void Update() override;
 
     void Render3D() override;
@@ -145,6 +140,10 @@ private:
     ViewManager viewManager;
 
     EditorContext context;
+
+    void Initialize() override;
+
+    void Shutdown() override;
 
     void initialize();
     void shutdown();

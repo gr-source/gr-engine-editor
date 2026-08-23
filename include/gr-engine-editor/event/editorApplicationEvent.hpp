@@ -3,9 +3,6 @@
 #include "gr-base/core/ievent.hpp"
 #include <string>
 
-struct EditorApplicationEvent_onCheckProject : IEvent
-{};
-
 struct EditorApplicationEvent_onOpenProject : IEvent
 {
     std::string path;

@@ -13,8 +13,6 @@
 
 #include "core/project.hpp"
 
-#include "editorApplication.hpp"
-
 #include "windowView.hpp"
 
 using ProjectMenuPopup_ = std::uint32_t;
@@ -36,8 +34,6 @@ public:
 
 private:
     std::vector<Project> m_projects;
-
-    EditorApplication *m_engine;
 
     ImGuiViewport *m_mainViewport;
 

@@ -131,7 +131,7 @@ void SceneViewport::render_scene(Scene *scene)
     auto cursorPos = ImGui::GetCursorPos();
 
     // Play button
-    if (s_texturePlayGame.get() != nullptr)
+    if (s_texturePlayGame)
     {
         s_texturePlayGame = context->iconsUI[ICON_PLAY_GAME];
         if (Settings::bGameRunning)

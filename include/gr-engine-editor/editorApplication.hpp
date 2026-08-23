@@ -8,7 +8,7 @@
 
 #include <gr-base/core/default.hpp>
 
-#include <gr-base/application.hpp>
+#include <gr-base/iapplication.hpp>
 #include <gr-base/runtime.hpp>
 
 #include <memory>
@@ -57,15 +57,13 @@ typedef struct LightBuffer
 
 class PostProcessPipeline;
 
-class EditorApplication : public Application
+class EditorApplication : public IApplication
 {
 public:
     EditorApplication();
     ~EditorApplication() override;
 
     std::shared_ptr<PostProcessPipeline> pipeline;
-
-    std::unique_ptr<IWorkspace> m_workspace;
 
     void initialize() override;
     
@@ -81,6 +79,8 @@ public:
     }
 
 private:
+    std::unique_ptr<IWorkspace> gworkspace = nullptr;
+
     std::shared_ptr<Project> m_project;
 
     gConfig* config;
@@ -104,11 +104,21 @@ private:
 
     void saveConfig();
 
-    void onCheckProject(EditorApplicationEvent_onCheckProject& event);
-
     void onOpenProject(EditorApplicationEvent_onOpenProject& event);
 
     void onCloseProject(EditorApplicationEvent_onCloseProject& event);
+
+    template <typename T, typename... Args>
+    void MakeWorkspace(Args&&... args);
+
+    void SetWorkspace(std::unique_ptr<IWorkspace> workspace);
 };
+
+
+template <typename T, typename... Args>
+void EditorApplication::MakeWorkspace(Args&&... args)
+{
+    SetWorkspace(std::make_unique<T>(std::forward<Args>(args)...));
+}
 
 

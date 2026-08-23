@@ -3,7 +3,7 @@
 extern "C"
 {
 __attribute__((visibility("default")))
-Application* CreateInstance()
+IApplication* CreateInstance()
 {
     return new EditorApplication();
 }

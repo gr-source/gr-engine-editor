@@ -1,9 +1,5 @@
 #include "view/projectMenu.hpp"
 
-#include "editorApplication.hpp"
-
-#include "gr-base/application.hpp"
-
 #include "imgui.h"
 
 #include <gr-base/managers/eventManager.hpp>
@@ -61,7 +57,7 @@ std::shared_ptr<Project> ProjectMenu::Load(const std::string& path)
     return project;
 }
 
-ProjectMenu::ProjectMenu() : m_engine(static_cast<EditorApplication*>(Application::application)), popup_flags(0), m_mainViewport(nullptr), m_style(nullptr), m_io(nullptr)
+ProjectMenu::ProjectMenu() : popup_flags(0), m_mainViewport(nullptr), m_style(nullptr), m_io(nullptr)
 {
     m_mainViewport = ImGui::GetMainViewport();
 
@@ -116,8 +112,8 @@ void ProjectMenu::render_project_list()
     {
         if (ImGui::Selectable(project.name.c_str()))
         {
-            EditorApplicationEvent_onOpenProject event;
-            event.path = project.path;
+            // EditorApplicationEvent_onOpenProject event;
+            // event.path = project.path;
 
             // EventManager::NotifyAsync<EditorApplicationEvent_onOpenProject>(&event);
         }

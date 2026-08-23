@@ -1,6 +1,6 @@
 #include "view/checkupdate.hpp"
 
-#include "event/projectBrowserEvent.hpp"
+#include "event/mainWorkspaceEvent.hpp"
 
 #include "gr-base/managers/eventManager.hpp"
 #include "gr-base/managers/taskmanager.hpp"
@@ -21,7 +21,7 @@ void CheckUpdate::addFile(const std::string& file)
 
 void CheckUpdate::taskFinished()
 {
-    EventManager::Emit<ProjectBrowser_onCheckProjectExists>({});
+    EventManager::Emit<MainWorkspace_onPostCheckUpdate>({});
 }
 
 // private
