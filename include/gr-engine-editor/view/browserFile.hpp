@@ -95,8 +95,6 @@ private:
 
     bool drag_selected_entry(AssetID assetID);
 
-    void onAssetLoadedDB(AssetEventOnLoaded& event);
-
     void onAssetCreated(AssetEventOnCreated& event);
 
     void onAssetRemove(AssetEventOnRemove& event);

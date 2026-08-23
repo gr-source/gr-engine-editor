@@ -44,10 +44,7 @@ BrowserFile::BrowserFile(EditorContext* context) :
 
     m_hashmap.emplace(root->hash, entryRootID);
 
-    EventManager::Subscribe<AssetEventOnLoaded>(
-            &BrowserFile::onAssetLoadedDB,
-            this
-        );
+    m_fileTexture = context->iconsUI[IconType::ICON_FILE];
 
     EventManager::Subscribe<AssetEventOnCreated>(
             &BrowserFile::onAssetCreated,
@@ -335,18 +332,6 @@ bool BrowserFile::drag_selected_entry(AssetID assetID)
     }
 
     return false;
-}
-
-void BrowserFile::onAssetLoadedDB(AssetEventOnLoaded& event)
-{
-    try
-    {
-        m_fileTexture =
-            AssetsManager::LoadTexture("engine://icon/icons8-file-30.png");
-    } catch (const std::exception& e)
-    {
-        Console::LogError("[ BrowserFile ] %s", e.what());
-    }
 }
 
 void BrowserFile::onAssetCreated(AssetEventOnCreated& event)
