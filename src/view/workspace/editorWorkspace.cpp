@@ -17,7 +17,6 @@
 #include "core/sandbox.hpp"
 #include "editorApplication.hpp"
 
-#include "event/editorApplicationEvent.hpp"
 #include "gr-base/core/string.hpp"
 #include "gr-base/ecs/componentRegistry.hpp"
 #include "gr-base/ecs/default.hpp"
@@ -108,19 +107,6 @@ static std::unordered_map<DragDropFlags, const char *> m_extensionDragDrop =
     {DragDropFlags::ANIMATION,  ".anm"},
     {DragDropFlags::TEXTURE,    ".png"},
     {DragDropFlags::MESH,       ".gmsh"},
-};
-
-static std::unordered_map<std::string, DragDropFlags> m_extensionNameToFlag =
-{
-    {HEADER_MODEL_EXTENSION,  DragDropFlags::GMDL},
-    {".scn",        DragDropFlags::SCN},
-    {".cpp",        DragDropFlags::SCRIPT},
-    {".hpp",        DragDropFlags::SCRIPT},
-    {".glsl",       DragDropFlags::SHADER},
-    {".gameobject", DragDropFlags::GAMEOBJECT},
-    {".anm",        DragDropFlags::ANIMATION},
-    {".png",        DragDropFlags::TEXTURE},
-    {".gmsh",       DragDropFlags::MESH},
 };
 
 #include <gr-base/task/shaderbuildtask.hpp>

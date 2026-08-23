@@ -237,94 +237,14 @@ void EditorApplication::drawScene(Scene* scene)
         gworkspace->Render3D();
 
     CameraRenderData cam;
+    cam.viewport = camera->viewport;
 
     auto pipeline = RenderPipelineManager::Get<IPipeline>(camera->pipeline);
     if (pipeline != nullptr)
         pipeline->Render(cam);
 
-    // Renderer::Render();
-
     Renderer::EndFrame();
 }
-
-/*
-void EditorApplication::drawScene(Scene* scene)
-{
-    LightBuffer lightBuffer{0};
-
-    scene->world.Query<TransformLocal, Light>([&](
-                size_t count,
-                Entity*,
-                TransformLocal* transforms,
-                Light* lights)
-    {
-        for (size_t i=0;i<count;i++)
-        {
-            if ((lightBuffer.numLights + 1) >= MAX_NUM_LIGHT)
-                break;
-
-            auto& transform = transforms[i];
-            auto& light = lights[i];
-
-            LightData& data = lightBuffer.lights[lightBuffer.numLights++];
-            *(Vector3*)(&data.position[0]) = transform.position;
-            *(Vector3*)(&data.direction[0]) = transform.rotation * type_traits<Vector3>::forward;
-
-            data.color = light.color;
-            data.params = {
-                light.attenuationConstant,
-                light.attenuationLinear,
-                light.attenuationQuadratic,
-                static_cast<float>(light.type)
-            };
-
-            data.spot = {
-                cosf(Math::rad(light.angleInnerCone)),
-                cosf(Math::rad(light.angleOuterCone))
-            };
-        }
-    });
-
-    lightUBO.Update(lightBuffer);
-
-    Renderer::BeginFrame();
-
-    scene->world.Query<TransformLocal, Camera, CameraData>(
-            [&](
-                size_t count,
-                Entity*,
-                TransformLocal* transformLocals,
-                Camera* cameras,
-                CameraData* cameraDatas)
-            {
-                for (size_t i=0;i<count;i++)
-                {
-                    auto& transformLocal = transformLocals[i];
-                    auto& cameraData = cameraDatas[i];
-                    auto& camera = cameras[i];
-
-                    CameraBuffer cameraBuffer;
-                    cameraBuffer.projection =
-                        cameraData.projection;
-                    cameraBuffer.view =
-                        cameraData.view;
-                    *(Vector3*)(&cameraBuffer.position[0]) =
-                        transformLocal.position;
-
-                    cameraUBO.Update(cameraBuffer);
-
-                    Frustum::CalculateFrustum(cameraData.projection * cameraData.view);
-
-                    auto pipeline = RenderPipelineManager::Get<IRenderPipeline>(camera.pipeline);
-
-                    pipeline->Execute();
-                }
-            }
-        );
-
-    Renderer::EndFrame();
-}
-*/
 
 void EditorApplication::loadConfig()
 {
