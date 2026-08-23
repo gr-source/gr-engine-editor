@@ -1,5 +1,7 @@
 #include "view/browserFile.hpp"
 
+#include "view/editor/editorContext.hpp"
+
 // #include "gr-base/asset/assetDB.hpp"
 
 #include <gr-base/core/assetResolver.hpp>
@@ -26,8 +28,8 @@
 
 #define GETNAME(n) #n
 
-BrowserFile::BrowserFile() :
-    m_imguiIO(&ImGui::GetIO())
+BrowserFile::BrowserFile(EditorContext* context) :
+    context(context)
 {
     open = true;
 
@@ -95,14 +97,14 @@ void BrowserFile::renderer()
 
 void BrowserFile::render_virtual_directories(EntryID entryID)
 {
-    auto info =
-        m_spaseSet.try_get(entryID);
+    auto& info =
+        m_spaseSet.get(entryID);
 
     ImGuiTreeNodeFlags flags = 0;
-    if (info->children.empty())
+    if (info.children.empty())
         return;
 
-    auto& name = info->name;
+    auto& name = info.name;
 
     if (entrySelectedDir == entryID)
         flags |= ImGuiTreeNodeFlags_Selected;
@@ -140,7 +142,7 @@ void BrowserFile::render_virtual_directories(EntryID entryID)
 
     if (isOpen)
     {
-        for (auto& childEntryID : info->children)
+        for (auto& childEntryID : info.children)
             render_virtual_directories(childEntryID);
 
         ImGui::TreePop();
@@ -187,24 +189,26 @@ void BrowserFile::drop_source_in_directories()
 
 void BrowserFile::render_virtual_entries(EntryID entryID)
 {
-    auto info =
-        m_spaseSet.try_get(entryID);
+    auto& info =
+        m_spaseSet.get(entryID);
 
-    auto& name = info->name;
+    auto& name = info.name;
     ImGui::SeparatorText(name.c_str());
 
     ImGui::Columns(4, nullptr, false);
-    for (auto& entryID : info->children)
+    for (size_t i=0;i<info.children.size();i++)
     {
-        auto entry =
-            m_spaseSet.try_get(entryID);
+        auto& entryID = info.children[i];
+            
+        auto& entry =
+            m_spaseSet.get(entryID);
 
-        if (!entry->leaf())
+        if (!entry.leaf())
             continue;
 
-        auto& name = entry->name;
+        auto& name = entry.name;
 
-        bool bSelected = m_selected_assets.find(entry->assetID) != m_selected_assets.end();
+        bool bSelected = m_selected_assets.find(entry.assetID) != m_selected_assets.end();
 
         if (m_fileTexture.get() != nullptr)
         {
@@ -217,44 +221,45 @@ void BrowserFile::render_virtual_entries(EntryID entryID)
             ImGui::Text("%s", name.c_str());
         }
 
-        if (
-                m_imguiIO->KeyShift &&
-                ImGui::IsItemClicked(ImGuiMouseButton_Left)
-            )
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
         {
-            if (bSelected)
-                m_selected_assets.erase(entry->assetID);
-            else
-                m_selected_assets.emplace(entry->assetID);
+
+            if (context->io->KeyShift)
+            {
+                if (startSelected == -1)
+                    startSelected = i;
+
+                const size_t begin = std::min(startSelected, i);
+                const size_t end   = std::max(startSelected, i);
+
+                m_selected_assets.clear();
+                for (size_t j = begin; j <= end; ++j)
+                {
+                    const auto& asset = m_spaseSet.get(info.children[j]);
+                    m_selected_assets.emplace(asset.assetID);
+                }
+            } else if (m_selected_assets.find(entry.assetID) == m_selected_assets.end())
+            {
+                m_selected_assets.clear();
+
+                startSelected = i;
+
+                m_selected_assets.emplace(entry.assetID);
+            }
         }
 
-        if (entry->assetID != INVALID_ASSET)
+        drag_selected_entry(entry.assetID);
+
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
         {
-            if (
-                    ImGui::IsItemHovered(ImGuiMouseButton_Left) &&
-                    ImGui::IsMouseDragging(ImGuiMouseButton_Left)
-                )
+            if (m_selected_assets.find(entry.assetID) == m_selected_assets.end())
             {
-                if (!bSelected)
-                {
-                    m_selected_assets.clear();
-                    m_selected_assets.emplace(entry->assetID);
-                }
+                m_selected_assets.clear();
+
+                m_selected_assets.emplace(entry.assetID);
             }
 
-            drag_selected_entries();
-        }
-
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Right) && m_selected_assets.find(entry->assetID) != m_selected_assets.end())
-        {
             popupFlags |= PopupFlags_ShowAssetInfo;
-        } else if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-        {
-            popupFlags |= PopupFlags_ShowAssetInfo;
-
-            m_selected_assets.clear();
-
-            m_selected_assets.emplace(entry->assetID);
         }
 
         ImGui::NextColumn();
@@ -262,30 +267,37 @@ void BrowserFile::render_virtual_entries(EntryID entryID)
 
     if (ImGui::IsWindowHovered())
     {
-        if (m_imguiIO->KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_A, false))
+        if (context->io->KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_A, false))
         {
             m_selected_assets.clear();
 
-            for (auto &entryID : info->children)
+            for (auto &entryID : info.children)
             {
-                auto entry =
-                    m_spaseSet.try_get(entryID);
+                auto& entry =
+                    m_spaseSet.get(entryID);
 
-                if (!entry->leaf())
+                if (!entry.leaf())
                     continue;
 
-                m_selected_assets.emplace(entry->assetID);
+                m_selected_assets.emplace(entry.assetID);
             }
         }
         if (ImGui::IsKeyPressed(ImGuiKey_Escape, false))
+        {
             m_selected_assets.clear();
+
+            startSelected = -1;
+        }
     }
 }
 
-void BrowserFile::drag_selected_entries()
+bool BrowserFile::drag_selected_entry(AssetID assetID)
 {
     if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoDisableHover | ImGuiDragDropFlags_SourceNoHoldToOpenOthers | ImGuiDragDropFlags_SourceAllowNullID))
     {
+        if (m_selected_assets.find(assetID) == m_selected_assets.end())
+            m_selected_assets.emplace(assetID);
+
         auto count =
             m_selected_assets.size() > 10 ? 10 : m_selected_assets.size();
 
@@ -318,7 +330,11 @@ void BrowserFile::drag_selected_entries()
             );
 
         ImGui::EndDragDropSource();
+
+        return true;
     }
+
+    return false;
 }
 
 void BrowserFile::onAssetLoadedDB(AssetEventOnLoaded& event)

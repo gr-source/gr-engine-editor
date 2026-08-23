@@ -661,7 +661,7 @@ void EditorWorkspace::initialize()
     viewManager.add<EngineStatusView>();
     viewManager.add<SceneInspectorView>();
     viewManager.add<ConsoleWindowView>()->open = true;
-    viewManager.add<BrowserFile>()->open = true;
+    viewManager.add<BrowserFile>(&context)->open = true;
 }
 
 void EditorWorkspace::shutdown()

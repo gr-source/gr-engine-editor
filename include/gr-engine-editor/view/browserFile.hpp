@@ -20,10 +20,12 @@
 #include <vector>
 #include <string>
 
+struct EditorContext;
+
 class BrowserFile : public WindowView
 {
 public:
-    BrowserFile();
+    BrowserFile(EditorContext* context);
 
 private:
 
@@ -77,7 +79,9 @@ private:
     uint32_t popupFlags =
         0;
 
-    ImGuiIO* m_imguiIO;
+    EditorContext* context = nullptr;
+
+    size_t startSelected = -1;
 
     void Draw() override;
 
@@ -89,7 +93,7 @@ private:
 
     void render_virtual_entries(EntryID entryID);
 
-    void drag_selected_entries();
+    bool drag_selected_entry(AssetID assetID);
 
     void onAssetLoadedDB(AssetEventOnLoaded& event);
 
