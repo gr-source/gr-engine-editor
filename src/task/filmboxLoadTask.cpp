@@ -68,10 +68,9 @@ void FilmboxLoadTask::onPostExecute(Result<FbxScene> result)
     if (!result.success)
         return Console::LogError("[FilmboxLoadTask] fail in to load '%s' error= '%s'.", m_file.c_str(), result.error.c_str());
 
-    ImportAssetViewPopup_onAddFbxScene event;
-    event.fbxScene = result.value;
-
-    EventManager::Notify<ImportAssetViewPopup_onAddFbxScene>(&event);
+    EventManager::Emit<ImportAssetViewPopup_onAddFbxScene>(ImportAssetViewPopup_onAddFbxScene{
+            .fbxScene = result.value
+        });
 }
 
 

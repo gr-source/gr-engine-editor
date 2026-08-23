@@ -27,6 +27,6 @@ private:
 
     void show(const char* message);
 
-    void onAddMessage(Console_onAddMessage* event);
+    void onAddMessage(Console_onAddMessage& event);
 };
 

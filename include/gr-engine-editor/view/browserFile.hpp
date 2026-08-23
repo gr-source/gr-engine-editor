@@ -91,11 +91,11 @@ private:
 
     void drag_selected_entries();
 
-    void onAssetLoadedDB(AssetEventOnLoaded* event);
+    void onAssetLoadedDB(AssetEventOnLoaded& event);
 
-    void onAssetCreated(AssetEventOnCreated* event);
+    void onAssetCreated(AssetEventOnCreated& event);
 
-    void onAssetRemove(AssetEventOnRemove* event);
+    void onAssetRemove(AssetEventOnRemove& event);
 
     std::vector<EntryInfo> splitPath(const std::string& path);
 

@@ -9,7 +9,7 @@
 
 ImportAssetViewPopup::ImportAssetViewPopup()
 {
-    EventManager::Attach<ImportAssetViewPopup_onAddFbxScene>(
+    EventManager::Subscribe<ImportAssetViewPopup_onAddFbxScene>(
             &ImportAssetViewPopup::onAddFbxScene, this
         );
 }
@@ -103,9 +103,9 @@ void ImportAssetViewPopup::Draw()
     ImGui::End();
 }
 
-void ImportAssetViewPopup::onAddFbxScene(ImportAssetViewPopup_onAddFbxScene* event)
+void ImportAssetViewPopup::onAddFbxScene(ImportAssetViewPopup_onAddFbxScene& event)
 {
-    m_scenes.push_back(event->fbxScene);
+    m_scenes.push_back(event.fbxScene);
     open = true;
 }
 

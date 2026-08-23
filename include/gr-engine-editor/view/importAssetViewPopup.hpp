@@ -14,7 +14,7 @@ private:
 
     void Draw() override;
 
-    void onAddFbxScene(ImportAssetViewPopup_onAddFbxScene* event);
+    void onAddFbxScene(ImportAssetViewPopup_onAddFbxScene& event);
 };
 
 

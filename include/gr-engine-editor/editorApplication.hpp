@@ -104,11 +104,11 @@ private:
 
     void saveConfig();
 
-    void onCheckProject(IEvent* event);
+    void onCheckProject(EditorApplicationEvent_onCheckProject& event);
 
-    void onOpenProject(EditorApplicationEvent_onOpenProject* event);
+    void onOpenProject(EditorApplicationEvent_onOpenProject& event);
 
-    void onCloseProject(IEvent* event);
+    void onCloseProject(EditorApplicationEvent_onCloseProject& event);
 };
 
 

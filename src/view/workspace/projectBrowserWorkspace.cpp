@@ -15,7 +15,7 @@ ProjectBrowser::ProjectBrowser()
     viewManager.add<CheckUpdate>()->open = true;
     viewManager.add<ProjectMenu>()->open = true;
 
-    EventManager::Attach<ProjectBrowser_onCheckProjectExists>(&ProjectBrowser::onReadProjects, this);
+    EventManager::Subscribe<ProjectBrowser_onCheckProjectExists>(&ProjectBrowser::onReadProjects, this);
 }
 
 void ProjectBrowser::DrawWorkspace()
@@ -23,10 +23,10 @@ void ProjectBrowser::DrawWorkspace()
     viewManager.renderer();
 }
 
-void ProjectBrowser::onReadProjects(IEvent* event)
+void ProjectBrowser::onReadProjects(ProjectBrowser_onCheckProjectExists& event)
 {
     viewManager.hide<CheckUpdate>();
 
-    EventManager::Notify<EditorApplicationEvent_onCheckProject>(nullptr);
+    EventManager::Emit<EditorApplicationEvent_onCheckProject>({});
 }
 

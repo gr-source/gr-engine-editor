@@ -27,11 +27,10 @@ LoadingTaskPopup::~LoadingTaskPopup()
 // private
 Handle LoadingTaskPopup::create(const std::string& title, const std::string& message)
 {
-    Handle h = m_tasks.create();
-
-    auto info = m_tasks.get(h);
-    info->message = message;
-    info->name = title;
+    Handle h = m_tasks.push({
+            .name = title,
+            .message = message
+        });
 
     open = true;
 

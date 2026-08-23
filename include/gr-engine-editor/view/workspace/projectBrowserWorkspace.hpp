@@ -20,6 +20,6 @@ public:
 private:
     ViewManager viewManager;
 
-    void onReadProjects(IEvent* event);
+    void onReadProjects(ProjectBrowser_onCheckProjectExists& event);
 };
 

@@ -21,7 +21,7 @@ void CheckUpdate::addFile(const std::string& file)
 
 void CheckUpdate::taskFinished()
 {
-    EventManager::Notify<ProjectBrowser_onCheckProjectExists>(nullptr);
+    EventManager::Emit<ProjectBrowser_onCheckProjectExists>({});
 }
 
 // private

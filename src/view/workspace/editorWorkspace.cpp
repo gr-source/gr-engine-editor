@@ -665,8 +665,8 @@ void EditorWorkspace::create_dock()
     {
         if (ImGui::BeginMenu("Project"))
         {
-            if (ImGui::MenuItem("Close"))
-                EventManager::NotifyAsync<EditorApplicationEvent_onCloseProject>(nullptr);
+            // if (ImGui::MenuItem("Close"))
+                // EventManager::NotifyAsync<EditorApplicationEvent_onCloseProject>(nullptr);
 
                 // MainThreadDispatcher::Add(Priority::LOW, &Application::init_project, &Application::GetInstance(), "");
             ImGui::EndMenu();

@@ -42,17 +42,17 @@ BrowserFile::BrowserFile() :
 
     m_hashmap.emplace(root->hash, entryRootID);
 
-    EventManager::Attach<AssetEventOnLoaded>(
+    EventManager::Subscribe<AssetEventOnLoaded>(
             &BrowserFile::onAssetLoadedDB,
             this
         );
 
-    EventManager::Attach<AssetEventOnCreated>(
+    EventManager::Subscribe<AssetEventOnCreated>(
             &BrowserFile::onAssetCreated,
             this
         );
 
-    EventManager::Attach<AssetEventOnRemove>(
+    EventManager::Subscribe<AssetEventOnRemove>(
             &BrowserFile::onAssetRemove,
             this
         );
@@ -321,7 +321,7 @@ void BrowserFile::drag_selected_entries()
     }
 }
 
-void BrowserFile::onAssetLoadedDB(AssetEventOnLoaded* event)
+void BrowserFile::onAssetLoadedDB(AssetEventOnLoaded& event)
 {
     try
     {
@@ -333,9 +333,9 @@ void BrowserFile::onAssetLoadedDB(AssetEventOnLoaded* event)
     }
 }
 
-void BrowserFile::onAssetCreated(AssetEventOnCreated* event)
+void BrowserFile::onAssetCreated(AssetEventOnCreated& event)
 {
-    auto info = AssetDB::GetAsset(event->value);
+    auto info = AssetDB::GetAsset(event.value);
     if (info == nullptr)
         return;
 
@@ -346,9 +346,9 @@ void BrowserFile::onAssetCreated(AssetEventOnCreated* event)
     create_hierarchy(info);
 }
 
-void BrowserFile::onAssetRemove(AssetEventOnRemove* event)
+void BrowserFile::onAssetRemove(AssetEventOnRemove& event)
 {
-    auto info = AssetDB::GetAsset(event->value);
+    auto info = AssetDB::GetAsset(event.value);
     if (info == nullptr)
         return;
 

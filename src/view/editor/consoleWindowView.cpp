@@ -8,7 +8,7 @@
 
 ConsoleWindowView::ConsoleWindowView()
 {
-    EventManager::Attach<Console_onAddMessage>(&ConsoleWindowView::onAddMessage, this);
+    EventManager::Subscribe<Console_onAddMessage>(&ConsoleWindowView::onAddMessage, this);
 }
 
 void ConsoleWindowView::Draw()
@@ -105,14 +105,14 @@ void ConsoleWindowView::show(const char* p)
     }
 }
 
-void ConsoleWindowView::onAddMessage(Console_onAddMessage* event)
+void ConsoleWindowView::onAddMessage(Console_onAddMessage& event)
 {
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_messages.size() >= 1000)
             m_messages.pop_front();
 
-        m_messages.push_back(event->message);
+        m_messages.push_back(event.message);
     }
 
     bScroolConsole.store(true, std::memory_order_release);

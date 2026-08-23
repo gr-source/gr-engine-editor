@@ -36,15 +36,15 @@ void EditorApplication::initialize()
 
     loadConfig();
 
-    EventManager::Attach<EditorApplicationEvent_onCheckProject>(
+    EventManager::Subscribe<EditorApplicationEvent_onCheckProject>(
             &EditorApplication::onCheckProject,
             this
         );
-    EventManager::Attach<EditorApplicationEvent_onOpenProject>(
+    EventManager::Subscribe<EditorApplicationEvent_onOpenProject>(
             &EditorApplication::onOpenProject,
             this
         );
-    EventManager::Attach<EditorApplicationEvent_onCloseProject>(
+    EventManager::Subscribe<EditorApplicationEvent_onCloseProject>(
             &EditorApplication::onCloseProject,
             this
         );
@@ -373,7 +373,7 @@ void EditorApplication::saveConfig()
     config_save(config, (gfile::get_config_directory() + "/config.ini").c_str());
 }
 
-void EditorApplication::onCheckProject(IEvent* event)
+void EditorApplication::onCheckProject(EditorApplicationEvent_onCheckProject& event)
 {
     gSection* section = config_find_section(config, "project");
     if (section != NULL)
@@ -391,9 +391,9 @@ void EditorApplication::onCheckProject(IEvent* event)
     m_workspace = std::make_unique<EditorWorkspace>();
 }
 
-void EditorApplication::onOpenProject(EditorApplicationEvent_onOpenProject* event)
+void EditorApplication::onOpenProject(EditorApplicationEvent_onOpenProject& event)
 {
-    m_project = ProjectMenu::Load(event->path + "/metadata.ini");
+    m_project = ProjectMenu::Load(event.path + "/metadata.ini");
     if (m_project == nullptr)
         return;
 
@@ -402,7 +402,7 @@ void EditorApplication::onOpenProject(EditorApplicationEvent_onOpenProject* even
     m_workspace = std::make_unique<EditorWorkspace>();
 }
 
-void EditorApplication::onCloseProject(IEvent* event)
+void EditorApplication::onCloseProject(EditorApplicationEvent_onCloseProject& event)
 {
     m_workspace = nullptr; // = std::make_unique<ProjectBrowser>();
 
