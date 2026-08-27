@@ -1,11 +1,11 @@
 #pragma once
 
+#include "gr-base/core/default.hpp"
 #include "view/windowView.hpp"
 
 #include <gr-base/pool/sparseSet.hpp>
 
 #include "gr-base/core/assetDB.hpp"
-#include <gr-base/core/assetPtr.hpp>
 
 #include "gr-base/asset/default.hpp"
 
@@ -72,8 +72,8 @@ private:
     EntryID entrySelectedDir =
         INVALID_SPARSE_ID;
 
-    AssetPtr<gr::texture> m_fileTexture;
-    AssetPtr<gr::texture> m_dirTexture;
+    TextureRef m_fileTexture;
+    TextureRef m_dirTexture;
 
     std::unordered_set<AssetID> m_selected_assets;
 

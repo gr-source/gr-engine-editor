@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gr-base/core/assetPtr.hpp>
+#include <gr-base/core/default.hpp>
 
 #include <gr-render/texture.hpp>
 
@@ -84,7 +84,7 @@ struct Selector
 
 struct EditorContext
 {
-    AssetPtr<gr::texture> iconsUI[IconType::ICON_COUNT];
+    TextureRef iconsUI[IconType::ICON_COUNT];
 
     Selector<Entity> selector;
 

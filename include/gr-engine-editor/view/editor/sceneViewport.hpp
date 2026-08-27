@@ -35,7 +35,7 @@ private:
 
     // static constexpr int HistorySize = 120;
 
-    AssetPtr<gr::texture> s_texturePlayGame;
+    TextureRef s_texturePlayGame;
 
     EditorContext* context;
 

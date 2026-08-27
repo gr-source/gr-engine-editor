@@ -9,8 +9,6 @@
 #include <gr-base/managers/renderPipelineManager.hpp>
 #include <gr-base/managers/sceneManager.hpp>
 
-#include <gr-base/render/rendertarget.hpp>
-
 #include <gr-base/core/gameObject.hpp>
 #include <gr-base/core/assetDB.hpp>
 #include <gr-base/core/clock.hpp>

@@ -72,7 +72,7 @@ typedef struct gtreefile
 
     std::string extension;
 
-    AssetPtr<gr::texture> texture;
+    TextureRef texture;
 
     bool bdirectory;
 
@@ -109,7 +109,7 @@ public:
 
     void LoadReources();
     
-    void SetupTexture(IconType type, AssetPtr<gr::texture> texture);
+    void SetupTexture(IconType type, TextureRef texture);
 
     inline ViewManager& GetViewManager()
     {
