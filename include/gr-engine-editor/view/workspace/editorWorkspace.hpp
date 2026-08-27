@@ -131,8 +131,6 @@ private:
 
     ImGuiIO *mImGuiIO;
 
-    bool bBuildDock;
-
     std::vector<Entity> uiEntityList;
 
     std::vector<Entity> entitiesMarker;
@@ -150,8 +148,6 @@ private:
 
     void create_dock();
 
-    void BuildDock(ImGuiID dockspace_id, ImGuiDockNodeFlags dockspace_flags);
-
     void create_window_hierarchy();
 
     void create_render_hierarchy(Scene* scene);
@@ -166,8 +162,6 @@ private:
 
     void PopupMenuAdd();
 
-    void drop_gameobject_in_scene();
-
     void create_window_property();
 
     void create_render_property();
@@ -180,23 +174,21 @@ private:
 
     void create_popup_rename_object();
 
-    void dropScriptInAddComponent();
-
     void ShowComponentInfoUI(GameObject& go, const ComponentInfo* info);
 
     void ShowUserComponentUI(void *component);
 
     void renderDropGameObject(GameObject **ref);
 
-    void OnPropertyTransformLocal(GameObject& go, TransformLocal *transform);
+    void OnPropertyTransformLocal(GameObject& go, TransformLocal& transform);
 
-    void OnPropertyCamera(GameObject& go, Camera *camera);
+    void OnPropertyCamera(GameObject& go, Camera& camera);
     
-    void OnPropertyMeshFilter(GameObject& go, MeshFilter *meshFilter);
+    void OnPropertyMeshFilter(GameObject& go, MeshFilter& meshFilter);
 
-    void OnPropertyMeshRender(GameObject& go, MeshRender *meshRender);
+    void OnPropertyMeshRender(GameObject& go, MeshRender& meshRender);
 
-    void OnPropertyLight(GameObject& go, Light *light);
+    void OnPropertyLight(GameObject& go, Light& light);
 
     void render_shader_property(const std::string &name, Material *material);
 

@@ -6,7 +6,6 @@
 
 #include "gr-base/script/transform.hpp"
 
-#include <algorithm>
 #include <gr-base/core/scene.hpp>
 
 CameraEditorSystem::CameraEditorSystem()
@@ -55,19 +54,13 @@ void CameraEditorSystem::Update()
 
         transform.position +=
             diretion * m_movementSpeed * (float)Clock::deltaTime;
-
-        // scene->MarkChanged<TransformWorld>(go.entity);
     }
 
     if (Input::IsMousePress(MOUSE_BUTTON_MIDDLE))
-    {
-        ProcessMouse(Input::GetMouseDelta(), &transform);
-
-        // scene->MarkChanged<TransformWorld>(go.entity);
-    }
+        updateMouse(Input::GetMouseDelta(), &transform);
 }
 
-void CameraEditorSystem::ProcessMouse(
+void CameraEditorSystem::updateMouse(
     const Vector2& delta,
     TransformLocal* transform)
 {
@@ -89,7 +82,6 @@ void CameraEditorSystem::ProcessMouse(
             Math::rad(pitchDelta),
             type_traits<Vector3>::right
         );
-
 
     transform->rotation =
         Math::normalize(

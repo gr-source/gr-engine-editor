@@ -32,7 +32,7 @@ void EditorApplication::initialize()
 {
     runtime.initialize();
 
-    ImguiRenderer::Initialize();
+    imgui.initialize();
 
     loadConfig();
 
@@ -58,7 +58,7 @@ void EditorApplication::shutdown()
 
     gworkspace = nullptr;
 
-    ImguiRenderer::Shutdown();
+    imgui.shutdown();
 
     cameraUBO.Destroy();
     lightUBO.Destroy();
@@ -160,12 +160,12 @@ void EditorApplication::renderer()
     gr::gRender::SetRenderState(gr::GR_BACKGROUND, gr::GR_COLOR_BUFFER);
     gr::gRender::SetBackgroundColor(Color::Black());
     
-    ImguiRenderer::Begin();
+    imgui.begin();
 
     if (gworkspace != nullptr)
         gworkspace->Render();
 
-    ImguiRenderer::End();
+    imgui.end();
 }
 
 #include <gr-base/core/culling/frustum.hpp>

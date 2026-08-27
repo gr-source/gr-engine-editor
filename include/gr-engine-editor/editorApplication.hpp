@@ -4,6 +4,7 @@
 
 #include "event/editorApplicationEvent.hpp"
 
+#include "view/imguiRenderer.hpp"
 #include "view/workspace/iworkspace.hpp"
 
 #include <gr-base/core/default.hpp>
@@ -82,6 +83,8 @@ private:
     std::unique_ptr<IWorkspace> gworkspace = nullptr;
 
     std::shared_ptr<Project> m_project;
+
+    ImguiRenderer imgui;
 
     gConfig* config;
 

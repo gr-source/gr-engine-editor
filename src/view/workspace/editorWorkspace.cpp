@@ -41,8 +41,8 @@
 #include "task/filmboxLoadTask.hpp"
 
 #include "view/editor/consoleWindowView.hpp"
+
 #include "view/engineStatusView.hpp"
-#include "view/imguiRenderer.hpp"
 #include "view/loadingTaskPopup.hpp"
 #include "view/sceneInspectorView.hpp"
 #include "view/spawnObject.hpp"
@@ -74,12 +74,17 @@
 #include <gr-base/task/textureBuildTask.hpp>
 #include <gr-base/task/shaderbuildtask.hpp>
 
-constexpr Hash64 kBuiltinSystems[] = {
+static constexpr Hash64 kBuiltinSystems[] = {
     engine::type_traits::hash<CameraEditorSystem>,
 };
 
-constexpr Hash64 kBuiltinComponents[] = {
+static constexpr Hash64 kBuiltinComponents[] = {
     engine::type_traits::hash<CameraEditor>,
+};
+
+
+static constexpr const char* kLightTypeName[LightType_Count] = {
+    "Directional", "Point", "Spot"
 };
 
 #define GET_N_ARRAY(c) sizeof(c) / sizeof(c[0])
@@ -131,24 +136,10 @@ EditorWorkspace::EditorWorkspace()
         #object, \
         [this](GameObject* go) \
         { \
-            OnProperty##object(*go, go->TryGetComponent<object>()); \
+            OnProperty##object(*go, go->GetComponent<object>()); \
         } \
     }
-    /*
-    {#object, [this](GameObject *go) \
-        { \
-            RenderProperty<object>(&EditorWorkspace::OnProperty##object, this); \
-        } \
-    }
-    */
 
-    /*
-        {"TransformLocal", [this](GameObject *go)
-            {
-                RenderProperty<TransformLocal>(&EditorWorkspace::OnPropertyTransform, this);
-            }
-        },
-            */
     m_guiscriptmap = {
         INSERT_SCRIPT(TransformLocal),
         INSERT_SCRIPT(Camera),
@@ -183,8 +174,6 @@ EditorWorkspace::EditorWorkspace()
     initialize();
 
     AssetDB::Load(Scheme_Project, m_project->path + "/asset.db");
-
-    bBuildDock = gfile::exists("imgui.ini");
 
     try
     {
@@ -756,41 +745,6 @@ void EditorWorkspace::create_dock()
 
         ImGui::EndMainMenuBar();
     }
-
-    // PopupMenuProperty();
-    
-    if (bBuildDock)
-        return;
-
-    // BuildDock(dockID, 0);
-
-    bBuildDock = true;
-}
-
-void EditorWorkspace::BuildDock(ImGuiID dockspace_id, ImGuiDockNodeFlags dockspace_flags)
-{
-    ImGui::DockBuilderRemoveNode(dockspace_id);
-    ImGui::DockBuilderAddNode(dockspace_id, dockspace_flags | ImGuiDockNodeFlags_DockSpace);
-	ImGui::DockBuilderSetNodeSize(dockspace_id, m_viewport->Size);
-
-	// auto dock_id_center = ImGui::DockBuilderGetCentralNode(dockspace_id);
-	auto dock_id_down = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.25f, nullptr, &dockspace_id);
-	auto dock_id_left = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.2f, nullptr, &dockspace_id);
-	auto dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.15f, nullptr, &dockspace_id);
-	auto dock_id_left_down = ImGui::DockBuilderSplitNode(dock_id_down, ImGuiDir_Down, 0.2f, nullptr, &dock_id_down);
-	auto dock_id_left_down_right = ImGui::DockBuilderSplitNode(dock_id_left_down, ImGuiDir_Right, 0.2f, nullptr, &dock_id_left_down);
-
-    // Right
-	ImGui::DockBuilderDockWindow("Propriedades", dock_id_right);
-
-    // Left
-	ImGui::DockBuilderDockWindow("Cenario", dock_id_left);
-	ImGui::DockBuilderDockWindow("Navegador", dock_id_left_down);
-	ImGui::DockBuilderDockWindow("Console", dock_id_left_down_right);
-
-	ImGui::DockBuilderDockWindow("Viewport", dockspace_id);
-
-	ImGui::DockBuilderFinish(dockspace_id);
 }
 
 void EditorWorkspace::create_window_hierarchy()
@@ -881,6 +835,7 @@ void EditorWorkspace::RenderSceneObject(Scene *scene)
             ShowGameObjectHierarchy(go);
         }
     }
+    clipper.End();
 
     if (ImGui::IsKeyReleased(ImGuiKey_F2) && ImGui::IsWindowHovered() && !context.selector.empty())
         popupFlags |= EditorPopupFlags_RenameGameObject;
@@ -931,22 +886,22 @@ void EditorWorkspace::ShowGameObjectHierarchy(GameObject& go)
     
     if (isOpen)
     {
-        if (go.HasComponent<Relationship>())
+        auto rel = go.TryGetComponent<Relationship>();
+        if (rel != nullptr)
         {
-            auto& rel = go.GetComponent<Relationship>();
+            GameObject child(go.scene, rel->firstChild);
 
-            GameObject child(go.scene, rel.firstChild);
-
-            while (child.IsAlive())
+            while (child)
             {
                 ImGui::PushID(go.entity);
                 ShowGameObjectHierarchy(child);
                 ImGui::PopID();
 
-                if (!child.HasComponent<Relationship>())
+                rel = child.TryGetComponent<Relationship>();
+                if (rel == nullptr)
                     break;
 
-                child.entity = child.GetComponent<Relationship>().nextSibling;
+                child.entity = rel->nextSibling;
             }
         }
 
@@ -1012,420 +967,6 @@ void EditorWorkspace::PopupMenuAdd()
     ImGui::EndPopup();
 }
 
-/*
-void EditorWorkspace::create_window_viewport()
-{
-    if (ImGui::Begin("viewport"))
-        create_render_viewport();
-    ImGui::End();
-}
-
-void EditorWorkspace::create_render_viewport()
-{
-    if (!ImGui::BeginTabBar("##create_render_viewport_tabbar_0"))
-        return;
-
-    for (auto &scene : SceneManager::GetScenes())
-    {
-        auto name = SceneManager::GetSceneName(scene);
-
-        bool bactive = true;
-        if (ImGui::BeginTabItem(name, &bactive))
-        {
-            if (scene != m_scene)
-            {
-                if (m_scene != nullptr)
-                    m_scene->deselect_all();
-
-                m_scene = scene;
-            }
-
-            ImGui::EndTabItem();
-        }
-
-        if (!bactive)
-        {
-            m_scene = nullptr;
-            
-            SceneManager::SetActive(nullptr);
-
-            SceneManager::Remove(scene);
-        }
-    }
-
-    if (ImGui::TabItemButton("+"))
-        popupFlags |= EditorPopupFlags_CreateScene;
-
-    ImGui::EndTabBar();
-    
-    if (m_scene != nullptr)
-        render_scene(m_scene);
-}
-
-void EditorWorkspace::render_scene(Scene *scene)
-{
-    UpdateResizeSceneFramebuffer();
-
-    auto regionAvail = ImGui::GetContentRegionAvail();
-    auto windowPos = ImGui::GetWindowPos();
-    auto cursorPos = ImGui::GetCursorPos();
-
-    // Play button
-    if (s_texturePlayGame.get() != nullptr)
-    {
-        s_texturePlayGame = context.iconsUI[ICON_PLAY_GAME];
-        if (Settings::bGameRunning) {
-            if (ImGui::IsKeyReleased(ImGuiKey_Escape) && ImGui::IsWindowHovered()) {
-                OnStopButton();
-            } else {
-                s_texturePlayGame = context.iconsUI[ICON_STOP_GAME];
-            }
-        }
-        
-        ImGui::SetCursorPos({regionAvail.x / 2 - cursorPos.x, cursorPos.y + 0.5f});
-
-        if (ImGui::ImageButton(reinterpret_cast<ImTextureID>(s_texturePlayGame->id), ImVec2(16, 16)))
-        {
-            if (!Settings::bGameRunning)
-            {
-                OnPlayButton();
-            } else {
-                OnStopButton();
-            }
-        }
-    }
-
-    regionAvail = ImGui::GetContentRegionAvail();
-    cursorPos = ImGui::GetCursorPos();
-
-    ImGuizmo::SetDrawlist();
-    ImGuizmo::SetRect(
-            windowPos.x + cursorPos.x,
-            windowPos.y + cursorPos.y,
-            regionAvail.x, regionAvail.y);
-
-    GameObject obj(m_scene, m_scene->GetCurrentCamera());
-    if (obj.IsAlive())
-    {
-        // regionAvail = ImGui::GetContentRegionAvail();
-        // cursorPos = ImGui::GetCursorPos();
-
-        Camera* camera = obj.GetComponent<Camera>();
-        if (camera != nullptr)
-        {
-            RenderTarget* rendertarget = camera->rendertarget;
-
-            ImGui::Image(reinterpret_cast<ImTextureID>(rendertarget->GetTextureID()), regionAvail, {0.0f, 1.0f}, {1.0f, 0.0f});
-
-            drop_gameobject_in_scene();
-
-            if (scene->has_object_selected() && !Settings::bGameRunning)
-                create_render_guizmo(scene, &obj);
-        }
-    }
-
-    // Fps Draw
-    {
-        fpsTimer += static_cast<float>(Clock::deltaTime);
-        fpsFrameCount++;
-
-        if (fpsTimer >= 1.0f)
-        {
-            fps = fpsFrameCount;
-            fpsMax = std::max(fpsMax, fps);
-            fpsMin = std::min(fpsMin, fps);
-
-            fpsFrameCount = 0;
-            fpsTimer = 0.0f;
-        }
-
-        char fps_text[256] = {0};
-        sprintf(fps_text, "FPS: %d\tMax: %d\tMin: %d", fps, fpsMax, fpsMin);
-
-        auto textSize = ImGui::CalcTextSize(fps_text);
-
-        ImGui::SetCursorPos(ImVec2(regionAvail.x - textSize.x, cursorPos.y + textSize.y));
-
-        ImGui::TextColored(FPSColor, "%s", fps_text);
-    }
-
-    ImGui::SetCursorPos({8.0f, cursorPos.y});
-
-    ImGui::PushStyleColor(ImGuiCol_Text, {0.0f, 0.0f, 1.0f, 1.0f});
-
-    ImGui::BeginGroup();
-    if (ImGui::RadioButton("Local", m_guizmoManipulate == ImGuizmo::LOCAL))
-        m_guizmoManipulate = ImGuizmo::LOCAL;
-    
-    ImGui::SameLine();
-    if (ImGui::RadioButton("World", m_guizmoManipulate == ImGuizmo::WORLD))
-        m_guizmoManipulate = ImGuizmo::WORLD;
-
-    ImGui::EndGroup();
-
-    ImGui::PopStyleColor();
-
-    if (
-            m_scene->has_object_selected() &&
-            ImGui::IsWindowFocused() &&
-            mImGuiIO->KeyShift &&
-            ImGui::IsKeyReleased(ImGuiKey_D)
-        )
-    {
-        auto temp = m_scene->get_object_selected();
-        m_scene->deselect_all();
-
-        for (auto go : temp)
-            m_scene->select(m_scene->create(go));
-    }
-}
-
-void EditorWorkspace::UpdateResizeSceneFramebuffer()
-{
-    GameObject obj(m_scene, m_scene->GetCurrentCamera());
-    if (!obj.IsAlive())
-        return;
-
-    auto camera = obj.GetComponent<Camera>();
-
-    ImVec2 regionAvail = ImGui::GetContentRegionAvail();
-    if (
-            camera->viewport.w != regionAvail.x ||
-            camera->viewport.h != regionAvail.y
-        )
-    {
-        if (camera->rendertarget != nullptr)
-            camera->rendertarget->resize(regionAvail.x, regionAvail.y);
-
-        camera->viewport.w = regionAvail.x;
-        camera->viewport.h = regionAvail.y;
-    }
-}
-
-void EditorWorkspace::create_render_guizmo(Scene *scene, const GameObject* gameObjectCamera)
-{
-    if (ImGui::IsWindowHovered() && !mImGuiIO->KeyShift && !mImGuiIO->KeyCtrl)
-    {
-        if (ImGui::IsKeyReleased(ImGuiKey_G))
-            m_guizmoOperation = ImGuizmo::TRANSLATE;
-    
-        if (ImGui::IsKeyReleased(ImGuiKey_R))
-            m_guizmoOperation = ImGuizmo::ROTATE;
-    
-        if (ImGui::IsKeyReleased(ImGuiKey_S))
-            m_guizmoOperation = ImGuizmo::SCALE;
-    }
-
-    auto camera = go->GetComponent<CameraData>();
-
-    for (auto entity : scene->get_object_selected())
-    {
-        GameObject gameObject(scene, entity);
-        if (!gameObject.IsAlive())
-            continue;
-
-        create_guizmo_manipulate(gameObject, camera->projection, camera->view);
-    }
-}
-
-
-void EditorWorkspace::create_guizmo_manipulate(const GameObject& gameObject, const Matrix4x4& projection, const Matrix4x4& view)
-{
-    ImGuizmo::SetID(gameObject.entity);
-    auto transform = gameObject.GetComponent<TransformWorld>();
-    auto transformLocal = gameObject.GetComponent<TransformLocal>();
-
-    auto manipulatedWorld = transform->world;
-
-    bool changed =
-        ImGuizmo::Manipulate(
-                &view[0][0],
-                &projection[0][0],
-                m_guizmoOperation,
-                m_guizmoManipulate,
-                &manipulatedWorld[0][0]
-            );
-    if (!changed)
-        return;
-
-    Matrix4x4 localMatrix = manipulatedWorld;
-
-    if (gameObject.HasComponent<Relationship>())
-    {
-        auto rel = gameObject.GetComponent<Relationship>();
-        if (rel->parent != INVALID_ENTITY)
-        {
-            const GameObject parent(gameObject.scene, rel->parent);
-            if (parent.HasComponent<TransformWorld>())
-            {
-                auto transform = parent.GetComponent<TransformWorld>();
-
-                localMatrix =
-                    Math::inverse(transform->world) * manipulatedWorld;
-            }
-        }
-    }
-
-    Math::decompose(
-            localMatrix,
-            transformLocal->position,
-            transformLocal->rotation,
-            transformLocal->scale
-        );
-
-    m_scene->MarkChanged<TransformWorld>(gameObject.entity);
-}
-
-void EditorWorkspace::OnPlayButton()
-{
-    Threadpool::AddTask(&EditorWorkspace::OnBuildScript, this);
-}
-
-#include "core/cmd/cmd.hpp"
-
-void EditorWorkspace::OnBuildScript()
-{
-    Console::LogInfo("[Build] Starting script build...");
-
-    std::string dir = m_project->path;
-    if (!gfile::exists(dir))
-        return Console::LogError("[Build] Project directory not found: %s", dir.c_str());
-
-    auto builddir = dir + "/.build";
-    if (!gfile::exists(builddir))
-    {
-        if (!gfile::create_directory(builddir))
-            return Console::LogError("[Build] Failed to create build directory: %s", builddir.c_str());
-
-        std::string scriptSkeletonDir = gfile::get_data_directory() + "/assets/script";
-        if (!gfile::exists(scriptSkeletonDir))
-            return Console::LogError(
-                "[Build] Script project files not found: %s",
-                scriptSkeletonDir.c_str());
-
-        if (!gfile::copy(scriptSkeletonDir.c_str(), builddir.c_str()))
-            return Console::LogError(
-                "[Build] Failed to initialize build directory from script project files.");
-    }
-
-    auto cmakebuild = builddir + "/build";
-    if (!gfile::exists(cmakebuild))
-    {
-        if (!gfile::create_directory(cmakebuild))
-            return Console::LogError("[Build] Failed to create CMake build directory: %s", cmakebuild.c_str());
-
-        std::string cmd =
-            "cd " +
-            cmakebuild +
-            " && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..";
-
-        bool retVal = Command::exec(cmd, [](std::string line)
-        {
-            Console::LogWarning(line);
-        });
-
-        if (!retVal)
-            return Console::LogError("[Build] CMake configuration failed.");
-    }
-
-    std::string cmd = "cmake --build " + cmakebuild;
-
-    bool retVal = Command::exec(cmd, [](std::string line)
-    {
-        Console::LogWarning(line);
-    });
-
-    if (!retVal)
-        return Console::LogError("[Build] Script compilation failed.");
-
-    Console::LogInfo("[Build] Script compiled successfully.");
-
-    MainThreadDispatcher::Queue(&EditorWorkspace::loadScript, this, builddir + "/lib");
-}
-
-void EditorWorkspace::OnPostSaveSnapshot(std::string file)
-{
-    std::cout << "PlayGame" << std::endl;
-
-    // m_playMode = std::make_unique<EditorRuntime>();
-    // m_runtime = m_playMode.get();
-    // m_runtime->initialize();
-
-    m_scene = nullptr;
-}
-
-void EditorWorkspace::OnPostLoadSnapshot(Scene* scene)
-{
-    m_scene = scene;
-
-    Settings::bGameRunning = true;
-
-    // ComponentStorage::Start();
-
-    // set_scene(scene);
-}
-
-void EditorWorkspace::OnStopButton()
-{
-    MainThreadDispatcher::Add(Priority::HIGHT, [&]
-    {
-
-        if (m_scene != nullptr)
-            m_scene->deselect_all();
-
-        m_state = EngineState::Edit;
-
-        m_playMode = nullptr;
-
-        m_runtime = m_editMode.get();
-        m_runtime->initialize();
-
-        m_scene = SceneManager::GetCurrent();
-        m_scene->SetCamera(m_cameraID);
-
-        Settings::bGameRunning = false;
-
-        Console::LogDefault("Game stoped.");
-    });
-}
-*/
-
-void EditorWorkspace::drop_gameobject_in_scene()
-{
-    auto isOpen = ImGui::BeginDragDropTarget();
-    if (!isOpen)
-        return;
-
-    auto payload = ImGui::AcceptDragDropPayload("AssetID");
-    if (payload == nullptr)
-        return ImGui::EndDragDropTarget();
-
-    size_t count =
-        payload->DataSize / sizeof(AssetID);
-
-    AssetID* assets
-        = (AssetID*)payload->Data;
-
-    for (size_t i=0;i<count;i++)
-    {
-        auto info = AssetDB::GetAsset(assets[i]);
-        if (info == nullptr)
-            continue;
-
-        if (info->type == AssetType_Model)
-            AssetsManager::LoadGameObjectAsync(
-                    info->uri,
-                    [&](Entity entity)
-                    {
-                        context.selector.deselect_all();
-                        context.selector.select(entity);
-                    }
-                );
-    }
-
-    ImGui::EndDragDropTarget();
-}
-
 void EditorWorkspace::create_window_property()
 {
     if (ImGui::Begin("property", NULL, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysHorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar) &&
@@ -1486,50 +1027,6 @@ void EditorWorkspace::create_popup()
 
     PopupMenuAdd();
 }
-
-/*
-#include <gr-base/system/physicsSystem.hpp>
-
-void EditorWorkspace::create_popup_create_scene()
-{
-    auto isOpen = ImGui::BeginPopup(GET_FLAG_NAME(EditorPopupFlags_CreateScene));
-    if (!isOpen)
-        return;
-
-    ImGui::Text("Input scene name");
-
-    if (!ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-        ImGui::SetKeyboardFocusHere();
-
-    std::vector<char> buffer(256, '\0');
-    if (ImGui::InputText("##popup_create_scene_inputtext", buffer.data(), buffer.size() - 1, ImGuiInputTextFlags_EnterReturnsTrue))
-    {
-        std::string name = buffer.data();
-
-        m_scene = SceneManager::Create(name);
-        SceneManager::SetActive(m_scene);
-
-        m_scene->AddSystem<CameraEditorSystem>();
-        m_scene->AddSystem<TransformSystem>();
-        m_scene->AddSystem<CameraSystem>();
-
-        m_scene->AddSystem<RenderSystem>();
-        m_scene->AddSystem<PhysicsSystem>();
-
-        Entity camera = m_scene->create("MainCamera");
-        {
-            GameObject go(m_scene, camera);
-            go.AddComponent<CameraData>();
-            go.GetOrAddComponent<Camera>()->rendertarget = m_backbuffer.get();
-        }
-
-        m_scene->SetMainCamera(camera);
-
-        ImGui::CloseCurrentPopup();
-    }
-    ImGui::EndPopup();
-}
-*/
 
 static int MyInputCallback(ImGuiInputTextCallbackData* data)
 {
@@ -1634,30 +1131,6 @@ void EditorWorkspace::create_popup_rename_object()
     }
 
     ImGui::EndPopup();
-}
-
-void EditorWorkspace::dropScriptInAddComponent()
-{
-    /*if (s_objectSelected == nullptr || !ImGui::BeginDragDropTarget())
-    {
-        return;
-    }
-    
-    auto data = ImGui::AcceptDragDropPayload(m_extensionDragDrop[DragDropFlags::SCRIPT], ImGuiDragDropFlags_None);
-    if (!data)
-    {
-        return ImGui::EndDragDropTarget();
-    }
-
-    std::filesystem::path file = std::string((char*)data->Data, data->DataSize);
-
-    auto entity = s_objectSelected->getEntity();
-    if (entity != nullptr)
-    {
-        entity->addComponent(file.filename().replace_extension().string());
-    }
-    ImGui::EndDragDropTarget();
-    */
 }
 
 void EditorWorkspace::ShowComponentInfoUI(GameObject& go, const ComponentInfo* info)
@@ -1772,17 +1245,17 @@ void EditorWorkspace::renderDropGameObject(GameObject **ref)
 }
 
 /* ********** Propriedades ********** */
-void EditorWorkspace::OnPropertyTransformLocal(GameObject& go, TransformLocal *transform)
+void EditorWorkspace::OnPropertyTransformLocal(GameObject& go, TransformLocal& transform)
 {
     bool dirty = false;
 
     ImGui::Text("Position");
-    dirty |= ImGui::DragFloat3("##engine_ui_transform_position", transform->position.data);
+    dirty |= ImGui::DragFloat3("##engine_ui_transform_position", transform.position.data);
     
     ImGui::Text("Scale");
-    dirty |= ImGui::DragFloat3("##engine_ui_transform_scale", transform->scale.data);
+    dirty |= ImGui::DragFloat3("##engine_ui_transform_scale", transform.scale.data);
 
-    auto euler = Math::eulerAngles(transform->rotation);
+    auto euler = Math::eulerAngles(transform.rotation);
     euler.x = Math::degree(euler.x);
     euler.y = Math::degree(euler.y);
     euler.z = Math::degree(euler.z);
@@ -1790,7 +1263,7 @@ void EditorWorkspace::OnPropertyTransformLocal(GameObject& go, TransformLocal *t
     ImGui::Text("Rotation");
     if (ImGui::DragFloat3("##engine_ui_transform_rotation", &euler[0]))
     {
-        transform->rotation =
+        transform.rotation =
             Math::normalize(Math::euler(Vector3{Math::rad(euler.x), Math::rad(euler.y), Math::rad(euler.z)}));
 
         dirty = true;
@@ -1800,15 +1273,15 @@ void EditorWorkspace::OnPropertyTransformLocal(GameObject& go, TransformLocal *t
         context.scene->MarkChanged<TransformWorld>(go.entity);
 }
 
-void EditorWorkspace::OnPropertyCamera(GameObject& go, Camera *camera)
+void EditorWorkspace::OnPropertyCamera(GameObject& go, Camera& camera)
 {
     auto avail = ImGui::GetContentRegionAvail();
 
     ImGui::Text("Far plane");
-    ImGui::DragFloat("##camera_farplane", &camera->farPlane, 1.0f, 0.0f, 1000.0f);
+    ImGui::DragFloat("##camera_farplane", &camera.farPlane, 1.0f, 0.0f, 1000.0f);
 
     ImGui::Text("Near plane");
-    ImGui::DragFloat("##camera_nearplane", &camera->nearPlane, 0.1f, 0.0f, 10.0f);
+    ImGui::DragFloat("##camera_nearplane", &camera.nearPlane, 0.1f, 0.0f, 10.0f);
 
     /*
     m_cameraObjectSelected = ImGui::CollapsingHeader("Render") ? camera : nullptr;
@@ -1825,13 +1298,13 @@ void EditorWorkspace::OnPropertyCamera(GameObject& go, Camera *camera)
     */
 }
 
-void EditorWorkspace::OnPropertyMeshFilter(GameObject& go, MeshFilter *meshFilter)
+void EditorWorkspace::OnPropertyMeshFilter(GameObject& go, MeshFilter& meshFilter)
 {
-    auto mesh = AssetsManager::GetMesh(meshFilter->mesh);
+    auto mesh = AssetsManager::GetMesh(meshFilter.mesh);
     if (mesh == nullptr)
         return ImGui::Text("No mesh");
 
-    ImGui::Text("Mesh Handle: %d", meshFilter->mesh);
+    ImGui::Text("Mesh Handle: %d", meshFilter.mesh);
     ImGui::Text("Vertices: %ld", mesh->numVertices);
     ImGui::Text("Indices: %ld", mesh->numIndices);
     ImGui::Text("Sub: %ld", mesh->numSubmeshes);
@@ -1844,7 +1317,7 @@ void EditorWorkspace::OnPropertyMeshFilter(GameObject& go, MeshFilter *meshFilte
     }
 }
 
-void EditorWorkspace::OnPropertyMeshRender(GameObject& go, MeshRender *meshRender)
+void EditorWorkspace::OnPropertyMeshRender(GameObject& go, MeshRender& meshRender)
 {
     auto avail = ImGui::GetContentRegionAvail();
     
@@ -1852,56 +1325,53 @@ void EditorWorkspace::OnPropertyMeshRender(GameObject& go, MeshRender *meshRende
     {}
 
     ImGui::Indent();
-    for (size_t i=0;i<meshRender->numMaterials;i++)
+    for (size_t i=0;i<meshRender.numMaterials;i++)
     {
-        auto& material = meshRender->materials[i];
+        auto& material = meshRender.materials[i];
 
         ImGui::Text("Material: %d", material);
     }
     ImGui::Unindent();
 }
 
-void EditorWorkspace::OnPropertyLight(GameObject& go, Light *light)
+void EditorWorkspace::OnPropertyLight(GameObject& go, Light& light)
 {
-    int elem = static_cast<int>(light->type);
+    LightType type =
+        light.type;
     
-    const char* elems_names[3] = {"Directional", "Point", "Spot"};
-    
-    const char* elem_name = (elem >= 0 && elem < 3) ? elems_names[elem] : "Unknown";
-
     ImGui::Text("Type");
-    if (ImGui::SliderInt("##light_type", &elem, 0, 3 - 1, elem_name))
-        light->type = static_cast<LightType>(elem);
+    if (ImGui::SliderInt("##light_type", (int*)&type, LightType_Direction, LightType_Spot, kLightTypeName[type]))
+        light.type = type;
     
-    if (light->type != LightType::eDirection)
+    if (light.type != LightType_Direction)
     {
         ImGui::Text("Constant");
-        ImGui::DragFloat("##light_constant", &light->attenuationConstant, 0.01f, 0.0f, 10.0f);
+        ImGui::DragFloat("##light_constant", &light.attenuationConstant, 0.01f, 0.0f, 10.0f);
 
         ImGui::Text("Linear");
-        ImGui::DragFloat("##light_linear", &light->attenuationLinear, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("##light_linear", &light.attenuationLinear, 0.001f, 0.0f, 1.0f);
 
         ImGui::Text("Quadract");
-        ImGui::DragFloat("##light_quadract", &light->attenuationQuadratic, 0.001f, 0.0f, 2.0f);
+        ImGui::DragFloat("##light_quadract", &light.attenuationQuadratic, 0.001f, 0.0f, 2.0f);
 
-        if (light->type == LightType::eSpot)
+        if (light.type == LightType_Spot)
         {
             ImGui::Text("Inner angle:");
-            ImGui::DragFloat("##light_inconer", &light->angleInnerCone, 0.1f, 0.0f, 180.0f);
+            ImGui::DragFloat("##light_inconer", &light.angleInnerCone, 0.1f, 0.0f, 180.0f);
 
             ImGui::Text("Outer angle:");
-            ImGui::DragFloat("##light_outerconner", &light->angleOuterCone, 0.1f, 0.0f, 180.0f);
+            ImGui::DragFloat("##light_outerconner", &light.angleOuterCone, 0.1f, 0.0f, 180.0f);
         }
     }
 
     ImGui::Text("Color");
     
-    if (ImGui::ColorButton("##light_color", *reinterpret_cast<ImVec4 *>(&light->color)))
+    if (ImGui::ColorButton("##light_color", *reinterpret_cast<ImVec4 *>(&light.color)))
         ImGui::OpenPopup("##light_color_popup");
     
     if (ImGui::BeginPopup("##light_color_popup"))
     {
-        ImGui::ColorPicker4("#light_color_pick", reinterpret_cast<float *>(&light->color));
+        ImGui::ColorPicker4("#light_color_pick", reinterpret_cast<float *>(&light.color));
 
         ImGui::EndPopup();
     }

@@ -6,7 +6,7 @@
 
 #include <gr-base/ecs/default.hpp>
 
-class CameraEditorSystem : public ISystemImpl<Read<>, Write<>>
+class CameraEditorSystem : public ISystemImpl<Read<>, Write<TransformLocal>>
 {
 public:
     CameraEditorSystem();
@@ -21,7 +21,7 @@ public:
 
     void Update() override;
 
-    void ProcessMouse(const Vector2 &delta, TransformLocal *transform);
+    void updateMouse(const Vector2 &delta, TransformLocal *transform);
 };
 
 template <>

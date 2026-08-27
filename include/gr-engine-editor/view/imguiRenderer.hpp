@@ -9,22 +9,23 @@
 class ImguiRenderer
 {
 public:
-    static void Initialize();
+    ImguiRenderer();
+
+    void initialize();
     
-    static void Shutdown();
+    void shutdown();
 
-    static void PushStyle(ImGuiStyle& dst);
+    void pushStyle(ImGuiStyle& dst);
 
-    static void SetConfigPath(const std::string& path);
+    void setConfigPath(const std::string& path);
 
-    static void Begin();
+    void begin();
 
-    static void End();
-
-    static ImGuiIO *GetIO();
+    void end();
 
 protected:
-    static ImGuiIO *m_io;
+    ImGuiIO *m_io =
+        nullptr;
 };
 
 

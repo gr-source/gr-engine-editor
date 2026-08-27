@@ -6,9 +6,10 @@
 
 #include <GLFW/glfw3.h>
 
-ImGuiIO *ImguiRenderer::m_io = nullptr;
+ImguiRenderer::ImguiRenderer() : m_io(nullptr)
+{}
 
-void ImguiRenderer::Initialize()
+void ImguiRenderer::initialize()
 {
     logger::info("[ImguiRenderer] Initialize.");
 
@@ -16,7 +17,7 @@ void ImguiRenderer::Initialize()
     ImGui::CreateContext();
 
     ImGui::StyleColorsDark();
-    PushStyle(ImGui::GetStyle());
+    pushStyle(ImGui::GetStyle());
 
     ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
     ImGui_ImplOpenGL3_Init("#version 330 core");
@@ -30,10 +31,10 @@ void ImguiRenderer::Initialize()
 
     m_io->Fonts->AddFontFromFileTTF("/usr/share/fonts/Adwaita/AdwaitaMono-Bold.ttf", 16.0f, &config);
 
-    SetConfigPath((gfile::get_config_directory() + "/imgui.ini").c_str());
+    setConfigPath((gfile::get_config_directory() + "/imgui.ini").c_str());
 }
 
-void ImguiRenderer::Shutdown()
+void ImguiRenderer::shutdown()
 {
     logger::info("[ImguiRenderer] Shutdown");
 
@@ -46,7 +47,8 @@ void ImguiRenderer::Shutdown()
     //     free((void*)m_io->IniFilename);
 }
 
-void ImguiRenderer::PushStyle(ImGuiStyle& dst) {
+void ImguiRenderer::pushStyle(ImGuiStyle& dst)
+{
     ImVec4* colors = dst.Colors;
 
     colors[ImGuiCol_Text]                   = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
@@ -112,28 +114,25 @@ void ImguiRenderer::PushStyle(ImGuiStyle& dst) {
     dst.SeparatorTextAlign = {0.5f, 0.5f};
 }
 
-void ImguiRenderer::SetConfigPath(const std::string& path)
+void ImguiRenderer::setConfigPath(const std::string& path)
 {
     m_io->IniFilename = strdup(path.c_str());
 
     logger::debug("[ImguiRenderer] Set config file '%s'", path.c_str());
 }
 
-void ImguiRenderer::Begin() {
+void ImguiRenderer::begin()
+{
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 }
 
-void ImguiRenderer::End() {
+void ImguiRenderer::end()
+{
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
-
-ImGuiIO *ImguiRenderer::GetIO() {
-    return m_io;
-}
-
 
 
 
