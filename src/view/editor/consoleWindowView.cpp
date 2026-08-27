@@ -13,13 +13,22 @@ ConsoleWindowView::ConsoleWindowView()
 
 void ConsoleWindowView::Draw()
 {
-    if (ImGui::Begin("Console"))
-        render();
+    if (!ImGui::Begin("Console"))
+        return ImGui::End();
+
+    draw_menu();
+
+    if (ImGui::BeginChild("scrolling", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar))
+    {
+        draw_child();
+    }
+
+    ImGui::EndChild();
 
     ImGui::End();
 }
 
-void ConsoleWindowView::render()
+void ConsoleWindowView::draw_menu()
 {
     if (ImGui::Button("Text"))
     {
@@ -31,7 +40,10 @@ void ConsoleWindowView::render()
             "{FFFFFF}normal novamente"
         );
     }
+}
 
+void ConsoleWindowView::draw_child()
+{
     std::deque<std::string> messages;
 
     {
@@ -47,11 +59,12 @@ void ConsoleWindowView::render()
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
             show(messages[i].c_str());
     }
+    clipper.End();
 
     // for (auto& message : messages)
         // show(message.c_str());
 
-    if (bScroolConsole.load(std::memory_order_acquire))
+    if (bScroolConsole.load(std::memory_order_acquire) && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
     {
         bScroolConsole.store(false, std::memory_order_release);
 

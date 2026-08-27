@@ -73,6 +73,7 @@ private:
         INVALID_SPARSE_ID;
 
     AssetPtr<gr::texture> m_fileTexture;
+    AssetPtr<gr::texture> m_dirTexture;
 
     std::unordered_set<AssetID> m_selected_assets;
 

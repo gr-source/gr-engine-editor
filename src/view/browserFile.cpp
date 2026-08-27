@@ -44,7 +44,10 @@ BrowserFile::BrowserFile(EditorContext* context) :
 
     m_hashmap.emplace(root->hash, entryRootID);
 
-    m_fileTexture = context->iconsUI[IconType::ICON_FILE];
+    m_fileTexture =
+        context->iconsUI[IconType::ICON_FILE];
+    m_dirTexture =
+        context->iconsUI[IconType::ICON_FOLDER];
 
     EventManager::Subscribe<AssetEventOnCreated>(
             &BrowserFile::onAssetCreated,
@@ -191,6 +194,8 @@ void BrowserFile::render_virtual_entries(EntryID entryID)
 
     auto& name = info.name;
     ImGui::SeparatorText(name.c_str());
+
+    auto avail = ImGui::GetContentRegionAvail();
 
     ImGui::Columns(4, nullptr, false);
     for (size_t i=0;i<info.children.size();i++)

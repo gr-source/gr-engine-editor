@@ -23,7 +23,9 @@ private:
 
     void Draw() override;
 
-    void render();
+    void draw_menu();
+
+    void draw_child();
 
     void show(const char* message);
 

@@ -15,8 +15,6 @@ public:
 
     static void PushStyle(ImGuiStyle& dst);
 
-    static void SetFont(const std::string& path);
-
     static void SetConfigPath(const std::string& path);
 
     static void Begin();

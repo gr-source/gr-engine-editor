@@ -85,10 +85,11 @@ bool ImguiWidget::CloseButton() {
     return false;
 }
 
+#include <iostream>
 bool ImguiWidget::ImageAndTextButton(ImTextureID textureID, const char *label, bool selected, ImVec2 size)
 {
-    size.x = size.x <= 0.0f ? 40.0f : size.x;
-    size.y = size.y <= 0.0f ? 40.0f : size.y;
+    size.x = size.x <= 0.0f ? 32.0f : size.x;
+    size.y = size.y <= 0.0f ? 32.0f : size.y;
 
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
@@ -102,7 +103,7 @@ bool ImguiWidget::ImageAndTextButton(ImTextureID textureID, const char *label, b
     const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size + padding * 2.0f);
 
     bool press = ImGui::InvisibleButton(label, (size + padding * 2.0f) + textSize);
-    
+
     window->DrawList->AddImage(textureID, bb.Min + padding, bb.Max - padding, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), selected ? IM_COL32(0, 255, 0, 255) : IM_COL32(255, 255, 255, 255));
 
     ImVec2 button_pos{bb.Min.x, bb.Max.y};

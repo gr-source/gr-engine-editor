@@ -23,7 +23,12 @@ void ImguiRenderer::Initialize()
 
     m_io = &ImGui::GetIO();
     m_io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    SetFont("/usr/share/fonts/Adwaita/AdwaitaMono-Bold.ttf");
+
+    ImFontConfig config;
+    // config.MergeMode = true;
+    config.PixelSnapH = true;
+
+    m_io->Fonts->AddFontFromFileTTF("/usr/share/fonts/Adwaita/AdwaitaMono-Bold.ttf", 16.0f, &config);
 
     SetConfigPath((gfile::get_config_directory() + "/imgui.ini").c_str());
 }
@@ -105,13 +110,6 @@ void ImguiRenderer::PushStyle(ImGuiStyle& dst) {
     dst.TabRounding = 2.0f;
     dst.WindowTitleAlign = {0.5f, 0.5f};
     dst.SeparatorTextAlign = {0.5f, 0.5f};
-}
-
-void ImguiRenderer::SetFont(const std::string& path)
-{
-    m_io->Fonts->AddFontFromFileTTF(path.c_str(), 16.5f);
-
-    logger::debug("[ImguiRenderer] Set font file '%s'", path.c_str());
 }
 
 void ImguiRenderer::SetConfigPath(const std::string& path)
