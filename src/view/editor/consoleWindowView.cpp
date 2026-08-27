@@ -32,75 +32,83 @@ void ConsoleWindowView::draw_menu()
 {
     if (ImGui::Button("Text"))
     {
-        Console::LogDefault(
+        std::lock_guard<std::mutex> lock(m_mutex);
+        gTextBuffer.append(
             "Texto normal "
             "{FF0000}vermelho "
             "{00FF00}verde "
             "{0000FF}azul "
             "{FFFFFF}normal novamente"
+            "\n"
         );
     }
 }
 
 void ConsoleWindowView::draw_child()
 {
-    std::deque<std::string> messages;
+    TextBuffer textBuffer;
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        messages = m_messages;
+        textBuffer = gTextBuffer;
     }
 
     ImGuiListClipper clipper;
-    clipper.Begin((int)messages.size());
+    clipper.Begin((int)textBuffer.lineOffsets.size());
+
+    const auto& LineOffsets = textBuffer.lineOffsets;
+    const char* buf = textBuffer.begin();
+    const char* buf_end = textBuffer.end();
 
     while (clipper.Step())
     {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
-            show(messages[i].c_str());
+        {
+            const char* line_start = buf + LineOffsets[i];
+            const char* line_end = (i + 1 < LineOffsets.size()) ? (buf + LineOffsets[i + 1] - 1) : buf_end;
+            show(line_start, line_end);
+        }
     }
     clipper.End();
 
-    // for (auto& message : messages)
-        // show(message.c_str());
-
-    if (bScroolConsole.load(std::memory_order_acquire) && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
-    {
-        bScroolConsole.store(false, std::memory_order_release);
-
+    if (gAutoScrool && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
         ImGui::SetScrollHereY(1.0f);
-    }
 }
 
-void ConsoleWindowView::show(const char* p)
+void ConsoleWindowView::show(const char* line_start, const char* line_end)
 {
-    ImColor color(255, 255, 255, 255);
+    if (line_start == line_end)
+        return;
+    
+    ImColor color = { 255, 255, 255, 255 };
 
-    while (*p)
+    while (*line_start && line_start != line_end)
     {
-        if (*p != '{')
+        if (*line_start != '{')
         {
-            const char* start = p;
+            const char* start = line_start;
 
-            while (*p && *p != '{')
-                ++p;
+            while (*line_start && line_start != line_end && *line_start != '{')
+                ++line_start;
+
+            int length = (int)(line_start - start);
 
             ImGui::TextColored(color, "%.*s",
-                static_cast<int>(p - start),
+                length,
                 start);
-            if (*p)
+            if (*line_start && line_start != line_end)
                 ImGui::SameLine(0.0f, 0.0f);
         }
         else
         {
-            ++p;
+            ++line_start;
 
-            const char* start = p;
+            const char* start = line_start;
 
-            while (*p && *p != '}')
-                ++p;
+            while (*line_start && line_start != line_end && *line_start != '}')
+                ++line_start;
 
-            if (*p == '}')
+            if (*line_start == '}')
             {
                 uint32_t bgra = (uint32_t)strtol(start, nullptr, 16);
                 bgra = ((bgra & 0x00FFFFFF) | 0xFF000000);
@@ -112,7 +120,7 @@ void ConsoleWindowView::show(const char* p)
 
                 color = ImColor(IM_COL32(r, g, b, a));
 
-                ++p;
+                ++line_start;
             }
         }
     }
@@ -120,15 +128,8 @@ void ConsoleWindowView::show(const char* p)
 
 void ConsoleWindowView::onAddMessage(Console_onAddMessage& event)
 {
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        if (m_messages.size() >= 1000)
-            m_messages.pop_front();
-
-        m_messages.push_back(event.message);
-    }
-
-    bScroolConsole.store(true, std::memory_order_release);
+    std::lock_guard<std::mutex> lock(m_mutex);
+    gTextBuffer.append("%s\n", event.message.c_str());
 }
 
 
