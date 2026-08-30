@@ -5,7 +5,7 @@
 struct CameraEditor
 {};
 
-template <>
-inline constexpr TypeCategory engine::type_traits::category<CameraEditor> =
-    TypeCategory::Component;
+// template <>
+// inline constexpr TypeCategory engine::type_traits::category<CameraEditor> =
+//     TypeCategory::Component;
 

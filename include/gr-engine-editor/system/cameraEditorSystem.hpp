@@ -24,8 +24,14 @@ public:
     void updateMouse(const Vector2 &delta, TransformLocal *transform);
 };
 
+namespace engine
+{
 template <>
-inline constexpr TypeCategory engine::type_traits::category<CameraEditorSystem> =
-    TypeCategory::System;
+struct category_traits<CameraEditorSystem>
+{
+    static constexpr TypeCategory value =
+        TypeCategory::System;
+};
+}
 
 

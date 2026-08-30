@@ -75,11 +75,11 @@
 #include <gr-base/task/shaderbuildtask.hpp>
 
 static constexpr Hash64 kBuiltinSystems[] = {
-    engine::type_traits::hash<CameraEditorSystem>,
+    engine::type_traits<CameraEditorSystem>::hash,
 };
 
 static constexpr Hash64 kBuiltinComponents[] = {
-    engine::type_traits::hash<CameraEditor>,
+    // engine::type_traits::hash<CameraEditor>,
 };
 
 
@@ -1304,7 +1304,7 @@ void EditorWorkspace::OnPropertyMeshFilter(GameObject& go, MeshFilter& meshFilte
     if (mesh == nullptr)
         return ImGui::Text("No mesh");
 
-    ImGui::Text("Mesh Handle: %d", meshFilter.mesh);
+    ImGui::Text("Mesh Handle: %d", static_cast<MeshID>(meshFilter.mesh).value);
     ImGui::Text("Vertices: %ld", mesh->numVertices);
     ImGui::Text("Indices: %ld", mesh->numIndices);
     ImGui::Text("Sub: %ld", mesh->numSubmeshes);
