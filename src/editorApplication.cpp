@@ -16,7 +16,9 @@
 
 #include <gr-render/gRender.h>
 
-EditorApplication::EditorApplication() : m_project(nullptr), config(nullptr)
+EditorApplication::EditorApplication() :
+    m_project(nullptr),
+    config(nullptr)
 {}
 
 EditorApplication::~EditorApplication()
@@ -45,8 +47,11 @@ void EditorApplication::initialize()
             this
         );
 
-    cameraUBO.Create(0, sizeof(CameraBuffer));
-    lightUBO.Create(1, sizeof(LightBuffer));
+    cameraUBO = std::make_unique<engine::renderer::UniformBuffer>(sizeof(CameraBuffer)),
+    lightUBO = std::make_unique<engine::renderer::UniformBuffer>(sizeof(LightBuffer));
+
+    // cameraUBO.Create(0, sizeof(CameraBuffer));
+    // lightUBO.Create(1, sizeof(LightBuffer));
 
     MakeWorkspace<MainWorkspace>();
 }
@@ -59,9 +64,6 @@ void EditorApplication::shutdown()
     gworkspace = nullptr;
 
     imgui.shutdown();
-
-    cameraUBO.Destroy();
-    lightUBO.Destroy();
 
     runtime.shutdown();
 
@@ -150,6 +152,9 @@ void EditorApplication::update()
 
 void EditorApplication::renderer()
 {
+    cameraUBO->attach(0);
+    lightUBO->attach(1);
+
     auto scene = Scene::GetCurrent();
     if (scene != nullptr)
         drawScene(scene);
@@ -226,8 +231,8 @@ void EditorApplication::drawScene(Scene* scene)
         }
     });
 
-    cameraUBO.Update(cameraBuffer);
-    lightUBO.Update(lightBuffer);
+    cameraUBO->Update(cameraBuffer);
+    lightUBO->Update(lightBuffer);
 
     Frustum::CalculateFrustum(cameraData->projection * cameraData->view);
 

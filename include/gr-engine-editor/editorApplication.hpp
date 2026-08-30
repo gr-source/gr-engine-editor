@@ -90,8 +90,8 @@ private:
 
     Runtime runtime;
 
-    engine::renderer::UniformBuffer cameraUBO;
-    engine::renderer::UniformBuffer lightUBO;
+    std::unique_ptr<engine::renderer::UniformBuffer> cameraUBO;
+    std::unique_ptr<engine::renderer::UniformBuffer> lightUBO;
 
     void beginFrame();
 

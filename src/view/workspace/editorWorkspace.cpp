@@ -203,7 +203,7 @@ EditorWorkspace::EditorWorkspace()
 
     loadComponentName();
 
-    RenderPipelineManager::Register<ForwardPipeline>(RenderPipelineForward);
+    RenderPipelineManager::Register<ForwardPipeline>(PipelineForward);
 }
 
 EditorWorkspace::~EditorWorkspace()
