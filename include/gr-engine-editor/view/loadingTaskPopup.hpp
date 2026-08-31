@@ -1,6 +1,6 @@
 #pragma once
 
-#include "view/ipopupView.hpp"
+#include "view/iwindowView.hpp"
 
 #include "gr-base/pool/objectPool.hpp"
 
@@ -12,7 +12,7 @@ struct LoadingTaskInfo
     std::string message;
 };
 
-class LoadingTaskPopup : public IPopupView
+class LoadingTaskPopup : public IWindowView
 {
 public:
     static Handle Create(const std::string& title, const std::string& message);

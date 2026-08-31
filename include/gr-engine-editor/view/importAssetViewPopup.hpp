@@ -1,10 +1,10 @@
 #pragma once
 
+#include "view/iwindowView.hpp"
+
 #include "event/importAssetViewPopupEvent.hpp"
 
-#include "view/ipopupView.hpp"
-
-class ImportAssetViewPopup : public IPopupView
+class ImportAssetViewPopup : public IWindowView
 {
 public:
     ImportAssetViewPopup();

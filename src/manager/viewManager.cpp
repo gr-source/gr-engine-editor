@@ -11,17 +11,10 @@ void ViewManager::renderer()
         if (view != nullptr)
             view->Render();
     }
-
-    for (auto& view : m_popups)
-    {
-        if (view != nullptr)
-            view->Render();
-    }
 }
 
 void ViewManager::clear()
 {
-    m_popups.clear();
     m_windows.clear();
 }
 

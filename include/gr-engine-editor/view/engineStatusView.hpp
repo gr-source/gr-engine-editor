@@ -1,10 +1,10 @@
 #pragma once
 
+#include "view/iwindowView.hpp"
+
 #include "gr-base/core/default.hpp"
 
-#include "view/windowView.hpp"
-
-class EngineStatusView : public WindowView
+class EngineStatusView : public IWindowView
 {
 public:
 private:

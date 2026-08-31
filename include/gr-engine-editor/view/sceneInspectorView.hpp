@@ -1,12 +1,12 @@
 #pragma once
 
+#include "view/iwindowView.hpp"
+
 #include "gr-base/core/system.hpp"
 
 #include "gr-base/ecs/typeinfo.hpp"
 
-#include "view/windowView.hpp"
-
-class SceneInspectorView : public WindowView
+class SceneInspectorView : public IWindowView
 {
 public:
     void Draw() override;

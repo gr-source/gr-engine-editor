@@ -1,7 +1,8 @@
 #pragma once
 
+#include "view/iwindowView.hpp"
+
 #include "gr-base/core/default.hpp"
-#include "view/windowView.hpp"
 
 #include <gr-base/pool/sparseSet.hpp>
 
@@ -22,7 +23,7 @@
 
 struct EditorContext;
 
-class BrowserFile : public WindowView
+class BrowserFile : public IWindowView
 {
 public:
     BrowserFile(EditorContext* context);

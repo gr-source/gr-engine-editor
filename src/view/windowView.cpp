@@ -1,6 +1,6 @@
-#include "view/windowView.hpp"
+#include "view/iwindowView.hpp"
 
-void WindowView::Render()
+void IWindowView::Render()
 {
     if (!open)
         return;

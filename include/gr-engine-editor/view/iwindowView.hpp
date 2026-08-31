@@ -2,7 +2,7 @@
 
 #include "view/iview.hpp"
 
-class WindowView : public IView
+class IWindowView : public IView
 {
 public:
     bool open = false;

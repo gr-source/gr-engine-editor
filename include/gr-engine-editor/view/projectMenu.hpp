@@ -13,16 +13,16 @@
 
 #include "core/project.hpp"
 
-#include "windowView.hpp"
+#include "iwindowView.hpp"
 
-using ProjectMenuPopup_ = std::uint32_t;
+typedef uint32_t ProjectMenuPopup;
 
-enum ProjectMenuPopup : ProjectMenuPopup_
+enum ProjectMenuPopup_
 {
     ProjectMenuPopup_CreateProject = 1 << 1,
 };
 
-class ProjectMenu : public WindowView
+class ProjectMenu : public IWindowView
 {
 public:
     static std::shared_ptr<Project> Load(const std::string& path);
@@ -39,7 +39,7 @@ private:
 
     ImGuiStyle *m_style;
 
-    ProjectMenuPopup_ popup_flags;
+    ProjectMenuPopup popup_flags;
 
     ImGuiIO *m_io;
 

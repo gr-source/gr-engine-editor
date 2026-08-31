@@ -1,9 +1,9 @@
 #pragma once
 
+#include "view/iwindowView.hpp"
+
 #include "gr-base/core/assetDB.hpp"
 #include "gr-base/core/default.hpp"
-
-#include "view/windowView.hpp"
 
 #include <gr-base/ecs/default.hpp>
 
@@ -13,7 +13,7 @@
 
 struct EditorContext;
 
-class SpawnObject : public WindowView
+class SpawnObject : public IWindowView
 {
     int numInstances;
 

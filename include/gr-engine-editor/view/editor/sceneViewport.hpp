@@ -1,7 +1,8 @@
 #pragma once
 
+#include "view/iwindowView.hpp"
+
 #include "view/editor/editorContext.hpp"
-#include "view/windowView.hpp"
 
 #include <gr-base/core/assetPtr.hpp>
 
@@ -20,7 +21,7 @@ struct GameObject;
 
 class Scene;
 
-class SceneViewport : public WindowView
+class SceneViewport : public IWindowView
 {
 public:
     SceneViewport(EditorContext* context);

@@ -1,12 +1,12 @@
 #pragma once
 
-#include "view/ipopupView.hpp"
+#include "view/iwindowView.hpp"
 
 #include <cstdint>
 #include <functional>
 #include <string>
 
-class CheckUpdate : public IPopupView
+class CheckUpdate : public IWindowView
 {
 public:
     CheckUpdate();

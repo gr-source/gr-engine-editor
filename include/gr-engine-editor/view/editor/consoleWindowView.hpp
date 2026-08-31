@@ -1,16 +1,14 @@
 #pragma once
 
+#include "view/iwindowView.hpp"
+
 #include "gr-base/core/console.hpp"
-#include "view/windowView.hpp"
 
 #include <cstring>
 #include <vector>
-#include <atomic>
-#include <string>
-#include <deque>
 #include <mutex>
 
-class ConsoleWindowView : public WindowView
+class ConsoleWindowView : public IWindowView
 {
 public:
     ConsoleWindowView();
