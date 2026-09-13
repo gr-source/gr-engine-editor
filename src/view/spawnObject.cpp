@@ -12,6 +12,7 @@
 #include <gr-base/script/transform.hpp>
 
 #include <gr-base/script/name.hpp>
+#include <iostream>
 
 #include "imgui.h"
 
@@ -79,11 +80,15 @@ void SpawnObject::SetPrefab(Entity prefabID)
 
             gameObject.AddComponentByName("CubeMovement");
 
-            MainThreadDispatcher::Queue(5.0f, [gameObject = std::forward<GameObject>(gameObject)]() mutable
+            int index = x * numInstances + z;
+
+            MainThreadDispatcher::Queue(index * 0.8f, [gameObject = std::forward<GameObject>(gameObject)]() mutable
             {
                 if (gameObject.IsAlive())
                 {
-                    gameObject.TryAddComponent<Static>();
+                    // gameObject.TryAddComponent<Static>();
+
+                    std::cout << gameObject.GetName() << std::endl;
                 }
             });
 

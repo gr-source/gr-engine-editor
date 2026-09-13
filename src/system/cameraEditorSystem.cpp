@@ -52,8 +52,13 @@ void CameraEditorSystem::Update()
     {
         diretion = Math::normalize(diretion);
 
+        m_velocity += m_movementSpeed * 2.0f * Clock::deltaTime;
+
         transform.position +=
-            diretion * m_movementSpeed * (float)Clock::deltaTime;
+            diretion * m_velocity * (float)Clock::deltaTime;
+    } else
+    {
+        m_velocity = m_movementSpeed;
     }
 
     if (Input::IsMousePress(MOUSE_BUTTON_MIDDLE))

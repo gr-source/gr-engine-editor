@@ -16,6 +16,8 @@ public:
 
     float m_movementSpeed = 30.0f;
 
+    float m_velocity = 0.0f;
+
     float yaw = 0.0f;
     float pitch = 0.0f;
 

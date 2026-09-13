@@ -83,7 +83,12 @@ void EngineStatusView::renderer(Scene* scene)
         {
             const auto& arche = storage.archetypes[i];
 
-            if (ImGui::TreeNode((void*)(intptr_t)i, "Archetype %zu", i))
+            char archename[128];
+            sprintf(archename, "Archetype %zu", i);
+
+            ImGui::PushID(archename);
+
+            if (ImGui::CollapsingHeader(archename))
             {
                 // =========================
                 // COMPONENT TYPES
@@ -92,22 +97,23 @@ void EngineStatusView::renderer(Scene* scene)
 
                 if (ImGui::TreeNode("Types"))
                 {
-                    for (auto& typeID : ComponentRegistry::GetTypesOfMask(arche.mask))
+                    Signature mask = arche.mask;
+                    while (mask)
                     {
-                        auto type = ComponentRegistry::GetComponentByID(typeID);
-                        ImGui::BulletText("%s (ID: %u)", type->name, typeID);
+                        TypeID typeID = __builtin_ctzll(mask);
+
+                        if (auto info = ComponentRegistry::GetComponentByID(typeID))
+                            ImGui::BulletText("%s (ID: %u)", info->name, typeID);
+
+                        mask &= mask - 1;
                     }
+
                     ImGui::TreePop();
                 }
 
                 // =========================
                 // STORAGE STATS
                 // =========================
-                // size_t chunk_capacity =
-                    // arche.chunkCapacity;
-
-                // size_t chunks_count =
-                //     arche.chunkCount;
 
                 size_t entityCount =
                     arche.entityCount;
@@ -117,9 +123,6 @@ void EngineStatusView::renderer(Scene* scene)
 
                 size_t chunks_count =
                     arche.chunkCount;
-
-                    // arche.layout->capacity > 0
-                    //     ? (entityCount + arche.layout->capacity - 1) / arche.layout->capacity : 0;
 
                 ImGui::Text("Entities: %lu", arche.entityCount);
                 ImGui::Text("Chunks: %lu / %lu", chunks_count, chunk_capacity);
@@ -156,9 +159,9 @@ void EngineStatusView::renderer(Scene* scene)
 
                     ImGui::TreePop();
                 }
-
-                ImGui::TreePop();
             }
+
+            ImGui::PopID();
         }
     }
 
