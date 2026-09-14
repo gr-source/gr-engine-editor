@@ -1,23 +1,21 @@
-#include "editorApplication.hpp"
+#include "application.hpp"
 
 #include "event/editorApplicationEvent.hpp"
 #include "gr-base/core/logger.hpp"
 #include "gr-base/core/scene.hpp"
 #include "gr-base/managers/eventManager.hpp"
 
+#include "manager/projectManager.hpp"
 #include "view/workspace/editorWorkspace.hpp"
 #include "view/workspace/mainWorkspace.hpp"
 
 #include "view/imguiRenderer.hpp"
-
-#include "view/projectMenu.hpp"
 
 #include <gr-base/file/file.hpp>
 
 #include <gr-render/gRender.h>
 
 EditorApplication::EditorApplication() :
-    m_project(nullptr),
     config(nullptr)
 {}
 
@@ -284,13 +282,15 @@ void EditorApplication::saveConfig()
     if (config == NULL)
         return;
 
-    if (m_project != nullptr)
+    if (ProjectManager::GetInstance().Has())
     {
+        auto project = ProjectManager::GetInstance().GetCurrent();
+
         auto section =
             config_find_section(config, "project");
         if (section == nullptr)
             section = config_create_section(config, "project");
-        config_set_string(section, "path", (m_project->path + "/metadata.ini").c_str());
+        config_set_string(section, "path", (project->path + "/metadata.ini").c_str());
     }
 
     config_save(config, (gfile::get_config_directory() + "/config.ini").c_str());
@@ -298,21 +298,20 @@ void EditorApplication::saveConfig()
 
 void EditorApplication::onOpenProject(EditorApplicationEvent_onOpenProject& event)
 {
-    m_project = ProjectMenu::Load(event.path + "/metadata.ini");
-    if (m_project == nullptr)
+    if (!ProjectManager::GetInstance().Open(event.path))
         return;
-
 
     if (config == NULL)
         return;
 
-    if (m_project != nullptr)
+    auto project = ProjectManager::GetInstance().GetCurrent();
+    if (project != nullptr)
     {
         auto section =
             config_find_section(config, "project");
         if (section == nullptr)
             section = config_create_section(config, "project");
-        config_set_string(section, "path", (m_project->path + "/metadata.ini").c_str());
+        config_set_string(section, "path", (project->path + "/metadata.ini").c_str());
     }
 
     config_save(config, (gfile::get_config_directory() + "/config.ini").c_str());
@@ -324,7 +323,7 @@ void EditorApplication::onCloseProject(EditorApplicationEvent_onCloseProject& ev
 {
     MakeWorkspace<MainWorkspace>();
 
-    m_project = nullptr;
+    ProjectManager::GetInstance().Close();
 }
 
 void EditorApplication::SetWorkspace(std::unique_ptr<IWorkspace> workspace)

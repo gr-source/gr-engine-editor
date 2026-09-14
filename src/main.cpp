@@ -1,4 +1,4 @@
-#include "editorApplication.hpp"
+#include "application.hpp"
 
 extern "C"
 {

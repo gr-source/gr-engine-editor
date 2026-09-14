@@ -1,7 +1,5 @@
 #pragma once
 
-#include "core/project.hpp"
-
 #include "event/editorApplicationEvent.hpp"
 
 #include "view/imguiRenderer.hpp"
@@ -74,15 +72,8 @@ public:
 
     void dropPath(const std::vector<std::string>& entries) override;
 
-    inline Project* getProject() const
-    {
-        return m_project != nullptr ? m_project.get() : nullptr;
-    }
-
 private:
     std::unique_ptr<IWorkspace> gworkspace = nullptr;
-
-    std::shared_ptr<Project> m_project;
 
     ImguiRenderer imgui;
 

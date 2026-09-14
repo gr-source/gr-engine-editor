@@ -15,7 +15,7 @@
 #include <gr-base/ecs/world.hpp>
 
 #include "core/sandbox.hpp"
-#include "editorApplication.hpp"
+// #include "editorApplication.hpp"
 
 #include "gr-base/core/string.hpp"
 #include "gr-base/ecs/componentRegistry.hpp"
@@ -30,6 +30,7 @@
 #include "gr-base/managers/renderPipelineManager.hpp"
 #include "gr-base/render/pipeline/forwardPipeline.hpp"
 #include "imgui.h"
+#include "manager/projectManager.hpp"
 #include "script/cameraEditor.hpp"
 
 #include "system/cameraEditorSystem.hpp"
@@ -127,9 +128,9 @@ EditorWorkspace::EditorWorkspace()
 
     // Renderer::SetRenderTarget(m_backbuffer.get());
 
-    EditorApplication* engine = static_cast<EditorApplication*>(IApplication::GetInstance());
+    // EditorApplication* engine = static_cast<EditorApplication*>(IApplication::GetInstance());
 
-    m_project = engine->getProject();
+    m_project = ProjectManager::GetInstance().GetCurrent();
 
 #define INSERT_SCRIPT(object) \
     { \
@@ -202,8 +203,6 @@ EditorWorkspace::EditorWorkspace()
         );
 
     loadComponentName();
-
-    RenderPipelineManager::Register<ForwardPipeline>(PipelineForward);
 }
 
 EditorWorkspace::~EditorWorkspace()
@@ -627,6 +626,8 @@ public:
 void EditorWorkspace::Initialize()
 {
     AssetResolver::Registry<ProjectFileProvider>(Scheme_Project, m_project->path);
+
+    RenderPipelineManager::Register<ForwardPipeline>(PipelineForward);
 }
 
 void EditorWorkspace::Shutdown()

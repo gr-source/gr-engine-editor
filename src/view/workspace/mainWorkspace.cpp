@@ -38,30 +38,30 @@ void MainWorkspace::onPostCheckUpdate(MainWorkspace_onPostCheckUpdate& event)
 {
     viewManager.hide<CheckUpdate>();
 
-    std::shared_ptr<Project> project = nullptr;
+    std::string projectFile;
 
     auto config = config_create();
     if (config != NULL)
     {
-        std::string path = gfile::get_data_directory() + "/MainWorkspace.ini";
-        if (config_load(config, path.c_str()) == CONFIG_TRUE)
+        std::string metadataFile = gfile::get_data_directory() + "/MainWorkspace.ini";
+        if (config_load(config, metadataFile.c_str()) == CONFIG_TRUE)
         {
             gSection* section = config_find_section(config, "project");
             if (section != NULL)
             {
                 const char* path = config_get_string(section, "path");
                 if (path != NULL && gfile::exists(path))
-                    project = ProjectMenu::Load(path);
+                    projectFile = path;
             }
         }
     }
 
     config_release(config);
 
-    if (project != nullptr)
+    if (!projectFile.empty())
     {
         EventManager::Emit<EditorApplicationEvent_onOpenProject>({
-                .path = project->path
+                .path = projectFile
             });
     }
 }
