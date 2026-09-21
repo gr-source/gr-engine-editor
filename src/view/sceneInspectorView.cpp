@@ -58,10 +58,9 @@ void SceneInspectorView::AddSystemPopup(Scene* scene)
         {
             auto& info = infos[i];
 
-            if (scene->GetSystemByID(info.index))
-                continue;
+            bool enabled = !scene->GetSystemByID(info.index);
 
-            if (ImGui::MenuItem(info.name))
+            if (ImGui::MenuItem(info.name, nullptr, false, enabled))
                 scene->AddSystemByID(info.index);
         }
 
