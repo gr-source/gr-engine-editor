@@ -234,7 +234,7 @@ void EditorApplication::drawScene(Scene* scene)
 
     Frustum::CalculateFrustum(cameraData->projection * cameraData->view);
 
-    Renderer::BeginFrame();
+    Renderer::BeginCamera();
 
     if (gworkspace != nullptr)
         gworkspace->Render3D();
@@ -261,7 +261,7 @@ void EditorApplication::drawScene(Scene* scene)
         */
     }
 
-    Renderer::EndFrame();
+    Renderer::EndCamera();
 }
 
 void EditorApplication::loadConfig()
